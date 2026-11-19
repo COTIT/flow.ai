@@ -35,6 +35,9 @@ export interface ReturnLineResource {
   line_no: number;
   /** @nullable */
   lot_id?: string | null;
+  product_id: string;
+  /** @nullable */
+  product_name?: string | null;
   quantity: string;
   receipt_line_id: string;
   /** @nullable */
@@ -45,4 +48,6 @@ export interface ReturnLineResource {
      */
   variance?: string | null;
   warehouse_id: string;
+  /** @nullable */
+  warehouse_name?: string | null;
 }

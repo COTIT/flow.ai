@@ -47,6 +47,8 @@ pub struct ExceptionResource {
     pub occurred_at: DateTime<Utc>,
     /// Source link: `posted` or `pending_observation`.
     pub disposition: Option<String>,
+    /// From kind and state: `retry` (pending posting), `resolve` (pending discrepancy), else none.
+    pub allowed_actions: Vec<String>,
 }
 
 /// List filters.

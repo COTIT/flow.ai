@@ -21,6 +21,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BankStatementsLineCandidatesParams,
   BankStatementsLinesParams,
   BankStatementsListParams,
   EnvelopeValue,
@@ -346,6 +347,120 @@ export function useBankStatementsLines<TData = Awaited<ReturnType<typeof bankSta
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getBankStatementsLinesQueryOptions(workspace,statement,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Journal lines a statement line can be matched to, with capacity left
+ */
+export const bankStatementsLineCandidates = (
+    workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedValue>(
+      {url: `/workspace/${workspace}/accounting/bank-statements/${statement}/lines/${line}/candidates`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getBankStatementsLineCandidatesQueryKey = (workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams,) => {
+    return [
+    `/workspace/${workspace}/accounting/bank-statements/${statement}/lines/${line}/candidates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getBankStatementsLineCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError = ErrorType<MessageBody>>(workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBankStatementsLineCandidatesQueryKey(workspace,statement,line,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof bankStatementsLineCandidates>>> = ({ signal }) => bankStatementsLineCandidates(workspace,statement,line,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && statement !== null && statement !== undefined && line !== null && line !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BankStatementsLineCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof bankStatementsLineCandidates>>>
+export type BankStatementsLineCandidatesQueryError = ErrorType<MessageBody>
+
+
+export function useBankStatementsLineCandidates<TData = Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    statement: string,
+    line: string,
+    params: undefined |  BankStatementsLineCandidatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bankStatementsLineCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof bankStatementsLineCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBankStatementsLineCandidates<TData = Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bankStatementsLineCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof bankStatementsLineCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBankStatementsLineCandidates<TData = Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Journal lines a statement line can be matched to, with capacity left
+ */
+
+export function useBankStatementsLineCandidates<TData = Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    statement: string,
+    line: string,
+    params?: BankStatementsLineCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof bankStatementsLineCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBankStatementsLineCandidatesQueryOptions(workspace,statement,line,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

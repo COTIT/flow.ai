@@ -523,7 +523,10 @@ pub(crate) async fn resource(
                 e.amount, r.residual AS recovery_residual, b.id AS observation_id, b.provider,
                 b.economic_kind, b.external_id, b.amount AS observed_amount, b.currency,
                 b.decimals, b.invoice_id, b.credit_note_id, b.order_id, b.operation_id,
-                b.occurred_at, l.disposition
+                b.occurred_at, l.disposition,
+                CASE WHEN e.state <> 'pending' THEN ARRAY[]::text[]
+                     WHEN e.kind = 'pending_posting' THEN ARRAY['retry']
+                     ELSE ARRAY['resolve'] END AS allowed_actions
          FROM accounting_exceptions e
          JOIN provider_observations b ON b.workspace_id = e.workspace_id AND b.id = e.observation_id
          LEFT JOIN accounting_open_items r ON r.workspace_id = e.workspace_id AND r.id = e.recovery_item_id

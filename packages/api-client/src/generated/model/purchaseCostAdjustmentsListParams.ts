@@ -10,7 +10,11 @@ export type PurchaseCostAdjustmentsListParams = {
 page?: string;
 page_size?: string;
 /**
- * Only this supplier.
+ * Only adjustments of this supplier's bills.
  */
 supplier_id?: string;
+/**
+ * Only adjustments of this bill.
+ */
+bill_id?: string;
 };

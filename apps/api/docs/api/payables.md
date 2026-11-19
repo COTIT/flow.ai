@@ -221,6 +221,29 @@ minus posted adjustments, shown as `bill_pending_variance`.
 **Reverse** works only while every touched pool has no later valued event. Otherwise it is 422
 `dependent_effects_exist`: post a new current-period adjustment instead.
 
+## Office pickers (M7-A)
+
+Read-only routes for the Office screens. No writes, no locks, one query each; another workspace
+gets 404. Each quantity or residual is exactly what the matching write accepts at that moment.
+
+| Route | Permission | Returns |
+|---|---|---|
+| `GET /supplier-bills/{id}/match-candidates` | `supplierbill.match` | `{bill_id, candidates: [{bill_line_id, receipt_line_id, receipt_id, receipt_number, purchase_order_id, purchase_order_number, booked_at, matchable}]}` |
+| `GET /purchase-returns/candidates?receipt_id=` | `purchasereturn.create` | receipt, supplier, currency and per booked valued line `{receipt_line_id, product_id, product_name, warehouse_id, warehouse_name, booked, unbilled_returnable, billed: [{bill_allocation_id, bill_id, bill_number, supplier_invoice_number, returnable}]}` |
+| `GET /supplier-payments/{id}/targets` | `supplierpayment.allocate` | paged `{open_item_id, classification, source_kind, source_id, source_number, supplier_invoice_number, issue_date, due_date, amount, residual}` |
+
+- Match candidates: goods lines only, receipt lines of the bill's supplier, currency and product
+  with `matchable` (B − U − M − D, this bill's own reservations not counted, since a match
+  replaces them) above 0. First 500.
+- Return candidates: `unbilled_returnable = min(matchable, B − returned)`; per posted match
+  `returnable = min(match quantity − posted returns on it, B − returned)`. A missing
+  `receipt_id` is 422.
+- Payment targets: a payment's `payable` items, a refund received's `supplier_credit` items, same
+  supplier and currency, residual above 0, oldest due first. Amounts in the payment currency.
+- `GET /purchase-cost-adjustments` filters by `bill_id` and `supplier_id`.
+- Bill lines carry `product_name`; bill matches `receipt_id` and `purchase_order_id`; return
+  lines `product_id`, `product_name` and `warehouse_name`.
+
 ## Not in M5-A
 
 - revaluation of open foreign items
@@ -229,4 +252,3 @@ minus posted adjustments, shown as `bill_pending_variance`.
 - nonrecoverable tax on goods lines
 - reversing one component of a return alone
 - late-receipt booking review
-- Office UI

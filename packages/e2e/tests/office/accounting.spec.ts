@@ -135,7 +135,7 @@ test("the menu shows one Accounting entry with its sections as pills", async ({ 
   await expect(nav.getByRole("link", { name: "Taxes" })).toBeVisible()
   if ((page.viewportSize()?.width ?? 0) < 768) await page.keyboard.press("Escape")
   const sections = page.getByRole("navigation", { name: "Accounting sections" })
-  for (const s of ["Journals", "Reports", "Accounts", "Periods", "Cash", "Setup"])
+  for (const s of ["Journals", "Reports", "Accounts", "Periods", "Cash", "Banking", "Exceptions", "Setup"])
     await expect(sections.getByRole("link", { name: s })).toBeVisible()
   await expect(sections.getByRole("link", { name: "Journals" })).toHaveAttribute("aria-current", "page")
 })

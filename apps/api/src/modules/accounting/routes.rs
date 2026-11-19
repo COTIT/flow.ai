@@ -35,6 +35,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::bank_statements_list))
         .routes(routes!(handlers::bank_statements_get))
         .routes(routes!(handlers::bank_statement_lines))
+        .routes(routes!(handlers::bank_statements_line_candidates))
         .routes(routes!(handlers::bank_reconciliations_create))
         .routes(routes!(handlers::bank_reconciliations_reverse))
         .routes(routes!(handlers::receivables_aging))

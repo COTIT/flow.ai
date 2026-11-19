@@ -45,6 +45,8 @@ export interface SalesReturnResource {
   /** @nullable */
   order_id?: string | null;
   /** @nullable */
+  order_number?: string | null;
+  /** @nullable */
   posted_at?: string | null;
   reason: string;
   recognition_id: string;
@@ -53,6 +55,11 @@ export interface SalesReturnResource {
      * @nullable
      */
   relation_id?: string | null;
+  /**
+     * Customer display name (company name, else alias).
+     * @nullable
+     */
+  relation_name?: string | null;
   restocks: RestockResource[];
   /** @nullable */
   reversal_reason?: string | null;

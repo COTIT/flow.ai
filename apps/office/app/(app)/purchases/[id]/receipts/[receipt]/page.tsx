@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -12,7 +13,7 @@ import {
 } from "@genesy/api-client/endpoints/purchase-receipts"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import type { CurrencyRef } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { Card } from "@genesy/ui/components/card"
 import { Notice } from "@genesy/ui/components/notice"
 import {
@@ -51,6 +52,7 @@ export default function ReceiptPage({
   const warehouses = useWarehousesList(workspaceId, { page_size: 100 }, enabled)
   const refresh = useRefreshOrder(workspaceId, id)
   const mayBook = useCan("purchaseorder.book")
+  const mayReturn = useCan("purchasereturn.create")
   const done = useDone()
   const [stale, setStale] = React.useState(false)
   const outcome: Outcome = {
@@ -91,6 +93,8 @@ export default function ReceiptPage({
   const value = (amount: string | null | undefined) =>
     amount == null ? "" : book ? showMoney(amount, book, locale) : bookAmount(amount, locale)
   const canBook = r.allowed_actions.includes("book") && mayBook
+  // Booked goods may go back to the supplier; the return page reads what is still returnable.
+  const canReturn = mayReturn && r.lines.some((l) => l.state === "booked")
 
   return (
     <>
@@ -171,9 +175,17 @@ export default function ReceiptPage({
                 outcome={outcome}
               />
             </>
-          ) : (
+          ) : canReturn ? null : (
             <Notice title={t("purchases.nothingToDo")} />
           )}
+          {canReturn ? (
+            <Link
+              href={`/purchase-returns/new?receipt=${r.id}`}
+              className={buttonVariants({ variant: "outline", className: "w-full" })}
+            >
+              {t("payables.returns.returnGoods")}
+            </Link>
+          ) : null}
         </SideCard>
 
         <SideCard id="rc-facts" title={t("purchases.facts")}>

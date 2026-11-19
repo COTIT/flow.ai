@@ -84,7 +84,11 @@
     "accounting": "Uhasibu",
     "taxes": "Kodi",
     "purchaseApprovals": "Idhini za ununuzi",
-    "integrations": "Miunganisho ya mifumo"
+    "integrations": "Miunganisho ya mifumo",
+    "salesReturns": "Marejesho",
+    "supplierBills": "Ankara za wasambazaji",
+    "supplierPayments": "Malipo kwa wasambazaji",
+    "purchaseReturns": "Marejesho ya manunuzi"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -1550,7 +1554,9 @@
       "accounts": "Akaunti",
       "periods": "Vipindi",
       "cash": "Fedha taslimu",
-      "setup": "Mipangilio"
+      "setup": "Mipangilio",
+      "banking": "Benki",
+      "exceptions": "Hitilafu"
     },
     "roles": {
       "receivables": "Madeni ya wateja",
@@ -1804,6 +1810,160 @@
       "rolesHint": "Genesy huingiza kila aina ya tukio la biashara kwenye akaunti unayochagua hapa.",
       "unmapped": "Bado hakuna akaunti",
       "save": "Hifadhi mipangilio"
+    },
+    "exceptions": {
+      "title": "Hitilafu",
+      "intro": "Pesa za watoa huduma za malipo ambazo vitabu havikuweza kuweka, au hazikulingana. Kila moja inahitaji hatua moja kutoka kwako.",
+      "what": "Nini",
+      "state": "Hali",
+      "occurred": "Ilitokea",
+      "amount": "Kiasi",
+      "why": {
+        "label": "Kwa nini",
+        "closed_period": "Hakuna kipindi kilicho wazi kwa tarehe ya malipo haya.",
+        "missing_mapping": "Uhasibu bado haujawekwa kikamilifu kwa malipo haya.",
+        "foreign_currency": "Malipo haya ni ya sarafu nyingine tofauti na ya vitabu.",
+        "no_receivable": "Hakukuwa na kiasi kinachodaiwa cha kulipia kwa malipo haya.",
+        "posting_failed": "Malipo hayakuweza kuwekwa.",
+        "excess_refund": "Malipo ya kurudisha yalizidi alicholipa mteja.",
+        "chargeback": "Benki ya mteja ilirudisha malipo."
+      },
+      "filter": "Onyesha",
+      "pending": "Za kufanya",
+      "all": "Zote",
+      "pages": "Kurasa",
+      "newest": "Mpya zaidi",
+      "older": "Za zamani",
+      "empty": "Hakuna kinachosubiri. Pesa zote za watoa huduma zimewekwa.",
+      "emptyAll": "Bado hakuna hitilafu",
+      "headline": "{kind} kutoka {provider}",
+      "economic": {
+        "collection": "Malipo",
+        "refund": "Malipo ya kurudisha",
+        "chargeback": "Malipo yaliyorudishwa na benki"
+      },
+      "states": {
+        "pending": "Ya kufanya",
+        "resolved": "Imekamilika"
+      },
+      "nextStep": "Hatua inayofuata",
+      "unposted": "Pesa hii imepokelewa lakini bado haijaingia vitabuni.",
+      "next": {
+        "retry": "Rekebisha chanzo, kisha jaribu kuweka tena.",
+        "resolve": "Amua nani abebe tofauti."
+      },
+      "resolvedInfo": "Imekamilika: {how}.",
+      "resolutions": {
+        "posted": "imewekwa",
+        "assign_receivable": "Mdai mteja",
+        "write_off": "Futa kama hasara"
+      },
+      "nothingToDo": "Hakuna la kufanya kwako hapa.",
+      "lastAttempt": "Imejaribiwa mara {attempts}. Jibu la mwisho: {message}",
+      "details": "Maelezo",
+      "discrepancy": "Tofauti",
+      "recoveryLeft": "Bado ya kurejesha",
+      "provider": "Mtoa huduma",
+      "reference": "Rejea ya mtoa huduma",
+      "book": "Vitabuni",
+      "dispositions": {
+        "posted": "Imewekwa",
+        "pending_observation": "Inasubiri",
+        "none": "Haijaunganishwa"
+      },
+      "resolvedAt": "Imekamilika tarehe",
+      "sources": "Hati zilizounganishwa",
+      "openInvoice": "Fungua ankara",
+      "openCreditNote": "Fungua hati ya salio",
+      "openOrder": "Fungua oda",
+      "retry": {
+        "action": "Jaribu kuweka tena",
+        "title": "Uweke malipo haya tena?",
+        "text": "Inatumia taarifa zilizohifadhiwa za mtoa huduma. Mtoa huduma haitwi tena."
+      },
+      "resolve": {
+        "action": "Shughulikia",
+        "title": "Shughulikia tofauti",
+        "text": "Vitabu vinakuonyesha kwanza kiingizo. Hakuna kinachowekwa mpaka uthibitishe.",
+        "how": "Vipi",
+        "customer": "Mteja",
+        "defaultCustomer": "Mteja wa malipo haya",
+        "reason": "Sababu",
+        "evidence": "Rejea ya ushahidi",
+        "date": "Tarehe",
+        "debit": "Debiti",
+        "credit": "Krediti"
+      },
+      "reviewing": "Inaleta ukaguzi",
+      "review": "Kagua",
+      "done": {
+        "retried": "Malipo yamewekwa.",
+        "resolved": "Tofauti imeshughulikiwa."
+      },
+      "reasons": {
+        "exception_state": "Hitilafu hii haiwezi tena kuchukua hatua hiyo. Tumepakia toleo jipya."
+      }
+    },
+    "banking": {
+      "title": "Benki",
+      "import": "Ingiza taarifa ya benki",
+      "importNote": "Taarifa za benki huingia kama uingizaji. Mchawi wa uingizaji utapata chaguo la taarifa ya benki hivi karibuni.",
+      "count": "{total, plural, one {taarifa #} other {taarifa #}}",
+      "empty": "Bado hakuna taarifa za benki",
+      "statement": "Taarifa",
+      "bank": "Akaunti ya benki",
+      "state": "Hali",
+      "period": "Kipindi",
+      "unmatched": "Bado haijaoanishwa",
+      "range": "{from} – {to}",
+      "states": {
+        "open": "Wazi",
+        "reconciled": "Imeoanishwa",
+        "unreconciled": "Ya kuoanisha"
+      },
+      "reasons": {
+        "already_reconciled": "Mstari huu umeshaoanishwa. Rudisha uoanishaji huo nyuma kwanza.",
+        "not_this_bank_account": "Chagua tu mistari ya jarida iliyowekwa ya akaunti hii ya benki.",
+        "currency_mismatch": "Mstari huo wa jarida ni wa sarafu nyingine tofauti na akaunti hii ya benki.",
+        "journal_line_reversed": "Mstari huo wa jarida umerudishwa nyuma, hauwezi kuoanishwa.",
+        "amount_mismatch": "Kiasi lazima kijumlike sawa kabisa na mstari wa benki.",
+        "capacity_exceeded": "Mstari wa jarida una kiasi kidogo kilichobaki kuliko hiki.",
+        "already_reversed": "Uoanishaji huu umesharudishwa nyuma."
+      },
+      "of": "{bank}, {from} – {to}",
+      "details": "Salio",
+      "opening": "Salio la mwanzo",
+      "closing": "Salio la mwisho",
+      "matchedLines": "Mistari iliyooanishwa",
+      "ofLines": "{done} kati ya {total}",
+      "lines": "Mistari ya benki",
+      "noLines": "Taarifa hii haina mistari.",
+      "line": "Mstari wa benki",
+      "match": "Imeoanishwa na",
+      "amount": "Kiasi",
+      "row": "Mstari {n}",
+      "journal": "Jarida {number} · {amount}",
+      "journalReversed": "Jarida limerudishwa nyuma tangu hapo: rudisha uoanishaji huu",
+      "loading": "Inapakia mistari ya jarida",
+      "candidate": "Jarida {number} · {date} · {left} imebaki",
+      "reconcile": {
+        "action": "Oanisha",
+        "title": "Oanisha mstari huu wa benki",
+        "text": "{amount} tarehe {date}. Chagua mistari ya jarida inayolipwa; kiasi lazima kijumlike sawa kabisa.",
+        "none": "Hakuna mstari wa jarida uliowekwa wa akaunti hii ya benki uliobaki kuoanisha.",
+        "pick": "Mistari ya jarida",
+        "amount": "Kiasi cha kuoanisha"
+      },
+      "unmatch": {
+        "action": "Rudisha uoanishaji",
+        "title": "Urudishe uoanishaji huu?",
+        "text": "Uoanishaji unabaki kwenye kumbukumbu. Mstari wa benki na mistari ya jarida vinakuwa huru kuoanishwa tena.",
+        "reason": "Sababu"
+      },
+      "done": {
+        "matched": "Mstari wa benki umeoanishwa.",
+        "unmatched": "Uoanishaji umerudishwa."
+      }
     }
   },
   "taxes": {
@@ -1997,5 +2157,358 @@
       "backdated_valuation": "Tarehe hii iko kabla ya thamani ya mwisho ya bidhaa. Chagua tarehe ya baadaye."
     },
     "linesAfterStart": "Bidhaa za kuhesabu zinaonekana hesabu ikianza."
+  },
+  "salesReturns": {
+    "title": "Marejesho ya wateja",
+    "intro": "Salio kwa bidhaa ambazo wateja walirudisha. Mapya huanzia kwenye hati ya salio, marejesho ya oda au kwenye Till.",
+    "count": "{total, plural, one {rejesho #} other {marejesho #}}",
+    "empty": "Bado hakuna marejesho ya wateja",
+    "return": "Rejesho",
+    "customer": "Mteja",
+    "state": "Hali",
+    "date": "Tarehe",
+    "credit": "Salio",
+    "ofOrder": "Rejesho la oda {number}",
+    "anonymous": "Mteja wa papo hapo",
+    "notPosted": "Bado halijawekwa",
+    "kinds": {
+      "invoice_credit": "Salio la ankara",
+      "receipt_credit": "Salio la risiti"
+    },
+    "states": {
+      "draft": "Rasimu",
+      "posted": "Limewekwa",
+      "reversed": "Limerudishwa nyuma",
+      "cancelled": "Limeghairiwa"
+    },
+    "reasons": {
+      "dependent_effects_exist": "Kuna kitu kinachotumia hili tayari, kama malipo ya kurudisha au mwendo wa stoo uliofuata. Tendua hicho kwanza.",
+      "insufficient_stock": "Bidhaa hizo hazipo tena huru stooni, kwa hiyo hili haliwezi kutenduliwa.",
+      "legacy_return_cost_required": "Mauzo haya hayana gharama iliyowekwa. Weka gharama iliyokaguliwa kwa mstari kwanza, kisha rudisha stooni."
+    },
+    "line": "Mstari",
+    "item": "Bidhaa",
+    "quantity": "Idadi",
+    "quantityOf": "Idadi ya {item}",
+    "restocked": "Zimerudi stooni",
+    "reviewing": "Inaleta ukaguzi",
+    "review": "Kagua",
+    "net": "Kabla ya kodi",
+    "tax": "Kodi",
+    "rounding": "Ukadiriaji wa pesa taslimu",
+    "applied": "Imepunguzwa kwenye deni la mteja",
+    "reason": "Sababu",
+    "lines": "Mistari",
+    "restocks": "Zimerudi stooni",
+    "nextStep": "Hatua inayofuata",
+    "creditInfo": "Salio la {credit} limewekwa kwa mteja.",
+    "next": {
+      "post": "Kagua kiasi, kisha weka salio.",
+      "restock": "Rudisha bidhaa zilizorejeshwa stooni zinapofika."
+    },
+    "reversedInfo": "Salio hili limerudishwa nyuma. Bidhaa zilizorudishwa zinabaki stooni.",
+    "cancelledInfo": "Rasimu hii imeghairiwa. Hakuna kilichowekwa.",
+    "postedInfo": "Limewekwa na bidhaa zote zimerudi stooni. Hakuna la kufanya.",
+    "nothingToDo": "Hakuna la kufanya kwako hapa.",
+    "details": "Maelezo",
+    "kind": "Aina",
+    "created": "Limeundwa",
+    "postedAt": "Limewekwa",
+    "reversedAt": "Limerudishwa nyuma",
+    "cancelledAt": "Limeghairiwa",
+    "sources": "Hati zilizounganishwa",
+    "openOrder": "Fungua oda",
+    "openCreditNote": "Fungua hati ya salio",
+    "noStockLines": "Baadhi ya mistari haikuhamisha stoo, hakuna cha kurudisha kwa hiyo.",
+    "noRestocks": "Bado hakuna kilichorudishwa stooni.",
+    "restockInto": "Kurudi {warehouse}",
+    "edit": {
+      "action": "Hariri rasimu",
+      "title": "Hariri rasimu",
+      "text": "Badilisha tarehe, sababu au idadi. Salio linahesabiwa unapoweka.",
+      "save": "Hifadhi"
+    },
+    "cancel": {
+      "action": "Ghairi rasimu",
+      "title": "Ughairi rasimu hii?",
+      "text": "Hakuna kinachowekwa. Idadi zinakuwa huru kutoa salio tena.",
+      "keep": "Baki na rasimu"
+    },
+    "post": {
+      "action": "Weka salio",
+      "title": "Weka salio",
+      "text": "Kiasi hiki kinatoka kwenye mauzo ya awali. Kuweka kunakiandika kwa mteja."
+    },
+    "restock": {
+      "action": "Rudisha stooni",
+      "title": "Rudisha bidhaa stooni",
+      "text": "Bidhaa zinarudi ghala ambalo mauzo yalitoka, kwa gharama ya awali.",
+      "lineLabel": "{item} kwenda {warehouse} ({restocked} kati ya {quantity} zimerudi)",
+      "value": "Gharama iliyorudishwa",
+      "valueIs": "Gharama iliyorudishwa: {value}",
+      "valueAtPost": "Gharama ya awali inarudishwa unaporudisha stooni."
+    },
+    "reverse": {
+      "action": "Rudisha salio nyuma",
+      "title": "Rudisha salio hili nyuma",
+      "text": "Inaweka kinyume kamili cha salio. Bidhaa zilizorudishwa zinabaki stooni.",
+      "keepsRestocks": "Bidhaa zilizorudishwa zinabaki stooni."
+    },
+    "unrestock": {
+      "action": "Tendua kurudisha",
+      "title": "Tendua kurudisha huku",
+      "text": "Inatoa bidhaa tena {warehouse} kwa gharama ile ile. Salio linabaki."
+    },
+    "legacy": {
+      "action": "Weka gharama iliyokaguliwa",
+      "title": "Gharama iliyokaguliwa ya {item}",
+      "text": "Kwa bidhaa zilizouzwa kabla vitabu havijawa na gharama yake. Tumia thamani uliyokagua.",
+      "amount": "Gharama yote",
+      "evidence": "Rejea ya ushahidi",
+      "save": "Weka gharama"
+    },
+    "done": {
+      "updated": "Rasimu imehifadhiwa.",
+      "cancelled": "Rasimu imeghairiwa.",
+      "posted": "Salio limewekwa.",
+      "restocked": "Bidhaa zimerudi stooni.",
+      "reversed": "Salio limerudishwa nyuma.",
+      "unrestocked": "Kurudisha kumetenduliwa.",
+      "legacyCost": "Gharama iliyokaguliwa imewekwa. Kurudisha stooni kunaitumia sasa."
+    }
+  },
+  "payables": {
+    "account": "Akaunti",
+    "accountingDate": "Tarehe ya hesabu",
+    "addLine": "Ongeza mstari",
+    "allSuppliers": "Wasambazaji wote",
+    "amount": "Kiasi",
+    "change": "Badilisha",
+    "chooseAccount": "Chagua akaunti ya gharama",
+    "chooseCurrency": "Chagua sarafu",
+    "chooseProduct": "Chagua bidhaa",
+    "chooseSupplier": "Chagua msambazaji",
+    "credit": "Mkopo",
+    "currency": "Sarafu",
+    "debit": "Deni",
+    "description": "Maelezo",
+    "due": "Inadaiwa {date}",
+    "dueDate": "Tarehe ya kulipa",
+    "evidenceRef": "Kumbukumbu ya hati",
+    "expenseAccount": "Akaunti ya gharama",
+    "extension": "Jumla ya mstari",
+    "facts": "Taarifa",
+    "functionalTotal": "Kwa sarafu ya vitabu",
+    "invoiceDate": "Tarehe ya ankara",
+    "invoiceNumber": "Namba ya ankara ya msambazaji",
+    "item": "Kipengele",
+    "journal": "Jarida",
+    "line": "Mstari {n}",
+    "lineKind": "Aina ya mstari",
+    "lines": "Mistari",
+    "matches": "Bidhaa zilizopokelewa",
+    "net": "Halisi",
+    "nextStep": "Hatua inayofuata",
+    "no": "Hapana",
+    "noTax": "Bila kodi",
+    "note": "Maelezo",
+    "nothingToDo": "Hakuna la kufanya hapa sasa.",
+    "number": "Namba",
+    "product": "Bidhaa",
+    "quantity": "Idadi",
+    "rate": "Kiwango cha ubadilishaji",
+    "reason": "Sababu",
+    "removeLine": "Ondoa mstari {n}",
+    "reverse": "Batilisha",
+    "reversedInfo": "Imebatilishwa {date}. Sababu: {reason}",
+    "review": "Kagua",
+    "reviewAgain": "Jaribu ukaguzi tena",
+    "reviewTitle": "Kagua kabla ya kuthibitisha",
+    "reviewing": "Inapata ukaguzi…",
+    "saveDraft": "Hifadhi rasimu",
+    "serverAmounts": "Kiasi kama kilivyohesabiwa na seva.",
+    "stale": "Rekodi hii imebadilika tangu ulipoifungua. Tumepakia toleo jipya: likague na ujaribu tena.",
+    "state": "Hali",
+    "supplier": "Msambazaji",
+    "tax": "Kodi",
+    "total": "Jumla",
+    "unitPrice": "Bei ya kipimo",
+    "yes": "Ndiyo",
+    "states": {
+      "draft": "Rasimu",
+      "posted": "Imerekodiwa",
+      "reversed": "Imebatilishwa"
+    },
+    "matchStates": {
+      "draft": "imehifadhiwa",
+      "posted": "imetozwa",
+      "reversed": "imebatilishwa"
+    },
+    "kinds": {
+      "goods": "Bidhaa",
+      "expense": "Gharama",
+      "landed_cost": "Gharama ya ziada"
+    },
+    "directions": {
+      "payment": "Malipo kwa msambazaji",
+      "refund_received": "Marejesho ya pesa kutoka kwa msambazaji"
+    },
+    "purposes": {
+      "vendor_return": "Kurudisha kwa msambazaji",
+      "receipt_correction": "Marekebisho ya upokeaji"
+    },
+    "locationKinds": {
+      "cash_place": "Fedha taslimu",
+      "bank_account": "Benki"
+    },
+    "placeKinds": {
+      "drawer": "droo",
+      "vault": "sefu"
+    },
+    "confirmations": {
+      "bank_statement": "Taarifa ya benki",
+      "provider_dashboard": "Dashibodi ya mtoa huduma"
+    },
+    "sourceKinds": {
+      "supplier_bill": "Ankara",
+      "purchase_return": "Rejesho",
+      "supplier_payment": "Malipo",
+      "opening": "Salio la kuanzia"
+    },
+    "reasons": {
+      "stale_document": "Rekodi hii imebadilika tangu ulipoifungua. Tumepakia toleo jipya: likague na ujaribu tena.",
+      "dependent_effects_exist": "Kuna kitu kinachotegemea hii (malipo, rejesho au marekebisho ya gharama). Batilisha hicho kwanza.",
+      "accounting_period_closed": "Kipindi cha hesabu cha tarehe hii kimefungwa.",
+      "accounting_not_configured": "Hesabu hazijawekwa kwa hili. Muombe msimamizi amalize kuweka hesabu.",
+      "unsupported_active_erp_operation": "Hili bado halitumiki kwa bidhaa hizi au vitabu hivi."
+    },
+    "done": {
+      "created": "Rasimu imehifadhiwa.",
+      "saved": "Rasimu imehifadhiwa.",
+      "matched": "Bidhaa zilizopokelewa zimeunganishwa.",
+      "posted": "Imerekodiwa.",
+      "reversed": "Imebatilishwa.",
+      "recorded": "Imerekodiwa.",
+      "allocated": "Imelipiwa.",
+      "costCreated": "Marekebisho ya gharama yamehifadhiwa kama rasimu."
+    },
+    "bills": {
+      "title": "Ankara za wasambazaji",
+      "new": "Ankara mpya",
+      "newTitle": "Ankara mpya ya msambazaji",
+      "editTitle": "Hariri ankara {number}",
+      "detailTitle": "Ankara {number}",
+      "count": "{total, plural, one {ankara #} other {ankara #}}",
+      "empty": "Bado hakuna ankara za wasambazaji.",
+      "edit": "Hariri rasimu",
+      "back": "Rudi kwenye ankara",
+      "onlyDrafts": "Ni rasimu ya ankara isiyo na mistari ya gharama za ziada pekee inayoweza kubadilishwa hapa.",
+      "match": "Unganisha bidhaa zilizopokelewa",
+      "matchTitle": "Unganisha ankara {number} na bidhaa zilizopokelewa",
+      "matchText": "Kwa kila bidhaa, kiasi cha kila upokeaji uliorekodiwa ambacho ankara hii inalipia. Kilichobaki kinatoka kwa seva.",
+      "candidate": "Upokeaji {receipt} (agizo {order}), zimebaki {left}",
+      "noCandidates": "Hakuna upokeaji uliorekodiwa wenye bidhaa hii iliyobaki kutozwa.",
+      "saveMatch": "Hifadhi miunganisho",
+      "unmatched": "Bado haijaunganishwa",
+      "receiptLink": "upokeaji",
+      "post": "Rekodi ankara",
+      "postTitle": "Rekodi ankara {number}",
+      "postText": "Kurekodi kunaweka salio la msambazaji na kodi. Inaweza kubatilishwa tu kwa ubatilishaji.",
+      "reverseTitle": "Batilisha ankara {number}",
+      "reverseText": "Inabatilisha ankara iliyorekodiwa kwa tarehe utakayochagua. Malipo, marejesho au marekebisho ya gharama juu yake yabatilishwe kwanza.",
+      "totalAtPost": "Kodi na jumla huhesabiwa ankara inaporekodiwa.",
+      "corrects": "Inasahihisha",
+      "original": "Ankara ya awali",
+      "next": {
+        "match": "Unganisha ankara na bidhaa ulizopokea, kisha uirekodi.",
+        "post": "Kila kitu kimeunganishwa: rekodi ankara.",
+        "update": "Badilisha rasimu.",
+        "reverse": "Ankara imerekodiwa. Ibatilishe tu ikiwa ilikuwa na kosa."
+      }
+    },
+    "payments": {
+      "title": "Malipo kwa wasambazaji",
+      "new": "Rekodi malipo",
+      "newTitle": "Rekodi malipo au marejesho ya msambazaji",
+      "detailTitle": "Malipo {number}",
+      "count": "{total, plural, one {malipo #} other {malipo #}}",
+      "empty": "Bado hakuna malipo kwa wasambazaji.",
+      "direction": "Aina",
+      "date": "Tarehe",
+      "place": "Imelipwa kutoka / kwenda",
+      "choosePlace": "Chagua mahali pa fedha taslimu au akaunti ya benki",
+      "reference": "Kumbukumbu ya benki",
+      "confirmation": "Imethibitishwa na",
+      "record": "Rekodi",
+      "allocations": "Imetumika kwa",
+      "noAllocations": "Bado haijatumika kwa chochote.",
+      "unapplied": "Bado haijatumika",
+      "fx": "Tofauti ya ubadilishaji",
+      "allocate": "Tumia kwa ankara",
+      "allocateTitle": "Tumia malipo {number}",
+      "allocateText": "Chagua kinacholipwa na hii. {unapplied} bado haijatumika.",
+      "noTargets": "Hakuna kilicho wazi kwa msambazaji huyu katika sarafu hii.",
+      "target": "Kipengele kilicho wazi",
+      "reverseTitle": "Batilisha malipo {number}",
+      "reverseText": "Ni kwa rekodi yenye kosa ambayo haijatumika tu. Marejesho ya pesa kutoka kwa msambazaji hurekodiwa peke yake.",
+      "supplierBills": "Ankara za msambazaji huyu",
+      "next": {
+        "allocate": "Tumia malipo kwa ankara au mkopo ulio wazi.",
+        "reverse": "Imerekodiwa kwa makosa? Ibatilishe."
+      }
+    },
+    "returns": {
+      "title": "Marejesho ya manunuzi",
+      "newTitle": "Rudisha bidhaa kwa msambazaji",
+      "detailTitle": "Rejesho {number}",
+      "count": "{total, plural, one {rejesho #} other {marejesho #}}",
+      "empty": "Bado hakuna marejesho ya manunuzi.",
+      "hint": "Anza rejesho kutoka kwenye upokeaji uliorekodiwa.",
+      "fromReceipt": "Fungua upokeaji uliorekodiwa na uchague \"Rudisha bidhaa\".",
+      "receiptOf": "Upokeaji {receipt} wa agizo {order} · {supplier}",
+      "purpose": "Lengo",
+      "creditEvidence": "Kumbukumbu ya hati ya mkopo ya msambazaji",
+      "applyCredit": "Punguza mkopo kwenye ankara ya awali",
+      "applyCreditShort": "Mkopo umetumika kwa ankara",
+      "nothingToReturn": "Hakuna kitu cha upokeaji huu kinachoweza kurudishwa.",
+      "booked": "{qty} zimerekodiwa",
+      "source": "Rudisha kutoka",
+      "skip": "Usirudishe",
+      "unbilled": "Bado haijatozwa (zimebaki {qty})",
+      "billed": "Ankara {bill} · {invoice} (zimebaki {qty})",
+      "returnGoods": "Rudisha bidhaa",
+      "issueValue": "Thamani ya hisa",
+      "credit": "Mkopo wa msambazaji",
+      "billedLine": "imetozwa",
+      "unbilledLine": "haijatozwa",
+      "valuesAtPost": "Thamani huhesabiwa rejesho linaporekodiwa.",
+      "post": "Rekodi rejesho",
+      "postTitle": "Rekodi rejesho {number}",
+      "postText": "Kurekodi kunatoa bidhaa kwenye hisa na kuweka mkopo wa msambazaji.",
+      "reverseTitle": "Batilisha rejesho {number}",
+      "reverseText": "Inarudisha bidhaa na kufunga mkopo, vyote kwa pamoja.",
+      "next": {
+        "post": "Kagua, kisha rekodi rejesho.",
+        "reverse": "Rejesho limerekodiwa. Libatilishe tu ikiwa lilikuwa na kosa."
+      }
+    },
+    "costs": {
+      "title": "Tofauti za gharama",
+      "hint": "Gawa tofauti ya bei kwenye ankara hii kati ya thamani ya hisa na gharama ya bidhaa zilizouzwa.",
+      "empty": "Hakuna marekebisho ya gharama.",
+      "new": "Gawa tofauti ya gharama",
+      "newTitle": "Gawa tofauti ya gharama ya ankara {number}",
+      "newText": "Kwa kila mstari uliopokelewa, kiasi kinachoenda kwenye thamani ya hisa na kwenye gharama ya bidhaa zilizouzwa. Seva hukagua jumla.",
+      "inventory": "Kwenye thamani ya hisa",
+      "cogs": "Kwenye gharama ya bidhaa zilizouzwa",
+      "save": "Hifadhi rasimu",
+      "pending": "Tofauti iliyobaki",
+      "pendingLeft": "{amount} bado wazi",
+      "post": "Rekodi",
+      "postTitle": "Rekodi marekebisho ya gharama",
+      "postText": "Kurekodi kunahamisha tofauti kwenda thamani ya hisa na gharama ya bidhaa zilizouzwa.",
+      "reverseTitle": "Batilisha marekebisho ya gharama",
+      "reverseText": "Inawezekana tu ikiwa hakuna kilichosogea kwenye hisa hiyo tangu hapo."
+    }
   }
 }

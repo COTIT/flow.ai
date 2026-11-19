@@ -29,10 +29,12 @@ import type {
   ActionReviewedPayload,
   CreateReturnPayload,
   EnvelopePurchaseReturnResource,
+  EnvelopeReturnCandidates,
   EnvelopeReturnPostReview,
   EnvelopeReverseReview,
   MessageBody,
   PaginatedPurchaseReturnResource,
+  PurchaseReturnsCandidatesParams,
   PurchaseReturnsListParams,
   ReturnReverseBody,
   ValidationErrorBody
@@ -230,6 +232,106 @@ export const usePurchaseReturnsCreate = <TError = ErrorType<MessageBody | Valida
       return useMutation(getPurchaseReturnsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Returnable quantities of one booked receipt
+ */
+export const purchaseReturnsCandidates = (
+    workspace: string,
+    params: PurchaseReturnsCandidatesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeReturnCandidates>(
+      {url: `/workspace/${workspace}/purchase-returns/candidates`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPurchaseReturnsCandidatesQueryKey = (workspace: string,
+    params?: PurchaseReturnsCandidatesParams,) => {
+    return [
+    `/workspace/${workspace}/purchase-returns/candidates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getPurchaseReturnsCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: PurchaseReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPurchaseReturnsCandidatesQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof purchaseReturnsCandidates>>> = ({ signal }) => purchaseReturnsCandidates(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PurchaseReturnsCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof purchaseReturnsCandidates>>>
+export type PurchaseReturnsCandidatesQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function usePurchaseReturnsCandidates<TData = Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: PurchaseReturnsCandidatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseReturnsCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseReturnsCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseReturnsCandidates<TData = Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: PurchaseReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseReturnsCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseReturnsCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseReturnsCandidates<TData = Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: PurchaseReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Returnable quantities of one booked receipt
+ */
+
+export function usePurchaseReturnsCandidates<TData = Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: PurchaseReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPurchaseReturnsCandidatesQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Read a purchase return
  */
 export const purchaseReturnsGet = (

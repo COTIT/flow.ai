@@ -952,6 +952,38 @@ pub async fn bank_statement_lines(
     ))
 }
 
+/// bank_statements_line_candidates: Journal lines a statement line can be matched to.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/bank-statements/{statement}/lines/{line}/candidates", tag = "bank_statements",
+    operation_id = "bank_statements_line_candidates",
+    summary = "Journal lines a statement line can be matched to, with capacity left",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("statement" = Uuid, Path, description = "Statement id"), ("line" = Uuid, Path, description = "Statement line id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "Candidates, newest first"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, statement or line, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bank_statements_line_candidates(
+    State(state): State<AppState>,
+    access: Can<Reconcile>,
+    Path((_, statement, line)): Path<(String, String, String)>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        banking::candidates(
+            &state.db,
+            access.workspace_id,
+            id(&statement)?,
+            id(&line)?,
+            page,
+        )
+        .await?,
+    ))
+}
+
 /// bank_reconciliations_create: Match a statement line to posted bank journal lines.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/accounting/bank-reconciliations", tag = "bank_reconciliations",

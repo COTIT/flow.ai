@@ -901,3 +901,145 @@ async fn setup_books_refuse_statements_and_matching(pool: PgPool) {
         "{b}"
     );
 }
+
+impl W {
+    /// Candidate journal lines of a statement line, as `token`.
+    async fn candidates_as(&self, token: &str, st: &Value, line: &Value) -> (StatusCode, Value) {
+        self.req_as(
+            token,
+            Method::GET,
+            &format!(
+                "/accounting/bank-statements/{}/lines/{}/candidates",
+                st["id"].as_str().unwrap(),
+                line["id"].as_str().unwrap()
+            ),
+            None,
+        )
+        .await
+    }
+
+    async fn candidates(&self, st: &Value, line: &Value) -> Vec<Value> {
+        let (s, b) = self.candidates_as(&self.api.owner.clone(), st, line).await;
+        assert_eq!(s, StatusCode::OK, "{b}");
+        b["data"].as_array().unwrap().clone()
+    }
+}
+
+/// Candidate (id, remaining) pairs, sorted by id.
+fn picks(c: &[Value]) -> Vec<(String, String)> {
+    let mut v: Vec<_> = c
+        .iter()
+        .map(|x| {
+            (
+                x["journal_line_id"].as_str().unwrap().to_owned(),
+                x["remaining"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    v.sort();
+    v
+}
+
+#[sqlx::test]
+async fn candidates_are_exactly_what_reconcile_accepts(pool: PgPool) {
+    let (w, bank) = banked(pool).await;
+    let p40 = w.bank_money(&bank, "payment", "40.00").await;
+    let p25 = w.bank_money(&bank, "payment", "25.00").await;
+    let r15 = w.bank_money(&bank, "refund_received", "15.00").await;
+    let (j40, j25, j15) = (
+        w.bank_line(&p40).await,
+        w.bank_line(&p25).await,
+        w.bank_line(&r15).await,
+    );
+    let d = w.today(0).await;
+    let st = w
+        .statement(
+            &bank,
+            "ST-1",
+            "0",
+            "-50.00",
+            &[
+                row(1, &d, "-15.00", None),
+                row(2, &d, "-50.00", None),
+                row(3, &d, "15.00", None),
+            ],
+        )
+        .await;
+    let lines = w.lines(&st).await;
+    assert_eq!(lines[0]["allowed_actions"], json!(["reconcile"]));
+
+    // Money out: both payments at full capacity, never the refund (other sign).
+    let mut want = vec![
+        (j40.clone(), "-40.00".to_owned()),
+        (j25.clone(), "-25.00".to_owned()),
+    ];
+    want.sort();
+    let c = w.candidates(&st, &lines[0]).await;
+    assert_eq!(picks(&c), want);
+    let first = c
+        .iter()
+        .find(|x| x["journal_line_id"] == j40.as_str())
+        .unwrap();
+    assert!(first["entry_number"].is_number(), "{first}");
+    assert!(first["journal_entry_id"].is_string(), "{first}");
+    assert_eq!(first["accounting_date"], d.as_str());
+    assert_eq!(
+        picks(&w.candidates(&st, &lines[2]).await),
+        vec![(j15.clone(), "15.00".to_owned())]
+    );
+
+    // Use part of j40; the rest shows as its remaining.
+    let (s, b) = w.reconcile(&lines[0], &[(&j40, "-15.00")]).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let c = w.candidates(&st, &lines[1]).await;
+    let mut want = vec![
+        (j40.clone(), "-25.00".to_owned()),
+        (j25.clone(), "-25.00".to_owned()),
+    ];
+    want.sort();
+    assert_eq!(picks(&c), want);
+    // Everything offered, at the offered amounts, is accepted as one match.
+    let all: Vec<(String, String)> = picks(&c);
+    let refs: Vec<(&str, &str)> = all.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect();
+    let (s, b) = w.reconcile(&lines[1], &refs).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    // Used up: no money-out candidate left.
+    assert!(w.candidates(&st, &lines[1]).await.is_empty());
+    let after = w.lines(&st).await;
+    assert_eq!(after[1]["allowed_actions"], json!(["reverse"]));
+
+    // accounting.read alone may not list candidates.
+    let reader = member_with(
+        &w.api.app,
+        w.pool(),
+        &w.api.ws,
+        "r2@example.com",
+        &["accounting.read"],
+    )
+    .await;
+    let (s, b) = w.candidates_as(&reader, &st, &lines[2]).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
+
+    // A line under another statement id, or another workspace: 404.
+    let wrong = json!({ "id": uuid() });
+    let (s, _) = w
+        .candidates_as(&w.api.owner.clone(), &wrong, &lines[2])
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (other, ows) = signup(&w.api.app, "eve@example.com", "eve").await;
+    activate(w.pool(), &ows).await;
+    let (s, _) = send_raw(
+        &w.api.app,
+        Method::GET,
+        &format!(
+            "/v1/workspace/{ows}/accounting/bank-statements/{}/lines/{}/candidates",
+            st["id"].as_str().unwrap(),
+            lines[2]["id"].as_str().unwrap()
+        ),
+        None,
+        Some(&other),
+        &[],
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}

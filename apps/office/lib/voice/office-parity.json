@@ -11,6 +11,9 @@
   "accounting_balance_sheet": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_bank_accounts_list": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_cash_adjustments_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -19,6 +22,21 @@
   },
   "accounting_cash_places_list": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_exceptions_get": {
+    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "accounting_exceptions_list": {
+    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "accounting_exceptions_resolve": {
+    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "accounting_exceptions_resolve_review": {
+    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "accounting_exceptions_retry": {
+    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "accounting_general_ledger": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
@@ -112,6 +130,24 @@
   },
   "auth_logout": {
     "officeOnlyBecause": "Logging out is the button in the Flow and Office header, not a voice action."
+  },
+  "bank_reconciliations_create": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "bank_reconciliations_reverse": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "bank_statements_get": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "bank_statements_line_candidates": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "bank_statements_lines": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "bank_statements_list": {
+    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "currencies_list": {
     "ask": {
@@ -336,6 +372,9 @@
       "nl": ["vervaldatum van de conceptfactuur wijzigen"],
       "sw": ["badilisha tarehe ya mwisho ya ankara"]
     }
+  },
+  "legacy_return_costs_create": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "lots_create": {
     "ask": {
@@ -626,6 +665,24 @@
       "sw": ["badilisha bei ya asali kuwa shilingi 12000"]
     }
   },
+  "purchase_cost_adjustments_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "purchase_orders_cancel": {
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -668,6 +725,30 @@
   "purchase_receipts_list": {
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "purchase_returns_candidates": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "purchase_units_list": {
     "officeOnlyBecause": "Picking a purchase unit is part of the Office purchase order form; the assistant keeps purchasing internal until its milestone."
   },
@@ -677,6 +758,42 @@
       "nl": ["onze leveranciers tonen"],
       "sw": ["orodha ya wasambazaji"]
     }
+  },
+  "sales_return_restocks_reverse": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_return_restocks_reverse_review": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_cancel": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_get": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_list": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_post": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_post_review": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_restock": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_restock_review": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_reverse": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_reverse_review": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_update": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "scheduled_reports_delete": {
     "ask": {
@@ -818,6 +935,63 @@
       "nl": ["opgeslagen versies van het winkelontwerp"],
       "sw": ["matoleo yaliyohifadhiwa ya muundo wa duka"]
     }
+  },
+  "supplier_bills_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_match": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_match_candidates": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_update": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_allocate": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_allocate_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_create_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_targets": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "supply_chain_list": {
     "ask": {

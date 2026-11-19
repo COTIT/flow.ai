@@ -10,6 +10,8 @@
  * One exception with its provider observation and accounting state.
  */
 export interface ExceptionResource {
+  /** From kind and state: `retry` (pending posting), `resolve` (pending discrepancy), else none. */
+  allowed_actions: string[];
   /**
      * Discrepancy minor units sent to recovery.
      * @nullable

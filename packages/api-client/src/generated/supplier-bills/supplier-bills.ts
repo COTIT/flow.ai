@@ -30,6 +30,7 @@ import type {
   ActionPayablesReversePayload,
   ActionReviewedPayload,
   CreateBillPayload,
+  EnvelopeBillMatchCandidates,
   EnvelopeBillPostReview,
   EnvelopeReverseReview,
   EnvelopeSupplierBillResource,
@@ -469,6 +470,105 @@ export const useSupplierBillsMatch = <TError = ErrorType<MessageBody | Validatio
       return useMutation(getSupplierBillsMatchMutationOptions(options), queryClient);
     }
     /**
+ * @summary Booked receipt lines a draft bill's goods lines may match
+ */
+export const supplierBillsMatchCandidates = (
+    workspace: string,
+    bill: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeBillMatchCandidates>(
+      {url: `/workspace/${workspace}/supplier-bills/${bill}/match-candidates`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getSupplierBillsMatchCandidatesQueryKey = (workspace: string,
+    bill: string,) => {
+    return [
+    `/workspace/${workspace}/supplier-bills/${bill}/match-candidates`
+    ] as const;
+    }
+
+
+export const getSupplierBillsMatchCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError = ErrorType<MessageBody>>(workspace: string,
+    bill: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSupplierBillsMatchCandidatesQueryKey(workspace,bill);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>> = ({ signal }) => supplierBillsMatchCandidates(workspace,bill, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && bill !== null && bill !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SupplierBillsMatchCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>>
+export type SupplierBillsMatchCandidatesQueryError = ErrorType<MessageBody>
+
+
+export function useSupplierBillsMatchCandidates<TData = Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    bill: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierBillsMatchCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof supplierBillsMatchCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierBillsMatchCandidates<TData = Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    bill: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierBillsMatchCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof supplierBillsMatchCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierBillsMatchCandidates<TData = Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    bill: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Booked receipt lines a draft bill's goods lines may match
+ */
+
+export function useSupplierBillsMatchCandidates<TData = Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    bill: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsMatchCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSupplierBillsMatchCandidatesQueryOptions(workspace,bill,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Post a reviewed draft bill
  */
 export const supplierBillsPost = (

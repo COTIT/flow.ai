@@ -225,7 +225,7 @@ impl W {
     }
 }
 
-fn goods(product: &str, q: &str, price: &str) -> Value {
+pub(crate) fn goods(product: &str, q: &str, price: &str) -> Value {
     json!({ "product_id": product, "quantity": q, "unit_price": price })
 }
 
@@ -905,7 +905,7 @@ async fn cash_payment_refund_and_reversal_keep_place_and_book_equal(pool: PgPool
 
 impl W {
     /// Draft return of receipt `r`'s line (q, billed match).
-    async fn return_draft(
+    pub(crate) async fn return_draft(
         &self,
         r: &Value,
         q: &str,
@@ -927,7 +927,7 @@ impl W {
         .await
     }
 
-    async fn post_return(&self, ret: &Value) -> (StatusCode, Value) {
+    pub(crate) async fn post_return(&self, ret: &Value) -> (StatusCode, Value) {
         let id = ret["id"].as_str().unwrap();
         let (s, review) = self
             .req(
@@ -947,7 +947,13 @@ impl W {
         .await
     }
 
-    async fn returned(&self, r: &Value, q: &str, billed: Option<&Value>, apply: bool) -> Value {
+    pub(crate) async fn returned(
+        &self,
+        r: &Value,
+        q: &str,
+        billed: Option<&Value>,
+        apply: bool,
+    ) -> Value {
         let (s, ret) = self.return_draft(r, q, billed, apply).await;
         assert_eq!(s, StatusCode::CREATED, "{ret}");
         let (s, ret) = self.post_return(&ret["data"]).await;
@@ -1141,7 +1147,13 @@ async fn concurrent_return_and_bill_never_spend_the_same_capacity(pool: PgPool) 
 // --- purchase cost adjustments (late price: pending variance → inventory/COGS) --------------
 
 impl W {
-    async fn adjust(&self, bill: &Value, rl: &Value, inv: &str, cogs: &str) -> (StatusCode, Value) {
+    pub(crate) async fn adjust(
+        &self,
+        bill: &Value,
+        rl: &Value,
+        inv: &str,
+        cogs: &str,
+    ) -> (StatusCode, Value) {
         let (s, adj) = self
             .req(
                 Method::POST,

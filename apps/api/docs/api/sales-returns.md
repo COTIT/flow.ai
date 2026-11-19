@@ -27,6 +27,10 @@ Same as shipments (`docs/api/shipments.md`): C `{client_ref, payload}` → 201, 
 
 A return, sale, restock or order of another workspace is 404.
 
+## Resource display fields
+
+Read with the return, from workspace-scoped joins in the same queries (no extra calls): `relation_name` (company name, else alias; null for anonymous retail), `order_number`; per line `product_name`, `order_line_id` (the legacy return cost `line_id`; null for a standalone invoice sale), `origin_warehouse_id` and `origin_warehouse_name` (the warehouse the sale took the line from, the only restock destination; null when the line moved no stock); per restock `warehouse_name` and `allowed_actions` (`reverse` while posted, else none).
+
 ## Credit
 
 Create `{recognition_id, accounting_date, reason, lines: [{recognition_line_id, quantity}]}`; PATCH replaces date, reason and lines of a draft. `kind` is `invoice_credit` when the sale is billed on an issued invoice (or is a standalone invoice), else `receipt_credit` (anonymous Till receipts included; no customer, no invoice).
