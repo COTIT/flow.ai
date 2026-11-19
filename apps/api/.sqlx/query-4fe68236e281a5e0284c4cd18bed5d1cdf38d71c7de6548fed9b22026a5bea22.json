@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE items i SET vat = u.rate FROM unnest($2::uuid[], $3::numeric[]) u(id, rate)\n         WHERE i.workspace_id = $1 AND i.id = u.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fe68236e281a5e0284c4cd18bed5d1cdf38d71c7de6548fed9b22026a5bea22"
+}

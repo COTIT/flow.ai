@@ -114,7 +114,11 @@ async fn price_sale(
         return Err(AppError::Validation(refused));
     }
     let (currency_id, dp) = order_rules::currency(&mut *conn, ws, Some(s.currency_id)).await?;
-    let charged = order_rules::price(&mut *conn, ws, currency_id, dp, lines, false).await?;
+    let facts = crate::modules::tax_profiles::sale::Facts {
+        at: sold_at,
+        ..Default::default()
+    };
+    let charged = order_rules::price(&mut *conn, ws, currency_id, dp, lines, false, facts).await?;
     let catalog: Vec<LineInput> = lines
         .iter()
         .map(|l| LineInput {
@@ -125,7 +129,8 @@ async fn price_sale(
     if charged.total > TOTAL_MAX {
         return Err(AppError::field("lines", TOO_BIG));
     }
-    let server = order_rules::price(&mut *conn, ws, currency_id, dp, &catalog, false).await?;
+    let server =
+        order_rules::price(&mut *conn, ws, currency_id, dp, &catalog, false, facts).await?;
     let mismatched = charged
         .lines
         .iter()

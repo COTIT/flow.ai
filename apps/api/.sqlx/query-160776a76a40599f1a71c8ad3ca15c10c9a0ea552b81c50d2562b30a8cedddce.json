@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO order_line_taxes (workspace_id, order_line_id, line_no, profile_id, code,\n                                         rate, base, tax, exempt, tax_date)\n           SELECT $1, u.id, c.line_no, c.profile_id, c.code, c.rate, c.base, c.tax, c.exempt,\n                  c.tax_date\n           FROM unnest($2::uuid[], $3::jsonb[]) u(id, j)\n           CROSS JOIN jsonb_to_recordset(u.j) c(line_no smallint, profile_id uuid, code text,\n                                                rate numeric, base bigint, tax bigint,\n                                                exempt boolean, tax_date date)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "160776a76a40599f1a71c8ad3ca15c10c9a0ea552b81c50d2562b30a8cedddce"
+}

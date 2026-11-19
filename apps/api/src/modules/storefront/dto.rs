@@ -21,7 +21,7 @@ use crate::modules::{
     (cents) of `currency`; `currency_decimals` says where the decimal point goes."
 )]
 pub struct StorefrontProduct {
-    id: Uuid,
+    pub(crate) id: Uuid,
     name: String,
     #[schema(required = true)]
     brand: Option<String>,
@@ -37,10 +37,10 @@ pub struct StorefrontProduct {
     barcode: Option<String>,
     /// One unit incl the product's VAT, minor units: what checkout charges for quantity 1.
     #[schema(example = 1250)]
-    price_gross: i64,
+    pub(crate) price_gross: i64,
     /// Price excluding VAT, in minor units.
     #[schema(example = 1033)]
-    price_net: i64,
+    pub(crate) price_net: i64,
     /// ISO 4217 code.
     #[schema(example = "EUR")]
     currency: String,
@@ -68,7 +68,7 @@ pub struct StorefrontProduct {
     /// The product's own images in order, as signed links (fetch before `expires_at`).
     images: Vec<Link>,
     /// Default variant first.
-    variants: Vec<StorefrontVariant>,
+    pub(crate) variants: Vec<StorefrontVariant>,
 }
 
 /// A product's category, as the shop links it (`?category=<id>`).
@@ -135,9 +135,9 @@ pub struct StorefrontVariant {
     ean13: Option<String>,
     is_default: bool,
     /// One unit of this variant incl the product's VAT, minor units: what checkout charges.
-    price_gross: i64,
+    pub(crate) price_gross: i64,
     /// This variant's catalog price excl VAT, minor units.
-    price_net: i64,
+    pub(crate) price_net: i64,
     options: Vec<VariantOption>,
     /// This variant's own images in order, as signed links.
     images: Vec<Link>,

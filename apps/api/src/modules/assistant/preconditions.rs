@@ -170,9 +170,20 @@ pub async fn capture(
             let (currency, decimals) =
                 orders::service::currency(conn, workspace, order.currency_id).await?;
             let warehouse = orders::service::warehouse(conn, workspace, order.warehouse_id).await?;
-            let priced =
-                orders::service::price(conn, workspace, currency, decimals, &order.lines, false)
-                    .await?;
+            let facts = crate::modules::tax_profiles::sale::Facts {
+                relation: order.relation_id,
+                ..Default::default()
+            };
+            let priced = orders::service::price(
+                conn,
+                workspace,
+                currency,
+                decimals,
+                &order.lines,
+                false,
+                facts,
+            )
+            .await?;
             let priced = orders::service::review_priced(
                 conn, workspace, currency, decimals, warehouse, &priced,
             )
@@ -262,6 +273,10 @@ pub async fn capture(
                         decimals,
                         &lines,
                         false,
+                        crate::modules::tax_profiles::sale::Facts {
+                            relation: order.relation_id,
+                            ..Default::default()
+                        },
                     )
                     .await?;
                     facts["priced"] = orders::service::review_priced(

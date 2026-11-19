@@ -79,6 +79,8 @@ mod period_close;
 mod provider_observations;
 #[path = "api/purchasing.rs"]
 mod purchasing;
+#[path = "api/sale_tax.rs"]
+mod sale_tax;
 #[path = "api/sales_billing.rs"]
 mod sales_billing;
 #[path = "api/sales_groups.rs"]

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Flow ERP M6-A, one verified tax calculation path (migration `20261119150000_sale_tax`, `docs/api/tax-profiles.md`). Active books tax orders, storefront, Till, `/calculate-items` and invoice drafts through SQL `sale_tax_lines` → `tax_line`, per line and per component. Quote and commit share the query; snapshots in `order_line_taxes` / `item_taxes`; client `vat` ignored; legacy `vat_rate`/`vat` are projections. No covering verified sale profile, or several jurisdictions → 422 `unsupported_active_erp_operation`. Recognition and credits split tax per component; credits freeze their reversal in `sales_return_line_taxes`. Setup books unchanged.
 - WF-01 execute review fixes (`docs/api/integrations.md`, `docs/api/workflows.md`; no migration):
   - a granted retry whose Odoo source changed goes to `awaiting_reconciliation` with a `source_changed_during_write` incident instead of a cancel the I2 CHECK refused (the job looped);
   - `allow_retry` while a grant is unused → 409 `retry_already_granted` (UI text en/sw/nl); attempt n carries grant n-1, so one grant never covers two attempts;

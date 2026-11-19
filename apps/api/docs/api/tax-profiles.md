@@ -68,13 +68,26 @@ A verified revision never changes. Its fields, components and exemptions are fix
 - Rounding is half away from zero via `money_round_div`, exact. Negative amounts (credits) mirror positive ones.
 - Refusals raise SQLSTATE 22023 with message `tax_profile_not_verified` (also for another workspace's id), `tax_profile_not_effective`, `tax_profile_wrong_transaction` or `tax_profile_wrong_category`.
 
-## Not wired yet (later step)
+## Sales tax in active books (M6-A)
 
-Pricing, orders, storefront, Till, invoices, purchasing and bills still use the legacy `vat_groups` rate. Planned single boundary:
+Setup books keep the legacy path: the `vat_groups` rate, VAT rounded once per rate on the document sum (`pricing/engine.rs`). Active books tax every sale through the verified profiles, in SQL:
 
-- One server quote evaluates `tax_line` for all lines in one query.
-- Each line keeps a snapshot: profile, revision, components, base, tax, exempt flag, recoverable flag and tax point.
-- Legacy `vat_rate`, `line_vat` and `vat` become projections of that snapshot. A client's legacy rate never overrides a verified profile.
-- Linked invoices copy the order's tax, credits reverse the original, and issued values are never recalculated.
+- `sale_tax_lines(ws, on_date, relation, products[], amounts[])` picks, per line, the one current verified `sale` profile in force on `on_date` whose categories cover the product (empty = all), then calls `tax_line`. Line amounts are excl tax; the Rust pricing engine still rounds each line's gross and discount.
+- Tax rounds per line and per component (`money_round_div`). Document VAT is the sum of line taxes and can differ by up to half a minor unit per line from per-rate rounding.
+- Tax point: the commit date in the book timezone (Till: `sold_at`).
+- Used by `POST /orders` and order updates, assistant order reviews, storefront checkout and catalog `price_gross`, Till quote and sale, `POST /calculate-items`, invoice drafts, invoice reviews, reads and PDFs. Quote and commit run the same query; assistant reviews carry `tax_components` per line, so an approval goes stale when the profile changes.
+- A client's `vat` on invoice items or `/calculate-items` is ignored. The stored `items.vat` and `order_lines.vat_rate` become the sum of component rates; `line_vat`, `vat`, `subtotal` and `total` are sums from SQL.
+- Snapshots per component: `order_line_taxes`, `item_taxes` (profile, code, rate, base, tax, exempt, tax date). Issued invoices are read from the snapshot, never re-priced. Bills already snapshot in `supplier_bill_line_taxes`.
+- Recognition takes each component's share of the order line by shipped quantity. Credits (`sales_returns`, Till refunds) reverse each component by its share of the order line's returned quantity; the credit reaching the line quantity takes the exact rest (`component_shares`, frozen in `sales_return_line_taxes`).
+- Linked invoices copy the recognised tax.
 
-**Open wiring decision:** today VAT is rounded once per rate on the document sum (`pricing/engine.rs`); `tax_line` rounds per line and component. Document VAT can then differ by up to half a minor unit per line. Decided when wiring lands.
+Refusals, all 422 `unsupported_active_erp_operation`:
+
+| Case | Message |
+|---|---|
+| No verified sale profile covers a line | `No verified tax profile covers line N. …` |
+| Profiles of more than one jurisdiction cover a line | `More than one tax jurisdiction covers line N. …` |
+
+An untaxed product needs a verified profile with a 0 % component; there is no fallback to the legacy rate.
+
+Not yet: tax by ship-to jurisdiction, a per-component credit of a standalone invoice, and the Till catalog's displayed rate (still the legacy group rate; the sale is taxed by the profile).

@@ -8,6 +8,7 @@ use crate::{
             dto::{LOW_STOCK_DEFAULT, StorefrontProduct},
             repo,
         },
+        tax_profiles::sale,
     },
 };
 use uuid::Uuid;
@@ -33,10 +34,38 @@ pub async fn products(
         .await?
         .and_then(|s| s.get("low_stock_threshold")?.as_i64())
         .unwrap_or(LOW_STOCK_DEFAULT);
-    Ok((
-        rows.into_iter()
-            .map(|r| StorefrontProduct::new(r, &images, low))
-            .collect(),
-        total,
-    ))
+    let mut out: Vec<StorefrontProduct> = rows
+        .into_iter()
+        .map(|r| StorefrontProduct::new(r, &images, low))
+        .collect();
+    active_gross(state, workspace_id, &mut out).await?;
+    Ok((out, total))
+}
+
+/// Active books: one unit's gross from the verified tax path, as checkout charges quantity 1.
+async fn active_gross(
+    state: &AppState,
+    ws: Uuid,
+    out: &mut [StorefrontProduct],
+) -> Result<(), AppError> {
+    let mut conn = state.db.acquire().await?;
+    if out.is_empty() || !crate::modules::stock::value::active(&mut conn, ws).await? {
+        return Ok(());
+    }
+    let (mut products, mut amounts) = (Vec::new(), Vec::new());
+    for p in out.iter() {
+        for net in std::iter::once(p.price_net).chain(p.variants.iter().map(|v| v.price_net)) {
+            products.push(Some(p.id));
+            amounts.push(net);
+        }
+    }
+    let t = sale::lines(&mut conn, ws, sale::Facts::default(), &products, &amounts).await?;
+    let mut gross = t.lines.into_iter().map(|l| l.gross);
+    for p in out.iter_mut() {
+        p.price_gross = gross.next().unwrap_or(p.price_gross);
+        for v in &mut p.variants {
+            v.price_gross = gross.next().unwrap_or(v.price_gross);
+        }
+    }
+    Ok(())
 }

@@ -95,7 +95,16 @@ pub async fn create(
     }
     let (currency_id, dp) = service::currency(&mut tx, ws, None).await?;
     let warehouse_id = service::warehouse(&mut tx, ws, None).await?;
-    let p = service::price(&mut tx, ws, currency_id, dp, &input.lines, true).await?;
+    let p = service::price(
+        &mut tx,
+        ws,
+        currency_id,
+        dp,
+        &input.lines,
+        true,
+        Default::default(),
+    )
+    .await?;
     let number = service::number(&mut tx, ws).await?;
     let id = repo::insert(
         &mut tx,
