@@ -249,6 +249,9 @@ pub struct PostReviewLine {
 #[derive(Serialize, ToSchema)]
 pub struct PostReview {
     pub accounting_date: NaiveDate,
+    /// The book's functional currency (line values are in it); null before it is set.
+    #[schema(required = true)]
+    pub functional_currency: Option<crate::modules::accounting::dto::CurrencyRef>,
     /// Changed lines only.
     pub lines: Vec<PostReviewLine>,
     pub review_fingerprint: String,

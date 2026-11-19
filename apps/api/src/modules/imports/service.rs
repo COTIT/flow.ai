@@ -523,21 +523,27 @@ pub async fn list(
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let mut conn = db.acquire().await?;
     let ids: Vec<(Uuid, i64)> = sqlx::query_as(
-        "SELECT id, count(*) OVER () FROM import_batches WHERE workspace_id = $1
+        "SELECT id, count(*) OVER () FROM import_batches
+         WHERE workspace_id = $1 AND ($4::text IS NULL OR profile = $4)
          ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3",
     )
     .bind(workspace)
     .bind(page.size)
     .bind(page.offset())
+    .bind(q.profile.as_deref())
     .fetch_all(&mut *conn)
     .await?;
     let total = match ids.first() {
         Some((_, t)) => *t,
         None => {
-            sqlx::query_scalar("SELECT count(*) FROM import_batches WHERE workspace_id = $1")
-                .bind(workspace)
-                .fetch_one(&mut *conn)
-                .await?
+            sqlx::query_scalar(
+                "SELECT count(*) FROM import_batches
+                 WHERE workspace_id = $1 AND ($2::text IS NULL OR profile = $2)",
+            )
+            .bind(workspace)
+            .bind(q.profile.as_deref())
+            .fetch_one(&mut *conn)
+            .await?
         }
     };
     let mut data = Vec::with_capacity(ids.len());

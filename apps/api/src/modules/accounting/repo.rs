@@ -145,11 +145,12 @@ pub struct AccountRow {
     pub updated_at: DateTime<Utc>,
 }
 
-/// One page of accounts by code, or the one with `id`; plus the total.
+/// One page of accounts by code, or the one with `id`; `q` = escaped ILIKE pattern on code or name.
 pub async fn accounts(
     db: impl PgExecutor<'_>,
     ws: Uuid,
     id: Option<Uuid>,
+    q: Option<&str>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<AccountRow>, sqlx::Error> {
@@ -162,21 +163,29 @@ pub async fn accounts(
                   a.created_by, a.created_at, a.updated_at
            FROM accounts a
            WHERE a.workspace_id = $1 AND ($2::uuid IS NULL OR a.id = $2)
+             AND ($5::text IS NULL OR a.code ILIKE $5 OR a.name ILIKE $5)
            ORDER BY a.code LIMIT $3 OFFSET $4"#,
         ws,
         id,
         limit,
-        offset
+        offset,
+        q
     )
     .fetch_all(db)
     .await
 }
 
-/// How many accounts the book has.
-pub async fn account_count(db: impl PgExecutor<'_>, ws: Uuid) -> Result<i64, sqlx::Error> {
+/// How many accounts the book has (matching `q` when given).
+pub async fn account_count(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    q: Option<&str>,
+) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM accounts WHERE workspace_id = $1"#,
-        ws
+        r#"SELECT count(*) AS "n!" FROM accounts
+           WHERE workspace_id = $1 AND ($2::text IS NULL OR code ILIKE $2 OR name ILIKE $2)"#,
+        ws,
+        q
     )
     .fetch_one(db)
     .await

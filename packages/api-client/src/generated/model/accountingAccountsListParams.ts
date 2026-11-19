@@ -7,6 +7,10 @@
  */
 
 export type AccountingAccountsListParams = {
+/**
+ * Search on code and name (max 100 characters).
+ */
+q?: string;
 page?: string;
 page_size?: string;
 };

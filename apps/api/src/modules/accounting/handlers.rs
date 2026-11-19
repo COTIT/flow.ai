@@ -22,15 +22,15 @@ use crate::{
         banking::{self, ReconcilePayload, UnmatchPayload},
         close,
         dto::{
-            AccountPatch, AccountPayload, AccountResource, Action, AgingQuery, AgingResource,
-            AsOfQuery, BalanceSheetResource, BankAccountPayload, BankAccountResource,
-            CloseChecksQuery, CloseChecksResource, ClosePayload, Create, GeneralLedgerResource,
-            InventoryValuationResource, JournalPayload, JournalResource, LedgerQuery, ListQuery,
-            PartyLedgerQuery, PartyLedgerResource, PeriodPayload, PeriodResource, PostPayload,
-            ProfitAndLossResource, RangeQuery, RevaluationResource, RevaluePayload,
-            RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource, SetupPayload,
-            SetupResource, TrialBalanceResource, ValuationQuery, YearCloseResource, YearPayload,
-            YearResource,
+            AccountListQuery, AccountPatch, AccountPayload, AccountResource, Action, AgingQuery,
+            AgingResource, AsOfQuery, BalanceSheetResource, BankAccountPayload,
+            BankAccountResource, CloseChecksQuery, CloseChecksResource, ClosePayload, Create,
+            GeneralLedgerResource, InventoryValuationResource, JournalPayload, JournalResource,
+            LedgerQuery, ListQuery, PartyLedgerQuery, PartyLedgerResource, PeriodPayload,
+            PeriodResource, PostPayload, ProfitAndLossResource, RangeQuery, RevaluationResource,
+            RevaluePayload, RevalueReviewBody, ReversePayload, ReverseReviewBody, ReviewResource,
+            SetupPayload, SetupResource, TrialBalanceResource, ValuationQuery, YearCloseResource,
+            YearPayload, YearResource,
         },
         journals,
         opening::{self, CorrectionPayload, ReviewBody},
@@ -105,9 +105,10 @@ pub async fn setup_update(
     get, path = "/workspace/{workspace}/accounting/accounts", tag = "accounting",
     operation_id = "accounting_accounts_list",
     summary = "List the chart of accounts",
-    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), AccountListQuery),
     responses(
         (status = 200, body = Paginated<AccountResource>, description = "Success"),
+        (status = 422, body = ValidationErrorBody, description = "`q` longer than 100 characters"),
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
         (status = 404, body = MessageBody, description = "Unknown workspace or record, or not a member"),
     ),
@@ -116,11 +117,36 @@ pub async fn setup_update(
 pub async fn accounts_list(
     State(state): State<AppState>,
     access: Can<Read>,
-    Query(q): Query<ListQuery>,
+    Query(q): Query<AccountListQuery>,
 ) -> Result<Json<Paginated<AccountResource>>, AppError> {
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
-    let (rows, total) = service::accounts(&state, access.workspace_id, page).await?;
+    let search = crate::http::list::search(q.q.as_deref())?;
+    let (rows, total) = service::accounts(&state, access.workspace_id, search, page).await?;
     Ok(Json(Paginated::new(rows, total, page)))
+}
+
+/// accounting_accounts_get: Get one ledger account.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/accounting/accounts/{account}", tag = "accounting",
+    operation_id = "accounting_accounts_get",
+    summary = "Get one ledger account",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("account" = Uuid, Path, description = "Account id")),
+    responses(
+        (status = 200, body = Envelope<AccountResource>, description = "Success"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or account, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn accounts_get(
+    State(state): State<AppState>,
+    access: Can<Read>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<AccountResource>, AppError> {
+    let mut conn = state.db.acquire().await?;
+    Ok(Data(
+        service::account(&mut conn, access.workspace_id, id(&raw)?).await?,
+    ))
 }
 
 /// accounting_accounts_create: Create a ledger account.

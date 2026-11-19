@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Flow ERP M7-C, small Office reads (no migration): `GET /accounting/accounts/{id}` (`accounting_accounts_get`, `accounting.read`); `q` search on `accounting_accounts_list` (code or name) and `warehouses_list` (name or alias), escaped ILIKE, max 100 characters, workspace-scoped; the setup resource carries `business_date` (today in the book timezone, workspace timezone, else UTC; same SQL as purchase orders); `stocktakes_post_review` carries `functional_currency` (null before it is set); `imports_list` takes `profile`.
 - Flow ERP M7-B, Office reads for returns, exceptions and banking (no migration):
   - accounting exceptions carry `allowed_actions` from kind and state (pending posting: `retry`; pending discrepancy: `resolve`; resolved: none) (`docs/api/accounting.md` "Provider observations");
   - bank statement lines carry `allowed_actions` (`reconcile` unmatched, `reverse` matched); new `GET /accounting/bank-statements/{id}/lines/{line}/candidates` (`bank_statements_line_candidates`, `accounting.reconcile`) lists the journal lines a match would accept with their capacity left, from the same SQL capacity expression the match check uses (`docs/api/accounting.md` "Bank statements and reconciliation");

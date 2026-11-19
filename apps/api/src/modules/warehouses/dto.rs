@@ -304,6 +304,8 @@ pub struct WarehouseCreated {
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name and alias (max 100 characters).
+    pub q: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,

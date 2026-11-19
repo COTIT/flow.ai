@@ -51,7 +51,7 @@ type WarehousePath = Path<(String, String)>;
         (status = 200, body = Paginated<WarehouseResource>, description = "One page of warehouses"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Malformed `parent_id`"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `parent_id`, or `q` longer than 100 characters"),
     ),
     security(("bearer" = []))
 )]
@@ -65,6 +65,7 @@ pub async fn list(
         parent_id: list_parent(query.parent_id.as_deref())?,
         roots_only: query.roots_only.as_deref().is_none_or(flag),
         pickup_only: query.pickup_enabled.as_deref().is_some_and(flag),
+        q: crate::http::list::search(query.q.as_deref())?,
         limit: page.size,
         offset: page.offset(),
     };

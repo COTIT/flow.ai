@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT a.id, a.code, a.name, a.type AS kind, a.parent_id, a.active, a.version,\n                  ARRAY(SELECT m.role FROM account_mappings m\n                        WHERE m.workspace_id = a.workspace_id AND m.account_id = a.id\n                        ORDER BY m.role) AS \"roles!\",\n                  a.created_by, a.created_at, a.updated_at\n           FROM accounts a\n           WHERE a.workspace_id = $1 AND ($2::uuid IS NULL OR a.id = $2)\n           ORDER BY a.code LIMIT $3 OFFSET $4",
+  "query": "SELECT a.id, a.code, a.name, a.type AS kind, a.parent_id, a.active, a.version,\n                  ARRAY(SELECT m.role FROM account_mappings m\n                        WHERE m.workspace_id = a.workspace_id AND m.account_id = a.id\n                        ORDER BY m.role) AS \"roles!\",\n                  a.created_by, a.created_at, a.updated_at\n           FROM accounts a\n           WHERE a.workspace_id = $1 AND ($2::uuid IS NULL OR a.id = $2)\n             AND ($5::text IS NULL OR a.code ILIKE $5 OR a.name ILIKE $5)\n           ORDER BY a.code LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -125,7 +125,8 @@
         "Uuid",
         "Uuid",
         "Int8",
-        "Int8"
+        "Int8",
+        "Text"
       ]
     },
     "nullable": [
@@ -142,5 +143,5 @@
       false
     ]
   },
-  "hash": "970382b85fe014e14ee4568e7a985dd1b5b6f1ae2564eb046b672d3f89913d68"
+  "hash": "cd99304f8052ce4c00b5a980dc87b8fc4fa0c0752d45ac0dfb1da8649d5a8bf8"
 }

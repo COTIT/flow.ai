@@ -616,3 +616,42 @@ async fn validating_500_rows_is_synchronous_and_timed(db: PgPool) {
     assert_eq!(body["data"]["counts"]["valid"], 500);
     assert!(took.as_secs() < 10, "validate 500 rows took {took:?}");
 }
+
+#[sqlx::test]
+async fn list_filters_by_profile_within_the_workspace(db: PgPool) {
+    let w = world(db).await;
+    let relations = w.create("relations", 1, json!({})).await;
+    w.create(
+        "products",
+        1,
+        json!({"operation": "create", "match_key": "barcode"}),
+    )
+    .await;
+    let (status, body) = w
+        .call(Method::GET, "?profile=relations", None, &w.token)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["meta"]["total"], 1, "{body}");
+    assert_eq!(body["data"][0]["id"], relations["id"]);
+    let (_, body) = w.call(Method::GET, "", None, &w.token).await;
+    assert_eq!(body["meta"]["total"], 2, "no filter lists all: {body}");
+    let (_, body) = w
+        .call(Method::GET, "?profile=opening_payables", None, &w.token)
+        .await;
+    assert_eq!(body["meta"]["total"], 0, "{body}");
+
+    // Another workspace sees none of them, filtered or not.
+    let (eve, eve_ws) = signup(&w.app, "eve@example.test", "eve-imports").await;
+    let (status, bytes) = send_raw(
+        &w.app,
+        Method::GET,
+        &format!("/v1/workspace/{eve_ws}/imports?profile=relations"),
+        None,
+        Some(&eve),
+        &[],
+    )
+    .await;
+    let body: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["meta"]["total"], 0, "{body}");
+}

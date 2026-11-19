@@ -441,6 +441,32 @@ async fn list_roots_children_and_filters(pool: PgPool) {
         .call(Method::GET, "?parent_id=nope", None, &api.owner)
         .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+
+    // `q` searches name (and alias) at every level with roots_only=0; `%` matches literally.
+    assert_eq!(
+        ids(&api.list("?q=chi&roots_only=0").await),
+        vec![child.clone()]
+    );
+    assert_eq!(ids(&api.list("?q=oth").await).len(), 1);
+    let none = api.list("?q=%25").await;
+    assert_eq!(none["meta"]["total"], 0, "{none}");
+    let long = "a".repeat(101);
+    let (status, _) = api
+        .call(Method::GET, &format!("?q={long}"), None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "q is bounded");
+    // Another workspace finds none of these.
+    let (eve, eve_ws) = common::signup(&api.app, "eve@example.com", "eve-wh").await;
+    let (status, res) = send(
+        &api.app,
+        Method::GET,
+        &format!("/v1/workspace/{eve_ws}/warehouses?q=root&roots_only=0"),
+        None,
+        Some(&eve),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["meta"]["total"], 0, "{res}");
 }
 
 #[sqlx::test]

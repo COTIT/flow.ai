@@ -8,6 +8,10 @@
 
 export type WarehousesListParams = {
 /**
+ * Search on name and alias (max 100 characters).
+ */
+q?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;
