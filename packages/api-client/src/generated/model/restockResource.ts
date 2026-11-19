@@ -12,6 +12,8 @@ import type { RestockLineResource } from './restockLineResource';
  */
 export interface RestockResource {
   accounting_date: string;
+  /** `reverse` while posted, else none. */
+  allowed_actions: string[];
   created_at: string;
   created_by: string;
   id: string;
@@ -24,4 +26,5 @@ export interface RestockResource {
   state: string;
   version: number;
   warehouse_id: string;
+  warehouse_name: string;
 }

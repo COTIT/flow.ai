@@ -161,7 +161,10 @@ Flow ERP M5-C (masterplan §13 BANKING). Active books only: in a setup book ever
 `{id, bank_account_id, currency_id, reference, start_date, end_date, opening_balance, closing_balance, line_count, reconciled_lines, unreconciled_lines, unreconciled_amount, state: open|reconciled, import_batch_id, file_hash, created_by, created_at}`.
 
 `GET /accounting/bank-statements/{id}/lines` (`bank_statement_lines`, paginated, file order):
-`{id, statement_id, row_number, transaction_id, booking_date, description, amount, matched_amount, residual, state: unreconciled|reconciled, reconciliation_id, reconciliation_version, allocations: [{journal_line_id, journal_entry_id, entry_number, accounting_date, amount, journal_reversed}]}`. Only the live match shows. `journal_reversed` is true when the matched entry was reversed after matching (or is a reversal).
+`{id, statement_id, row_number, transaction_id, booking_date, description, amount, matched_amount, residual, state: unreconciled|reconciled, reconciliation_id, reconciliation_version, allocations: [{journal_line_id, journal_entry_id, entry_number, accounting_date, amount, journal_reversed}], allowed_actions}`. Only the live match shows. `journal_reversed` is true when the matched entry was reversed after matching (or is a reversal).`allowed_actions` is `["reconcile"]` on an unmatched line, `["reverse"]` (the live reconciliation) on a matched one.
+
+`GET /accounting/bank-statements/{id}/lines/{line}/candidates` (`bank_statements_line_candidates`, `accounting.reconcile`, paginated, newest accounting date first): the journal lines a match of this line would accept, one row each: `{journal_line_id, journal_entry_id, entry_number, accounting_date, reason, source_ref, remaining}`. Posted, not reversed and not a reversal, on the bank account's GL account and tagged with it, in its currency, with capacity `remaining` = `(debit − credit) − Σ live allocations` left and of the statement line's sign. The capacity is the same SQL expression the match check uses, so every candidate at its `remaining` (or less) passes the capacity check. A line not in that statement, or of another workspace: 404.
+
 
 Another workspace's statement: 404.
 
@@ -409,7 +412,7 @@ If posting fails (no receivable, foreign currency, closed period, unmapped role,
 ### Routes
 
 - `GET /workspace/{ws}/accounting/exceptions?state=pending|all&before=&limit=` (`accounting.read`): newest first, keyset by id, at most 100.
-- `GET /workspace/{ws}/accounting/exceptions/{id}` (`accounting.read`): exception, observation, recovery residual, source-link disposition.
+- `GET /workspace/{ws}/accounting/exceptions/{id}` (`accounting.read`): exception, observation, recovery residual, source-link disposition, `allowed_actions` (`["retry"]` on a pending posting, `["resolve"]` on a pending discrepancy, `[]` once resolved).
 - `POST .../{id}/retry` (`accounting.post`, A envelope `{client_ref, expected_version, payload: {}}`, Idempotency-Key). `pending_posting` only. It reruns the posting with no provider call. Success: 200, resolution `posted`, invoice paid projection updated once. Still failing: 422 with the reason, and the attempt is counted. Resolved or discrepancy: 409 `exception_state`. Wrong version: 409 `stale_document`.
 - `POST .../{id}/resolve/review` (`accounting.post`, `{resolution, relation_id?, reason, evidence_ref}`) has no writes. It returns `review_fingerprint`, the amount, the date (book's day) and the debit/credit roles.
 - `POST .../{id}/resolve` (`accounting.post`, A envelope, payload with `review_fingerprint`). `discrepancy` only; a pending posting gets 422 (retry it).

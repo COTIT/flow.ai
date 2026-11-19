@@ -14806,6 +14806,13 @@
       "ExceptionResource": {
         "description": "One exception with its provider observation and accounting state.",
         "properties": {
+          "allowed_actions": {
+            "description": "From kind and state: `retry` (pending posting), `resolve` (pending discrepancy), else none.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "amount": {
             "description": "Discrepancy minor units sent to recovery.",
             "format": "int64",
@@ -14959,7 +14966,8 @@
           "currency",
           "decimals",
           "operation_id",
-          "occurred_at"
+          "occurred_at",
+          "allowed_actions"
         ],
         "type": "object"
       },
@@ -34084,6 +34092,13 @@
             "format": "date",
             "type": "string"
           },
+          "allowed_actions": {
+            "description": "`reverse` while posted, else none.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -34126,17 +34141,22 @@
           "warehouse_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "warehouse_name": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "warehouse_id",
+          "warehouse_name",
           "state",
           "version",
           "accounting_date",
           "lines",
           "created_by",
-          "created_at"
+          "created_at",
+          "allowed_actions"
         ],
         "type": "object"
       },
@@ -35926,6 +35946,12 @@
               "null"
             ]
           },
+          "order_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "posted_at": {
             "format": "date-time",
             "type": [
@@ -35943,6 +35969,13 @@
           "relation_id": {
             "description": "None for an anonymous retail sale.",
             "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relation_name": {
+            "description": "Customer display name (company name, else alias).",
             "type": [
               "string",
               "null"
@@ -36051,8 +36084,36 @@
               "null"
             ]
           },
+          "order_line_id": {
+            "description": "Sale's order line (legacy return cost `line_id`); None for a standalone invoice sale.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin_warehouse_id": {
+            "description": "Warehouse the sale took this line from: the only restock destination. None: no stock moved.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin_warehouse_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "product_id": {
             "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_name": {
             "type": [
               "string",
               "null"
@@ -54124,6 +54185,176 @@
           }
         ],
         "summary": "Lines of a bank statement with their live match and residual",
+        "tags": [
+          "bank_statements"
+        ]
+      }
+    },
+    "/workspace/{workspace}/accounting/bank-statements/{statement}/lines/{line}/candidates": {
+      "get": {
+        "operationId": "bank_statements_line_candidates",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Statement id",
+            "in": "path",
+            "name": "statement",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Statement line id",
+            "in": "path",
+            "name": "line",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_Value"
+                }
+              }
+            },
+            "description": "Candidates, newest first"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, statement or line, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Journal lines a statement line can be matched to, with capacity left",
         "tags": [
           "bank_statements"
         ]

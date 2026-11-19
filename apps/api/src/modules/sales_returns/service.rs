@@ -158,6 +158,10 @@ fn line_resource(l: &LineRow, dp: i16) -> ReturnLineResource {
         net: money(l.net, dp),
         tax: money(l.tax, dp),
         restocked: qty(l.restocked),
+        product_name: l.product_name.clone(),
+        order_line_id: l.order_line_id,
+        origin_warehouse_id: l.origin_warehouse_id,
+        origin_warehouse_name: l.origin_warehouse_name.clone(),
     }
 }
 
@@ -177,6 +181,12 @@ fn restock_resources(rows: Vec<RestockRow>, dp: i16) -> Vec<RestockResource> {
             _ => out.push(RestockResource {
                 id: r.id,
                 warehouse_id: r.warehouse_id,
+                warehouse_name: r.warehouse_name,
+                allowed_actions: if r.state == "posted" {
+                    vec!["reverse"]
+                } else {
+                    vec![]
+                },
                 state: r.state,
                 version: r.version,
                 accounting_date: r.accounting_date,
@@ -216,6 +226,8 @@ fn resource(
         recognition_id: r.recognition_id,
         order_id: r.order_id,
         relation_id: r.relation_id,
+        relation_name: r.relation_name,
+        order_number: r.order_number,
         credit_invoice_id: r.credit_invoice_id,
         version: r.version,
         reason: r.reason,

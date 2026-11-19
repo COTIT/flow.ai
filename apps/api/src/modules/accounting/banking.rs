@@ -406,6 +406,17 @@ pub async fn apply(
 
 // --- reconciliation ----------------------------------------------------------------------
 
+/// Journal line `j`'s capacity left to match: `(debit − credit) − Σ live allocations`, as `left`.
+/// Shared by the match check and the candidates read, so both agree. Binds `$1` = workspace.
+macro_rules! remaining {
+    () => {
+        "SELECT (j.debit - j.credit)::numeric - coalesce(sum(a.amount::numeric), 0) AS left
+             FROM bank_reconciliation_allocations a
+             JOIN bank_reconciliations r ON r.id = a.reconciliation_id AND r.reversed_at IS NULL
+             WHERE a.workspace_id = $1 AND a.journal_line_id = j.id"
+    };
+}
+
 /// One allocation of a match request.
 #[derive(Deserialize, ToSchema)]
 pub struct AllocationPayload {
@@ -576,7 +587,7 @@ pub async fn reconcile(
     if locked.len() != sorted.len() {
         return Err(AppError::NotFound);
     }
-    let checks = sqlx::query(
+    let checks = sqlx::query(concat!(
         "SELECT e.state = 'posted' AND j.bank_account_id IS NOT DISTINCT FROM $3
                     AND j.account_id = b.account_id,
                 e.currency_id = b.currency_id,
@@ -587,13 +598,11 @@ pub async fn reconcile(
          JOIN journal_lines j ON j.workspace_id = $1 AND j.id = u.id
          JOIN journal_entries e ON e.workspace_id = $1 AND e.id = j.entry_id
          JOIN bank_accounts b ON b.workspace_id = $1 AND b.id = $3
-         CROSS JOIN LATERAL (
-             SELECT (j.debit - j.credit)::numeric - coalesce(sum(a.amount::numeric), 0) AS left
-             FROM bank_reconciliation_allocations a
-             JOIN bank_reconciliations r ON r.id = a.reconciliation_id AND r.reversed_at IS NULL
-             WHERE a.workspace_id = $1 AND a.journal_line_id = j.id) rem
-         ORDER BY u.ord",
-    )
+         CROSS JOIN LATERAL (",
+        remaining!(),
+        ") rem
+         ORDER BY u.ord"
+    ))
     .bind(ws)
     .bind(&ids)
     .bind(bank)
@@ -798,7 +807,9 @@ pub async fn lines(
                     'residual', bank_amount_text(l.amount - coalesce(m.total, 0), c.decimals),
                     'state', CASE WHEN r.id IS NULL THEN 'unreconciled' ELSE 'reconciled' END,
                     'reconciliation_id', r.id, 'reconciliation_version', r.version,
-                    'allocations', coalesce(m.items, '[]'::jsonb))
+                    'allocations', coalesce(m.items, '[]'::jsonb),
+                    'allowed_actions', CASE WHEN r.id IS NULL THEN jsonb_build_array('reconcile')
+                                            ELSE jsonb_build_array('reverse') END)
          FROM bank_statement_lines l
          JOIN bank_accounts b ON b.workspace_id = l.workspace_id AND b.id = l.bank_account_id
          JOIN currencies c ON c.workspace_id = b.workspace_id AND c.id = b.currency_id
@@ -825,4 +836,63 @@ pub async fn lines(
     .fetch_all(db)
     .await?;
     Ok(Paginated::new(data, total, page))
+}
+
+/// GET /accounting/bank-statements/{id}/lines/{line}/candidates: posted, unreversed journal
+/// lines on the line's bank account (its GL account, tagged with it, same currency) with
+/// capacity left of the statement line's sign. Exactly what a match would accept per line.
+pub async fn candidates(
+    db: &PgPool,
+    ws: Uuid,
+    statement: Uuid,
+    line: Uuid,
+    page: Page,
+) -> Result<Paginated<Value>, AppError> {
+    let mut conn = db.acquire().await?;
+    let (bank, gl, currency, amount, dp): (Uuid, Uuid, Uuid, i64, i16) = sqlx::query_as(
+        "SELECT l.bank_account_id, b.account_id, b.currency_id, l.amount, c.decimals
+         FROM bank_statement_lines l
+         JOIN bank_accounts b ON b.workspace_id = l.workspace_id AND b.id = l.bank_account_id
+         JOIN currencies c ON c.workspace_id = b.workspace_id AND c.id = b.currency_id
+         WHERE l.workspace_id = $1 AND l.statement_id = $2 AND l.id = $3",
+    )
+    .bind(ws)
+    .bind(statement)
+    .bind(line)
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or(AppError::NotFound)?;
+    let rows: Vec<(Value, i64)> = sqlx::query_as(concat!(
+        "SELECT jsonb_build_object('journal_line_id', j.id, 'journal_entry_id', e.id,
+                    'entry_number', e.number, 'accounting_date', e.accounting_date,
+                    'reason', e.reason, 'source_ref', j.source_ref,
+                    'remaining', bank_amount_text(rem.left, $6)),
+                count(*) OVER ()
+         FROM journal_lines j
+         JOIN journal_entries e ON e.workspace_id = $1 AND e.id = j.entry_id
+         CROSS JOIN LATERAL (",
+        remaining!(),
+        ") rem
+         WHERE j.workspace_id = $1 AND j.account_id = $3 AND j.bank_account_id = $2
+           AND e.state = 'posted' AND e.currency_id = $4
+           AND sign(rem.left) = sign($5::numeric) AND NOT bank_journal_reversed($1, e.id)
+         ORDER BY e.accounting_date DESC, e.number DESC, j.id
+         LIMIT $7 OFFSET $8"
+    ))
+    .bind(ws)
+    .bind(bank)
+    .bind(gl)
+    .bind(currency)
+    .bind(amount)
+    .bind(i32::from(dp))
+    .bind(page.size)
+    .bind(page.offset())
+    .fetch_all(&mut *conn)
+    .await?;
+    let total = rows.first().map_or(0, |(_, t)| *t);
+    Ok(Paginated::new(
+        rows.into_iter().map(|(v, _)| v).collect(),
+        total,
+        page,
+    ))
 }

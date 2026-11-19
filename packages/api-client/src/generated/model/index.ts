@@ -127,6 +127,7 @@ export * from './balanceSheetResource';
 export * from './balancesPage';
 export * from './bankAccountPayload';
 export * from './bankAccountResource';
+export * from './bankStatementsLineCandidatesParams';
 export * from './bankStatementsLinesParams';
 export * from './bankStatementsListParams';
 export * from './batchInput';
