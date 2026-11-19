@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 274 64" color="#1c1b18" role="img" aria-label="Verzo">
+  <path fill="#8a6116" d="M28 9 7 30a5 5 0 0 0 0 7l11 11 7-7-8-8L35 16zm18 6-7 7 8 8-18 17 7 8 21-21a5 5 0 0 0 0-7zM23 33l10-10 8 8-10 10z"/>
+  <g transform="translate(70 6)" stroke="currentColor" stroke-width="1" stroke-linejoin="round">
+    <path d="M2 8h9l11 28L33 8h9L26 44h-8ZM50 8h29v7H58v8h18v7H58v7h21v7H50ZM127 8h31v6l-20 23h21v7h-32v-6l20-23h-20Z" fill="currentColor"/>
+    <path d="M89 44V8h17c8 0 13 4 13 11 0 5-3 9-8 10l10 15h-10l-9-14h-5v14Zm8-21h9c3 0 5-1 5-4s-2-4-5-4h-9Z" fill="currentColor"/>
+    <path d="M174 8h19l9 9v18l-9 9h-19l-9-9V17Zm4 7-5 5v12l5 5h11l5-5V20l-5-5Z" fill="currentColor" fill-rule="evenodd"/>
+  </g>
+</svg>

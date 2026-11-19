@@ -1,5 +1,5 @@
 {
-  "name": "@genesy/api",
+  "name": "@verzo/api",
   "private": true,
   "scripts": {
     "dev": "cargo run",

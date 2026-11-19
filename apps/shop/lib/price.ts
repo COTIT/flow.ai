@@ -1,1 +1,1 @@
-export { defaultVariant, shownPrice } from "@genesy/ui/lib/storefront-price"
+export { defaultVariant, shownPrice } from "@verzo/ui/lib/storefront-price"

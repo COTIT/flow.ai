@@ -3,8 +3,8 @@
 import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
 
-import { tillShiftCountQuote } from "@genesy/api-client/endpoints/till"
-import type { CountLine } from "@genesy/api-client/model"
+import { tillShiftCountQuote } from "@verzo/api-client/endpoints/till"
+import type { CountLine } from "@verzo/api-client/model"
 import { useOnline } from "@/lib/use-online"
 import { useTill } from "@/lib/till-store"
 

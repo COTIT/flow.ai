@@ -128,8 +128,8 @@ async function transcript(page: Page) {
   return page.locator('[role="log"] [data-role]').evaluateAll((rows) =>
     rows.map((row) => ({
       role: row.getAttribute("data-role") ?? "",
-      // The sr-only "Genesy: " prefix is for screen readers; drop it.
-      text: (row.textContent ?? "").replace(/^(You|Genesy|Action):\s*/, "").trim(),
+      // The sr-only "Verzo: " prefix is for screen readers; drop it.
+      text: (row.textContent ?? "").replace(/^(You|Verzo|Action):\s*/, "").trim(),
     }))
   )
 }

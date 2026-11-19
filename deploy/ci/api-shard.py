@@ -104,7 +104,7 @@ def run(index, count, env):
     for crate in sorted({owner[name] for name in PRECHECKS}):
         subprocess.run(cargo(crate) + ["--", "--exact", *(n for n in PRECHECKS if owner[n] == crate)], check=True, env=env)
     subprocess.run(
-        [str(Path(target) / "debug" / "genesy-360-api"), "migrate"],
+        [str(Path(target) / "debug" / "verzo-360-api"), "migrate"],
         check=True, env={**env, "DATABASE_URL": url._replace(path="/template1").geturl()},
     )
     for crate in sorted(listings):

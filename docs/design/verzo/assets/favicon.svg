@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" color="#efc977">
+  <title>Verzo</title>
+  <rect width="64" height="64" rx="12" fill="#1c1b18"/>
+  <g transform="translate(7 7) scale(.78)"><path d="M28 9 7 30a5 5 0 0 0 0 7l11 11 7-7-8-8L35 16zm18 6-7 7 8 8-18 17 7 8 21-21a5 5 0 0 0 0-7zM23 33l10-10 8 8-10 10z" fill="currentColor"/></g>
+</svg>

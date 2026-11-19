@@ -6,7 +6,7 @@ import { join, relative } from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
 
-/** Animation code in JS: the `island` wrapper of @genesy/ui and the motion library. */
+/** Animation code in JS: the `island` wrapper of @verzo/ui and the motion library. */
 const MARKERS = ["data-motion", "framer-motion", "motion/react"]
 
 /** app/till.css's last rule as the minifier writes it. */

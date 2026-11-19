@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import {
   errorDetails,
   displayValue,

@@ -17,7 +17,7 @@ const document = JSON.parse(
 )
 
 const api = vi.hoisted(() => ({ apiRequest: vi.fn() }))
-vi.mock("@genesy/api-client/mutator", async (real) => ({
+vi.mock("@verzo/api-client/mutator", async (real) => ({
   ...(await real<object>()),
   ...api,
 }))

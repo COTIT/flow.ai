@@ -7,14 +7,14 @@ use crate::common;
 use axum::http::{Method, StatusCode};
 use chrono::{DateTime, Datelike, Timelike, Utc, Weekday};
 use common::{Api, add_team, invoicing, join_team, member_with, send, signup};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use uuid::Uuid;
+use verzo_360_api::{
     AppState,
     jobs::{kinds, repo::Claimed},
     mail::{Mailer, Outbox, Outgoing},
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
-use uuid::Uuid;
 
 const UNKNOWN: &str = "01900000-0000-7000-8000-000000000001";
 
@@ -63,7 +63,7 @@ fn reports(outbox: &Outbox) -> Vec<Outgoing> {
         .lock()
         .unwrap()
         .iter()
-        .filter(|m| m.subject.starts_with("Genesy report"))
+        .filter(|m| m.subject.starts_with("Verzo report"))
         .cloned()
         .collect()
 }
@@ -81,7 +81,7 @@ async fn run(state: &AppState) {
         assistant_api_key: None,
         db: state.db.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
         payments: Default::default(),
     };

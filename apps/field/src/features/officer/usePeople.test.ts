@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest'
 
 const farmRecordsPersonsList = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsPersonsList: (...args: unknown[]) => farmRecordsPersonsList(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))

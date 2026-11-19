@@ -1,8 +1,8 @@
-import { warehousesList } from "@genesy/api-client/endpoints/warehouses"
+import { warehousesList } from "@verzo/api-client/endpoints/warehouses"
 import type {
   PaginatedWarehouseResource,
   WarehouseResource,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 export const allWarehouses = { roots_only: false, page_size: 100 } as const
 

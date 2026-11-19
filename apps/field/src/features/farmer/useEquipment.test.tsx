@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const api = { farmEquipmentList: vi.fn(), farmEquipmentGet: vi.fn() }
-vi.mock('@genesy/api-client/endpoints/farm-equipment', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-equipment', () => ({
   farmEquipmentList: (...args: unknown[]) => api.farmEquipmentList(...args),
   farmEquipmentGet: (...args: unknown[]) => api.farmEquipmentGet(...args),
 }))

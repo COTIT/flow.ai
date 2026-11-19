@@ -3,10 +3,10 @@
 import { useId, useState } from "react"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { useVoice } from "@genesy/voice/components/provider"
-import { clarifyOf } from "@genesy/voice/lib/task"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { useVoice } from "@verzo/voice/components/provider"
+import { clarifyOf } from "@verzo/voice/lib/task"
 import { flowStore } from "@/lib/flow-store"
 import { useOnceIntent } from "@/lib/use-once-intent"
 
@@ -14,8 +14,8 @@ const TYPES = ["choose", "set", "add", "remove"] as const
 type Kind = (typeof TYPES)[number]
 
 /**
- * Genesy asked which product: pick it from the answer's own records, and say how stock should
- * change. Set total maps to setting levels, Add/Remove to a stock change; Genesy still proposes
+ * Verzo asked which product: pick it from the answer's own records, and say how stock should
+ * change. Set total maps to setting levels, Add/Remove to a stock change; Verzo still proposes
  * the exact change for review. Only words and the record id leave this card.
  */
 export function Clarify() {

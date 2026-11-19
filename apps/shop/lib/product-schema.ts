@@ -1,4 +1,4 @@
-import type { StorefrontProduct } from "@genesy/api-client/model"
+import type { StorefrontProduct } from "@verzo/api-client/model"
 
 import { isSoldOut } from "@/components/stock-badge"
 import { shownPrice } from "./price"

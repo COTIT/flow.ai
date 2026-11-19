@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import { useRights } from "@genesy/api-client/rights"
+import { useSession } from "@verzo/api-client/auth"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import { useRights } from "@verzo/api-client/rights"
 import {
   bulkKey,
   bulkPollInterval,

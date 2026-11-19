@@ -1,5 +1,5 @@
 //! /v1/workspace/{ws}/erp/product-brands and /erp/product-categories: catalog picklists.
-//! Laravel never persisted these writes (no listener); genesy stores them.
+//! Laravel never persisted these writes (no listener); Verzo stores them.
 
 use crate::common;
 

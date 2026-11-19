@@ -35,8 +35,8 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     info(
-        title = "Genesy API",
-        description = "One backend for the Genesy shop, office, field and till apps. \
+        title = "Verzo API",
+        description = "One backend for the Verzo shop, office, field and till apps. \
             Every private route needs `Authorization: Bearer <token>`.",
         license(name = "Proprietary")
     ),

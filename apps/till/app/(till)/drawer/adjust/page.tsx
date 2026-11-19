@@ -8,16 +8,16 @@ import {
   tillShiftCountQuote,
   useTillCashAdjustmentsCreate,
   useTillCashAdjustmentsCreateReview,
-} from "@genesy/api-client/endpoints/till"
+} from "@verzo/api-client/endpoints/till"
 import type {
   AdjustReviewResource,
   CashAdjustmentResource,
   CountLine,
-} from "@genesy/api-client/model"
-import { useIdempotencyKey } from "@genesy/api-client/idempotency"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/model"
+import { useIdempotencyKey } from "@verzo/api-client/idempotency"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
 import { ApprovalGate } from "@/components/approval-gate"
 import { CountForm } from "@/components/count-form"
 import { Refused } from "@/components/refused"

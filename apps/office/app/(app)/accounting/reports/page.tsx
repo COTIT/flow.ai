@@ -4,15 +4,15 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useAccountingBalanceSheet,
   useAccountingProfitAndLoss,
   useAccountingTrialBalance,
-} from "@genesy/api-client/endpoints/accounting"
-import type { AmountRow } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/api-client/endpoints/accounting"
+import type { AmountRow } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -21,8 +21,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { Empty } from "@/components/states"

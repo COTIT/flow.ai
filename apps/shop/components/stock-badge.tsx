@@ -1,5 +1,5 @@
-import type { StorefrontProduct } from "@genesy/api-client/model"
-import { Badge } from "@genesy/ui/components/badge"
+import type { StorefrontProduct } from "@verzo/api-client/model"
+import { Badge } from "@verzo/ui/components/badge"
 
 type Stock = Pick<StorefrontProduct, "stock_status" | "available_stock">
 

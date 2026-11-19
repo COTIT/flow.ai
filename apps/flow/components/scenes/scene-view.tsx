@@ -12,11 +12,11 @@ import {
   useFlowScenesDelete,
   useFlowScenesList,
   useFlowScenesUpdate,
-} from "@genesy/api-client/endpoints/flow-scenes"
-import type { FlowPeriod, FlowScene } from "@genesy/api-client/model"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/flow-scenes"
+import type { FlowPeriod, FlowScene } from "@verzo/api-client/model"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { componentFor } from "@/components/registry"
 import { ComparePanel } from "@/components/registry/comparison"
 import {
@@ -30,7 +30,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@genesy/ui/components/dropdown-menu"
+} from "@verzo/ui/components/dropdown-menu"
 import { Freshness } from "@/components/registry/data-state"
 import {
   BENTO_GRID,

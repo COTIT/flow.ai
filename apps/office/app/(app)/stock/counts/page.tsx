@@ -5,15 +5,15 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useStocktakesCreate,
   useStocktakesList,
-} from "@genesy/api-client/endpoints/stocktakes"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
+} from "@verzo/api-client/endpoints/stocktakes"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
 import {
   Table,
   TableBody,
@@ -21,9 +21,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 import { WarehousePicker } from "@/components/pickers"
 import {

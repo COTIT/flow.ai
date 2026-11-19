@@ -67,11 +67,11 @@
     "available": "Inapatikana",
     "minimum": "Kiwango cha chini",
     "shortfall": "Upungufu",
-    "selected": "Imechaguliwa · mwambie Genesy cha kufanya",
+    "selected": "Imechaguliwa · mwambie Verzo cha kufanya",
     "invoices": "Ankara",
     "noInvoices": "Hakuna ankara ambazo hazijalipwa.",
     "reports": "Ripoti zilizopangwa",
-    "noReports": "Bado hakuna ratiba. Muulize Genesy apange ripoti, kwa mfano \"Nitumie muhtasari wa mauzo kila wiki\".",
+    "noReports": "Bado hakuna ratiba. Muulize Verzo apange ripoti, kwa mfano \"Nitumie muhtasari wa mauzo kila wiki\".",
     "pause": "Sitisha",
     "resume": "Endelea",
     "delete": "Futa",
@@ -142,7 +142,7 @@
       },
       "routines": {
         "title": "Ripoti zilizopangwa",
-        "lead": "Ripoti ambazo Genesy anakutumia kwa ratiba."
+        "lead": "Ripoti ambazo Verzo anakutumia kwa ratiba."
       },
       "studio": {
         "title": "Storefront Studio",
@@ -201,7 +201,7 @@
     },
     "routines": {
       "emptyTitle": "Bado hakuna ripoti",
-      "emptyText": "Genesy inaweza kukutumia muhtasari wa mauzo kwa barua pepe kila wiki.",
+      "emptyText": "Verzo inaweza kukutumia muhtasari wa mauzo kwa barua pepe kila wiki.",
       "setUp": "Weka ripoti ya kila wiki"
     }
   }

@@ -3,10 +3,10 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import type { JournalPreview } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
+import type { JournalPreview } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
 import {
   Dialog,
   DialogClose,
@@ -16,27 +16,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
+} from "@verzo/ui/components/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/ui/components/select"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { useRouter } from "next/navigation"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useRelationsList } from "@genesy/api-client/endpoints/relations"
+import { useSession } from "@verzo/api-client/auth"
+import { useRelationsList } from "@verzo/api-client/endpoints/relations"
 import { Field } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"

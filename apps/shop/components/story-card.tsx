@@ -1,6 +1,6 @@
 import { MapPinIcon } from "lucide-react"
 
-import { cn } from "@genesy/ui/lib/utils"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { card, h2, prose } from "@/lib/look"
 import { StoryPhoto } from "./story-photo"

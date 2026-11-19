@@ -3,14 +3,14 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   purchaseCostAdjustmentsCreate,
   purchaseCostAdjustmentsPost,
   purchaseCostAdjustmentsPostReview,
   purchaseCostAdjustmentsReverse,
   purchaseCostAdjustmentsReverseReview,
-} from "@genesy/api-client/endpoints/purchase-cost-adjustments"
+} from "@verzo/api-client/endpoints/purchase-cost-adjustments"
 import {
   supplierBillsPost,
   supplierBillsPostReview,
@@ -18,14 +18,14 @@ import {
   supplierBillsReverseReview,
   useSupplierBillsMatch,
   useSupplierBillsMatchCandidates,
-} from "@genesy/api-client/endpoints/supplier-bills"
-import type { CostAdjustmentResource, SupplierBillResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/supplier-bills"
+import type { CostAdjustmentResource, SupplierBillResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 import { Fact, ReviewDialog, usePayReasons, useReverseInputs } from "@/components/payables"
 

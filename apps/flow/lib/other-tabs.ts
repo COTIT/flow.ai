@@ -1,4 +1,4 @@
-import { sessionStore } from "@genesy/api-client/session"
+import { sessionStore } from "@verzo/api-client/session"
 
 /**
  * Keeps this document's login in step with the other tabs (and frames) of this origin: the

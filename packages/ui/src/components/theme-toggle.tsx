@@ -3,7 +3,7 @@
 import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 
 /** Light/dark switch. Icons swap by CSS, so server and first client render match. */
 function ThemeToggle({

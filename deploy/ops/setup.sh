@@ -109,20 +109,20 @@ EOF
 }
 
 TIMERS=()
-unit genesy-backup-production "Genesy production database backup" "/usr/local/lib/genesy-ops/backup.sh production"
+unit genesy-backup-production "Verzo production database backup" "/usr/local/lib/genesy-ops/backup.sh production"
 timer genesy-backup-production "*-*-* 02:30"
-unit genesy-backup-staging "Genesy staging database backup" "/usr/local/lib/genesy-ops/backup.sh staging"
+unit genesy-backup-staging "Verzo staging database backup" "/usr/local/lib/genesy-ops/backup.sh staging"
 timer genesy-backup-staging "*-*-* 03:00"
-unit genesy-restore-test-production "Genesy production restore test" "/usr/local/lib/genesy-ops/restore-test.sh production"
+unit genesy-restore-test-production "Verzo production restore test" "/usr/local/lib/genesy-ops/restore-test.sh production"
 timer genesy-restore-test-production "*-*-* 04:00"
-unit genesy-restore-test-staging "Genesy staging restore test" "/usr/local/lib/genesy-ops/restore-test.sh staging"
+unit genesy-restore-test-staging "Verzo staging restore test" "/usr/local/lib/genesy-ops/restore-test.sh staging"
 timer genesy-restore-test-staging "Sun *-*-* 04:30"
-unit genesy-watch "Genesy uptime, certificates, restarts, disk, backup age" "/usr/local/lib/genesy-ops/watch.sh"
+unit genesy-watch "Verzo uptime, certificates, restarts, disk, backup age" "/usr/local/lib/genesy-ops/watch.sh"
 timer genesy-watch "*:0/5" 0
 # Prune runs each env's own deploy.sh (its lock keeps it off a running deploy).
-unit genesy-prune-production "Genesy production image prune" "/srv/genesy-prod/deploy/deploy.sh production prune" deploy
+unit genesy-prune-production "Verzo production image prune" "/srv/genesy-prod/deploy/deploy.sh production prune" deploy
 timer genesy-prune-production "Sun *-*-* 05:00"
-unit genesy-prune-staging "Genesy staging image prune" "/srv/genesy-staging/deploy/deploy.sh staging prune" deploy
+unit genesy-prune-staging "Verzo staging image prune" "/srv/genesy-staging/deploy/deploy.sh staging prune" deploy
 timer genesy-prune-staging "Sun *-*-* 05:15"
 
 if [[ -z "$P" ]]; then

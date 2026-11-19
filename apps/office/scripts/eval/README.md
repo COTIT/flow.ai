@@ -5,7 +5,7 @@ The inventory, report and Rust-audit commands collect and audit capability evide
 Run from the repository root:
 
 ```sh
-pnpm --filter @genesy/office exec vitest run scripts/eval
+pnpm --filter @verzo/office exec vitest run scripts/eval
 node apps/office/scripts/eval/acceptance.mjs inventory --output /private/tmp/assistant-matrix.json
 node apps/office/scripts/eval/acceptance.mjs budget
 ```

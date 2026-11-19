@@ -7,13 +7,13 @@ import {
   useStorefrontDesignPreviewLinkCreate,
   useStorefrontDesignPreviewLinkRevoke,
   useStorefrontDesignPreviewLinks,
-} from "@genesy/api-client/endpoints/storefront-design"
-import { useIdempotencyKey } from "@genesy/api-client/idempotency"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/storefront-design"
+import { useIdempotencyKey } from "@verzo/api-client/idempotency"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { shopPreviewHref } from "@/lib/links"
 import {
   linkView,

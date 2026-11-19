@@ -4,9 +4,9 @@ use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::{Api, member_with, send, signup};
-use genesy_360_api::{build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer};
 
 fn hook() -> Value {
     json!({ "url": "https://shop.example.com/hooks", "events": ["stock.changed"],

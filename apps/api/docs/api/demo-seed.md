@@ -1,6 +1,6 @@
 # Staging demo seed
 
-`genesy-360-api seed-demo` seeds every part of the product end to end, through the API's own routes in-process, then exits. CLI only: no route ever seeds. Code: `src/demo.rs` (it reuses `src/farm_demo.rs`, the RUAHA farm story).
+`verzo-360-api seed-demo` seeds every part of the product end to end, through the API's own routes in-process, then exits. CLI only: no route ever seeds. Code: `src/demo.rs` (it reuses `src/farm_demo.rs`, the RUAHA farm story).
 
 - **Refuses** unless `GENESY_ALLOW_DEMO_SEED=1` (or `true`). Only the staging compose sets it; production never does.
 - **Runs once.** If both `afm-demo` and `ruaha-demo` exist and are demo-flagged, it does nothing. If only one of them exists, it refuses ("half-seeded"). A workspace with a demo name that is not demo-flagged is refused too. To reset, wipe the staging volume and seed again; there is no in-CLI truncate.

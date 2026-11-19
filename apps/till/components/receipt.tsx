@@ -3,9 +3,9 @@
 import { Printer } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 
-import type { SaleResource } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+import type { SaleResource } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import { estimate, type CartLine } from "@/lib/cart-store"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"

@@ -3,9 +3,9 @@ import { cache } from "react"
 import Link from "@/components/shop-link"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { cn } from "@genesy/ui/lib/utils"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { CategoryChips } from "@/components/category-chips"
 import { ProductCard } from "@/components/product-card"

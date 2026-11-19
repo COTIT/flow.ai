@@ -12,16 +12,6 @@ use axum::{
 };
 use base64::Engine;
 use common::{Api, invoicing::stock, send};
-use genesy_360_api::{
-    AppState, build_app,
-    jobs::{
-        kinds::{self, Ctx},
-        repo,
-        runner::Step,
-    },
-    mail::Mailer,
-    payments::{GlobadymeEnvironment, Provider, fake::Fake},
-};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha512};
 use sqlx::PgPool;
@@ -33,6 +23,16 @@ use std::{
 };
 use tower::ServiceExt;
 use uuid::Uuid;
+use verzo_360_api::{
+    AppState, build_app,
+    jobs::{
+        kinds::{self, Ctx},
+        repo,
+        runner::Step,
+    },
+    mail::Mailer,
+    payments::{GlobadymeEnvironment, Provider, fake::Fake},
+};
 
 const CALLBACK: &str = "sandbox-callback-secret";
 const PROD_CALLBACK: &str = "production-callback-secret";
@@ -200,7 +200,7 @@ pub(super) async fn world(pool: PgPool) -> World {
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     let mut api = Api::new(pool.clone(), "/orders").await;
     let mut state = common::state(pool, Mailer::capture().0);
-    state.payments = genesy_360_api::payments::Payments::from(Provider::Fake(Fake::default()))
+    state.payments = verzo_360_api::payments::Payments::from(Provider::Fake(Fake::default()))
         .with_globadyme_environment(Some(GlobadymeEnvironment::Sandbox));
     state.payments = state.payments.with_globadyme_url(&url).unwrap();
     api.app = build_app(state.clone());
@@ -389,13 +389,13 @@ pub(super) fn posts(w: &World, endpoint: &str) -> usize {
 async fn assert_qr_blocked_without_http(w: &World, payment: Uuid) {
     let before = w.remote.lock().unwrap().seen.len();
     assert!(matches!(
-        genesy_360_api::gateway::service::qr(
+        verzo_360_api::gateway::service::qr(
             &w.state,
             Uuid::parse_str(&w.api.ws).unwrap(),
             payment,
         )
         .await,
-        Err(genesy_360_api::AppError::NotFound)
+        Err(verzo_360_api::AppError::NotFound)
     ));
     assert_eq!(w.remote.lock().unwrap().seen.len(), before);
 }
@@ -406,7 +406,7 @@ fn context(w: &World) -> Ctx {
         assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: w.state.credentials.clone(),
         payments: w.state.payments.clone(),
     }
@@ -497,7 +497,7 @@ async fn foreign_history(w: &mut World, deployment: Option<GlobadymeEnvironment>
 async fn deployment_realm_blocks_every_existing_collection_state_without_http_or_mutation(
     pool: PgPool,
 ) {
-    use genesy_360_api::gateway::service;
+    use verzo_360_api::gateway::service;
     let mut w = world(pool).await;
     let (order, payment) = collection(&w).await;
     let ws = w.api.ws.parse().unwrap();
@@ -580,7 +580,7 @@ async fn deployment_realm_blocks_every_existing_collection_state_without_http_or
 
 #[sqlx::test]
 async fn wrong_realm_paid_capture_and_unknown_refund_cannot_release_reserved_money(pool: PgPool) {
-    use genesy_360_api::gateway::service;
+    use verzo_360_api::gateway::service;
     let mut w = world(pool).await;
     let (order, payment) = collection(&w).await;
     capture(&w, payment);
@@ -662,7 +662,7 @@ async fn allowed_refund_with_foreign_source_cannot_confirm_or_release_its_reserv
     let before = persisted_finance(&w).await;
     let http = w.remote.lock().unwrap().seen.len();
     assert!(
-        genesy_360_api::gateway::service::confirm_refund(
+        verzo_360_api::gateway::service::confirm_refund(
             &w.state,
             w.api.ws.parse().unwrap(),
             refund_id,
@@ -796,7 +796,7 @@ async fn unavailable_storage_account_or_origin_blocks_new_payment_without_http(p
     w.api.app = build_app(w.state.clone());
     assert_setup_blocks_new_collection(&w, &order).await;
     w.state.credentials = Some(
-        genesy_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
+        verzo_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
             .unwrap()
             .into(),
     );
@@ -881,7 +881,7 @@ async fn historical_checkout_uses_its_bound_setup_after_disable_or_provider_swit
     assert_eq!(reply["code"], "payment_setup_required");
     assert_eq!(posts(&w, "requestPayment"), 1);
     w.state.credentials = Some(
-        genesy_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
+        verzo_360_api::CredentialKey::from_hex(&common::CREDENTIALS_KEY.replace("1f", "ff"))
             .unwrap()
             .into(),
     );
@@ -974,8 +974,8 @@ async fn unclaimed_payment(w: &World, order: &str) -> Uuid {
     payment
 }
 
-async fn direct_submit(w: &World, payment: Uuid) -> Result<(), genesy_360_api::AppError> {
-    genesy_360_api::gateway::service::submit(
+async fn direct_submit(w: &World, payment: Uuid) -> Result<(), verzo_360_api::AppError> {
+    verzo_360_api::gateway::service::submit(
         &w.state,
         w.api.ws.parse().unwrap(),
         payment,
@@ -1022,7 +1022,7 @@ async fn rejected_submit_releases_its_dispatch_fence_before_returning(pool: PgPo
         assert!(
             matches!(
                 direct_submit(&w, payment).await,
-                Err(genesy_360_api::AppError::PaymentSetupRequired)
+                Err(verzo_360_api::AppError::PaymentSetupRequired)
             ),
             "round {round}"
         );
@@ -1091,14 +1091,14 @@ async fn committed_unclaimed_payment_needs_explicit_enable_before_dispatch(pool:
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{reply}");
         assert_eq!(reply["code"], "payment_setup_required");
         assert!(matches!(
-            genesy_360_api::gateway::service::submit(
+            verzo_360_api::gateway::service::submit(
                 &w.state,
                 w.api.ws.parse().unwrap(),
                 payment,
                 "https://shop.example.com/order"
             )
             .await,
-            Err(genesy_360_api::AppError::PaymentSetupRequired)
+            Err(verzo_360_api::AppError::PaymentSetupRequired)
         ));
         let saved: (String, i16, bool) = sqlx::query_as(
             "SELECT status,attempts,claimed_at IS NOT NULL FROM order_payments WHERE id=$1",

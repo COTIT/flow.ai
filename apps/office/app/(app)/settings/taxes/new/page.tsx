@@ -3,8 +3,8 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useTaxProfilesGet } from "@genesy/api-client/endpoints/tax-profiles"
+import { useSession } from "@verzo/api-client/auth"
+import { useTaxProfilesGet } from "@verzo/api-client/endpoints/tax-profiles"
 import { DetailSkeleton } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { LoadError, NoAccess } from "@/components/states"

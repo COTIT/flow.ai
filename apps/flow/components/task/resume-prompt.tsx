@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { Button } from "@genesy/ui/components/button"
-import { useVoice } from "@genesy/voice/components/provider"
-import { batchCounts } from "@genesy/voice/lib/task"
+import { useSession } from "@verzo/api-client/auth"
+import { Button } from "@verzo/ui/components/button"
+import { useVoice } from "@verzo/voice/components/provider"
+import { batchCounts } from "@verzo/voice/lib/task"
 import { dockAsk } from "@/lib/pills"
 import { outcomeKind, settled, unseenOutcomes } from "@/lib/recovered-outcomes"
 import { approvalOutcome, taskStore, useTask } from "@/lib/task-store"
@@ -94,7 +94,7 @@ export function ResumePrompt({ idle }: { idle: boolean }) {
         >
           {t("dismiss")}
         </Button>
-        {/* A status question to Genesy in a new conversation; nothing is resumed or sent again. */}
+        {/* A status question to Verzo in a new conversation; nothing is resumed or sent again. */}
         {outcomes.some((o) => outcomeKind(o.task.status) === "unconfirmed") ? (
           <Button
             variant="outline"

@@ -7,8 +7,8 @@ import {
   farmPueRequestsGet,
   farmPueRequestsList,
   farmPueRequestsTransition,
-} from '@genesy/api-client/endpoints/farm-pue'
-import type { EnergyEstimatePreview, PueRequestResource } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-pue'
+import type { EnergyEstimatePreview, PueRequestResource } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

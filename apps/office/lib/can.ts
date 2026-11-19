@@ -1,6 +1,6 @@
 "use client"
 
-import { useRights as useSharedRights } from "@genesy/api-client/rights"
+import { useRights as useSharedRights } from "@verzo/api-client/rights"
 
 /**
  * Whether `/me` grants `name` in the current workspace, to hide controls the API would refuse

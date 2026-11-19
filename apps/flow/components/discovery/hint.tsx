@@ -5,8 +5,8 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { X } from "lucide-react"
 
-import { useRights } from "@genesy/api-client/rights"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { useRights } from "@verzo/api-client/rights"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import { dismissHint, readActivity } from "@/lib/activity"
 import { useActivityKey } from "@/lib/pills"
 import { useTakeFocus } from "@/lib/use-take-focus"
@@ -22,7 +22,7 @@ const AREAS = [
 
 /**
  * First-visit guidance under the orb: short, dismissible, only about what this role may do.
- * Dismissed or familiar, it shrinks to one quiet "What can Genesy do?" link to the explorer.
+ * Dismissed or familiar, it shrinks to one quiet "What can Verzo do?" link to the explorer.
  */
 export function DiscoveryHint() {
   const t = useTranslations("discovery.hint")

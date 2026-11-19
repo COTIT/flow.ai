@@ -181,7 +181,7 @@ async fn dispatch_fenced(
         }
     } else {
         let request = op.request_id.to_string();
-        let description = format!("Genesy payment {}", op.id);
+        let description = format!("Verzo payment {}", op.id);
         let result = account
             .client
             .request(&NewRequest {

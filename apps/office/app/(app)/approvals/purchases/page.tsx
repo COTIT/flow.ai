@@ -2,12 +2,12 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import { usePurchaseApprovals } from "@genesy/api-client/business-approvals"
-import { ApprovalsScreen } from "@genesy/ui/components/business-approvals/approvals-screen"
+import { usePurchaseApprovals } from "@verzo/api-client/business-approvals"
+import { ApprovalsScreen } from "@verzo/ui/components/business-approvals/approvals-screen"
 import type {
   ApprovalRequestView,
   ExecutionView,
-} from "@genesy/ui/components/business-approvals/types"
+} from "@verzo/ui/components/business-approvals/types"
 import { PageHead } from "@/components/list"
 
 /** Odoo purchase requests waiting for a decision before NetSuite gets the order (WF-01). */

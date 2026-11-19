@@ -1,20 +1,20 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmMarketVillageMatches } from '@genesy/api-client/endpoints/farm-market'
+import { farmMarketVillageMatches } from '@verzo/api-client/endpoints/farm-market'
 import {
   farmPueRequestsList,
   farmPueVillageEnergy,
   farmPueVillagePipeline,
-} from '@genesy/api-client/endpoints/farm-pue'
+} from '@verzo/api-client/endpoints/farm-pue'
 import {
   farmRecordsCropCyclesList,
   farmRecordsFarmsList,
   farmRecordsHarvestReportsAll,
   farmRecordsPersonsList,
   farmRecordsPlotsList,
-} from '@genesy/api-client/endpoints/farm-records'
-import { farmTowerDataQuality, farmTowerProduction } from '@genesy/api-client/endpoints/farm-tower'
+} from '@verzo/api-client/endpoints/farm-records'
+import { farmTowerDataQuality, farmTowerProduction } from '@verzo/api-client/endpoints/farm-tower'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

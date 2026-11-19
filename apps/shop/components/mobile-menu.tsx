@@ -3,13 +3,13 @@
 import { useState } from "react"
 import { MenuIcon } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import {
   Sheet,
   SheetContent,
   SheetTitle,
   SheetTrigger,
-} from "@genesy/ui/components/sheet"
+} from "@verzo/ui/components/sheet"
 
 import { NavLinks } from "./nav-links"
 

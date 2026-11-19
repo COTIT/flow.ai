@@ -12,11 +12,11 @@ use axum::{
     http::{HeaderMap, Method, Request, StatusCode},
 };
 use common::{Api, PEER, send};
-use genesy_360_api::{RateLimit, build_app, mail::Mailer};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use tower::ServiceExt;
+use verzo_360_api::{RateLimit, build_app, mail::Mailer};
 
 const PNG_B64: &str = "iVBORw0KGgo=";
 const PDF_B64: &str = "JVBERi0xLjQKJcOkw7zDtsOfCg==";

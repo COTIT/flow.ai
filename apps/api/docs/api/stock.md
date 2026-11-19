@@ -166,7 +166,7 @@ Only when the workspace's accounting book is `active` (Flow ERP M2); a setup boo
 ### `configured-bins`
 
 - The live bins that hold a live stock row of the product, grouped by warehouse: `{warehouse_id, warehouse_uuid, bins: [{id, bin_code, bin_name, section, row, shelf}]}`.
-- Laravel's `warehouse_id` was its internal int id; genesy has none, so both fields carry the uuid. The clients key on `warehouse_uuid || warehouse_id`.
+- Laravel's `warehouse_id` was its internal int id; Verzo has none, so both fields carry the uuid. The clients key on `warehouse_uuid || warehouse_id`.
 
 ### `stock-movements`
 
@@ -176,7 +176,7 @@ Only when the workspace's accounting book is `active` (Flow ERP M2); a setup boo
   - `page`, `per_page` (default 15, max 100)
   - A malformed or unknown id matches nothing; Laravel answered 404 or 422.
 - **Order:** newest first.
-- **`meta`:** Laravel built a paginator but sent only `{data}`, so the web client's paging never worked. genesy sends `meta`.
+- **`meta`:** Laravel built a paginator but sent only `{data}`, so the web client's paging never worked. Verzo sends `meta`.
 - **Row** (Laravel `StockMovementResource`):
   - the quantities and min/max before and after
   - `reason`, `is_correction`, `related_domain`, `related_id` (uuid), `meta`
@@ -203,7 +203,7 @@ Only when the workspace's accounting book is `active` (Flow ERP M2); a setup boo
   - `q` (escaped, case-insensitive) matches the product name, reference, vendor reference, number and EAN, and the warehouse name and alias.
 - **`meta`** has `total` (Laravel's simple paginator didn't; the POS DataTable reads it).
 - **Left out:** rows of deleted products or warehouses. Laravel answered 500 there.
-- **Product embed:** Laravel's embedded product changed its stock fields depending on lazy loading. genesy prints the one product shape.
+- **Product embed:** Laravel's embedded product changed its stock fields depending on lazy loading. Verzo prints the one product shape.
 
 ## Product resource stock fields
 

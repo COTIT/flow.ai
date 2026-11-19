@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
-import type { StorefrontProduct } from "@genesy/api-client/model"
+import type { StorefrontProduct } from "@verzo/api-client/model"
 
 import { ProductCard } from "./product-card"
 import { StockBadge } from "./stock-badge"

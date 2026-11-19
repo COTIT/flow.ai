@@ -17,14 +17,14 @@ import { localiseDbDate } from '@/lib/format'
  * back to English.
  *
  * Scope: the farmer surface, and the officer's registration, verification,
- * login-card, voucher-redemption, payout and buy-harvest messages, as the Genesy
+ * login-card, voucher-redemption, payout and buy-harvest messages, as the Verzo
  * API words them.
  * Everything else is still verbatim.
  */
 export interface DbMessageRule {
   /** i18n key the message resolves to. */
   key: string
-  /** The literal in the Genesy API (apps/api/src) this rule matches. */
+  /** The literal in the Verzo API (apps/api/src) this rule matches. */
   source: string
   /** Anchored: the whole message has to match. */
   pattern: RegExp

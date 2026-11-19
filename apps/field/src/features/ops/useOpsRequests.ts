@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmPueRequestsList, farmPueVillageEnergy } from '@genesy/api-client/endpoints/farm-pue'
-import type { PueRequestResource } from '@genesy/api-client/model'
+import { farmPueRequestsList, farmPueVillageEnergy } from '@verzo/api-client/endpoints/farm-pue'
+import type { PueRequestResource } from '@verzo/api-client/model'
 
 import { useScopeNames } from '@/app/scope'
 import { workspaceId } from '@/app/workspace'

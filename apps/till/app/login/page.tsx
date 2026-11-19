@@ -7,12 +7,12 @@ import { useTranslations } from "next-intl"
 import {
   useTillLogin,
   useTillLoginUsers,
-} from "@genesy/api-client/endpoints/till"
-import type { TillUserBrief } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/till"
+import type { TillUserBrief } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { AuthTop } from "@/components/auth-top"
 import { Keypad, type PadKey } from "@/components/keypad"
 import { deviceAuth, tillStore, useTill } from "@/lib/till-store"

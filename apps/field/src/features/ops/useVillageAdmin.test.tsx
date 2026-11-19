@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const api = { farmVillagesList: vi.fn(), farmVillagesCreate: vi.fn(), farmVillagesCapacityCreate: vi.fn() }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
-vi.mock('@genesy/api-client/endpoints/farm-villages', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-villages', () => ({
   farmVillagesList: forward('farmVillagesList'),
   farmVillagesCreate: forward('farmVillagesCreate'),
   farmVillagesCapacityCreate: forward('farmVillagesCapacityCreate'),

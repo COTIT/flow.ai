@@ -26,7 +26,7 @@ Under `/v1/workspace/{workspace}`:
 | `DELETE /deals/{deal}` | `deal.delete` | soft delete |
 | `GET /deal-pipelines/{pipeline}/status/{status}/deals` | `deal.list` | one board column, in the board's order |
 
-**Permissions:** Laravel checked none of these, because `DealPolicy` was never registered. Genesy checks the catalog names (user decision 2026-10-23); the owner and `workspace_admin` pass. The board also needs `dealpipeline.list` / `dealpipeline.get` (see `deal-pipelines.md`).
+**Permissions:** Laravel checked none of these, because `DealPolicy` was never registered. Verzo checks the catalog names (user decision 2026-10-23); the owner and `workspace_admin` pass. The board also needs `dealpipeline.list` / `dealpipeline.get` (see `deal-pipelines.md`).
 
 Not ported:
 

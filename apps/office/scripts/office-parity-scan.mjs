@@ -1,5 +1,5 @@
 // Which API operations the Office screens call, read from source: generated api-client imports
-// (`@genesy/api-client/endpoints/*`, and the helper modules that wrap them) plus hand-built
+// (`@verzo/api-client/endpoints/*`, and the helper modules that wrap them) plus hand-built
 // `apiRequest` URLs matched to operation-policy.json by method and path.
 // Shared by lib/voice/office-parity.test.ts (G1/G5) and scripts/voice-coverage.mjs (G7).
 import { readFileSync, readdirSync } from "node:fs"
@@ -30,7 +30,7 @@ export function opOf(name) {
 }
 
 const IMPORT =
-  /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"(@genesy\/api-client\/[^"]+|\.\/generated\/[^"]+)"/g
+  /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"(@verzo\/api-client\/[^"]+|\.\/generated\/[^"]+)"/g
 const names = (list) =>
   list
     .split(",")
@@ -47,14 +47,14 @@ function importedOps(source) {
   const helpers = new Set()
   for (const [, list, from] of source.matchAll(IMPORT)) {
     if (
-      from.startsWith("@genesy/api-client/endpoints/") ||
+      from.startsWith("@verzo/api-client/endpoints/") ||
       from.startsWith("./generated/")
     )
       for (const n of names(list)) {
         const op = opOf(n)
         if (op) ops.add(op)
       }
-    else helpers.add(from.slice("@genesy/api-client/".length))
+    else helpers.add(from.slice("@verzo/api-client/".length))
   }
   return { ops, helpers }
 }
@@ -150,7 +150,7 @@ export function officeScreenOps() {
         continue
       }
       for (const op of importedOps(source).ops)
-        add(op, `@genesy/api-client/${helper}`)
+        add(op, `@verzo/api-client/${helper}`)
     }
   return { ops, unmatched }
 }

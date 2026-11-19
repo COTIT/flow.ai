@@ -3,12 +3,12 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useLegacyReturnCostsCreate } from "@genesy/api-client/endpoints/legacy-return-costs"
+import { useSession } from "@verzo/api-client/auth"
+import { useLegacyReturnCostsCreate } from "@verzo/api-client/endpoints/legacy-return-costs"
 import {
   useSalesReturnRestocksReverse,
   useSalesReturnRestocksReverseReview,
-} from "@genesy/api-client/endpoints/sales-return-restocks"
+} from "@verzo/api-client/endpoints/sales-return-restocks"
 import {
   useSalesReturnsCancel,
   useSalesReturnsPost,
@@ -18,18 +18,18 @@ import {
   useSalesReturnsReverse,
   useSalesReturnsReverseReview,
   useSalesReturnsUpdate,
-} from "@genesy/api-client/endpoints/sales-returns"
+} from "@verzo/api-client/endpoints/sales-returns"
 import type {
   RestockResource,
   SalesReturnResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatQty } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 
 import {

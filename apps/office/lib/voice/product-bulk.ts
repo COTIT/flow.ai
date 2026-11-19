@@ -2,11 +2,11 @@ import "server-only"
 import { createHash } from "node:crypto"
 import { assistantRequest, readBounded } from "./bridge"
 import { VoiceError, type VoiceContext } from "./server"
-import type { VoiceOutcome } from "@genesy/voice/lib/client-contract"
+import type { VoiceOutcome } from "@verzo/voice/lib/client-contract"
 import {
   migrationGuide,
   type MigrationRun,
-} from "@genesy/voice/lib/product-migration"
+} from "@verzo/voice/lib/product-migration"
 
 export const PRODUCT_BULK_OPERATION = "assistant_product_bulk"
 export const productBulkTool = {

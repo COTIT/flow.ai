@@ -4,19 +4,19 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingSetupGetQueryKey,
   useAccountingAccountsList,
   useAccountingSetupGet,
   useAccountingSetupUpdate,
-} from "@genesy/api-client/endpoints/accounting"
-import type { SetupResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/accounting"
+import type { SetupResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"

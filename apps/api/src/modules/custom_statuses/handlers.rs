@@ -29,7 +29,7 @@ use crate::{
     },
 };
 
-// Laravel checked `customstatus.view` for one row; genesy uses the catalog's `get`.
+// Laravel checked `customstatus.view` for one row; Verzo uses the catalog's `get`.
 permissions! {
     CustomStatusCreate => "customstatus.create",
     CustomStatusList => "customstatus.list",

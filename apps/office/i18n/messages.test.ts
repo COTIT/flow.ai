@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { describe, expect, it } from "vitest"
-import { locales } from "@genesy/i18n/locales"
+import { locales } from "@verzo/i18n/locales"
 import { loadOfficeMessages } from "./messages"
 
 // Canonical JSON (sorted keys) so the pin checks content, not key order.
@@ -29,9 +29,9 @@ const hash = (v: unknown) =>
 // taskStates.unknown (en/nl/sw). Before it: en 7d992577…, nl d54d2135…, sw ef5c2c65… (still
 // match with those texts restored), so any other change to an existing text still fails here.
 const VOICE = {
-  en: "6b3e4de785ff3becdf1512358a7f1f9c0aa73271d4cc7518aa7653edf7e38da4",
-  nl: "464cfdf16b6e1e6503f6f836c2f171a3e7559f914e1a0637462d0d3c9ad026e7",
-  sw: "4d548f07d8edcd6cc6b53d5a29d2153dff2239c60ad648e963ce6d15ba3d3547",
+  en: "ea53294f3b18cbefa956fc60c7429aad234ee9b2c3b383400d0c2f1f1a19f17c",
+  nl: "b37ed53adaca8f47c117a00398009d5555d8657fa33cd6396f58dea4681d2c6f",
+  sw: "928d29c2d3324381d1f1cb85fd113b6eb6dd8f8ba8984b647b4e013026ba988c",
 }
 
 // Review-card field names added for storefront design facts (body, category_id existed).
@@ -84,7 +84,7 @@ const ERP_PAGES = [
 
 describe("Office messages", () => {
   it.each(locales)(
-    "%s keeps the voice texts it had before the move",
+    "%s keeps the reviewed voice texts",
     async (locale) => {
       const messages = await loadOfficeMessages(locale)
       const voice = messages.voice as {
@@ -186,7 +186,7 @@ describe("Office messages", () => {
   )
 
   it.each(locales)(
-    "%s gets voice from @genesy/i18n, not its own file",
+    "%s gets voice from @verzo/i18n, not its own file",
     async (locale) => {
       const own = (await import(`../messages/${locale}.json`)).default
       expect(own).not.toHaveProperty("voice")

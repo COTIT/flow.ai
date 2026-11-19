@@ -1,7 +1,7 @@
 import Link from "@/components/shop-link"
 
-import { formatMoney } from "@genesy/ui/lib/money"
-import { cn } from "@genesy/ui/lib/utils"
+import { formatMoney } from "@verzo/ui/lib/money"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { card, tag } from "@/lib/look"
 import { shownPrice } from "@/lib/price"

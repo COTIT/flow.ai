@@ -14,8 +14,8 @@
     "components": "@/components",
     "hooks": "@/hooks",
     "lib": "@/lib",
-    "utils": "@genesy/ui/lib/utils",
-    "ui": "@genesy/ui/components"
+    "utils": "@verzo/ui/lib/utils",
+    "ui": "@verzo/ui/components"
   },
   "rtl": false,
   "menuColor": "default",

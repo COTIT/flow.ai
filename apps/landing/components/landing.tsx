@@ -1,16 +1,15 @@
 import Link from "next/link"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import type { Locale } from "@genesy/i18n/locales"
-import { Logo, LogoIcon } from "@genesy/ui/components/logo"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import type { Locale } from "@verzo/i18n/locales"
+import { Logo, LogoIcon } from "@verzo/ui/components/logo"
+import { ThemeToggle } from "@verzo/ui/components/theme-toggle"
 import {
   Count,
   FeatureLoop,
   Glare,
   Headline,
   HeroPollen,
-  RotatingTag,
 } from "@/components/islands"
 import { Journey } from "@/components/journey"
 import { LanguageLinks } from "@/components/language-links"
@@ -64,13 +63,7 @@ export async function Landing({ locale }: { locale: Locale }) {
           <HeroPollen />
           <div className="wrap hero-grid">
             <div className="copy">
-              <span className="tag">
-                <RotatingTag
-                  plain={t("hero.tag")}
-                  prefix={t("hero.rotating.prefix")}
-                  words={t.raw("hero.rotating.words") as string[]}
-                />
-              </span>
+              <p className="tag">{t("hero.tag")}</p>
               <h1 className="h1">
                 <Headline text={t("hero.title")} />
               </h1>
@@ -84,127 +77,20 @@ export async function Landing({ locale }: { locale: Locale }) {
                 </a>
               </div>
             </div>
-            <svg
-              className="scene hero-scene"
-              data-ambient
-              viewBox="0 0 560 380"
-              role="img"
-              aria-label={t("hero.scene")}
-            >
-              <defs>
-                <linearGradient id="g" x1="0" x2="1">
-                  <stop offset="0" stopColor="#956e46" />
-                  <stop offset=".3" stopColor="#f9dd8c" />
-                  <stop offset=".62" stopColor="#c3944b" />
-                  <stop offset=".84" stopColor="#efc977" />
-                  <stop offset="1" stopColor="#956e46" />
-                </linearGradient>
-              </defs>
-              <circle
-                className="sun-pulse"
-                cx="420"
-                cy="110"
-                r="48"
-                fill="url(#g)"
-                opacity=".9"
-              />
-              <path
-                d="M0 250 C 90 190 170 200 260 235 S 430 190 560 220 V380 H0Z"
-                fill="var(--hill-1)"
-              />
-              <path
-                d="M0 300 C 120 250 220 280 320 290 S 470 250 560 280 V380 H0Z"
-                fill="var(--hill-2)"
-              />
-              <g fill="var(--hill-3)">
-                <rect x="104" y="196" width="6" height="40" rx="2" />
-                <ellipse cx="107" cy="190" rx="34" ry="14" />
-                <rect x="186" y="210" width="5" height="30" rx="2" />
-                <ellipse cx="188" cy="205" rx="24" ry="10" />
-              </g>
-              <g transform="translate(70 250)">
-                <rect width="66" height="14" rx="2" fill="var(--hill-3)" />
-                <rect x="4" y="14" width="58" height="40" fill="#d0a55f" />
-                <rect x="4" y="30" width="58" height="3" fill="#956e46" />
-                <rect
-                  x="26"
-                  y="44"
-                  width="14"
-                  height="5"
-                  rx="2"
-                  fill="#1c1b18"
-                />
-              </g>
-              <g fill="#1c1b18" transform="translate(100 230)">
-                <g className="bees">
-                  <g className="bee">
-                    <ellipse
-                      className="bee-body"
-                      cx="30"
-                      cy="-40"
-                      rx="5.5"
-                      ry="4"
-                    />
-                    <path className="wing" d="M28 -44q2-8 7-2" />
-                  </g>
-                  <g className="bee">
-                    <ellipse
-                      className="bee-body"
-                      cx="44"
-                      cy="-20"
-                      rx="5.5"
-                      ry="4"
-                    />
-                    <path className="wing" d="M42 -24q2-8 7-2" />
-                  </g>
-                  <g className="bee">
-                    <ellipse
-                      className="bee-body"
-                      cx="-36"
-                      cy="-30"
-                      rx="5.5"
-                      ry="4"
-                    />
-                    <path className="wing" d="M-38 -34q2-8 7-2" />
-                  </g>
-                </g>
-              </g>
-              <path
-                d="M140 290 C 220 340 300 250 380 300 S 450 330 470 300"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="3"
-                strokeDasharray="2 10"
-                strokeLinecap="round"
-              />
-              <g transform="translate(450 214)">
-                <rect
-                  x="6"
-                  y="0"
-                  width="44"
-                  height="12"
-                  rx="3"
-                  fill="#1c1b18"
-                />
-                <path
-                  d="M2 14h52v58a10 10 0 0 1-10 10H12A10 10 0 0 1 2 72Z"
-                  fill="url(#g)"
-                />
-                <rect x="12" y="36" width="32" height="24" rx="3" fill="#fff" />
-                <rect x="17" y="41" width="10" height="10" fill="#1c1b18" />
-                <rect x="30" y="42" width="10" height="3" fill="#5f5c55" />
-                <rect x="30" y="48" width="8" height="3" fill="#5f5c55" />
-              </g>
-            </svg>
+            <ol className="scene platform-steps">
+              {(t.raw("hero.steps") as string[]).map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
           </div>
         </div>
+        <Journey />
         <div className="wrap loop-wrap">
           <FeatureLoop
             label={t("features.label")}
             items={t.raw("features.items") as string[]}
           />
         </div>
-        <Journey />
         <section id="who" style={{ paddingTop: "0" }}>
           <div className="wrap">
             <div className="head" data-reveal>

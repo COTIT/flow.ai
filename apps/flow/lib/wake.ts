@@ -1,6 +1,6 @@
-const WAKE = /^\s*hey[\s,]+genesy(?![\p{L}\p{N}])[\s,.!:;-]*/iu
+const WAKE = /^\s*hey[\s,]+(?:verzo|genesy)(?![\p{L}\p{N}])[\s,.!:;-]*/iu
 
-/** Typed "Hey Genesy, …" starts a conversation and sends the rest; it is text, not a wake word. */
+/** Typed "Hey Verzo, …" starts a conversation and sends the rest; it is text, not a wake word. */
 export function parseWake(text: string) {
   const match = WAKE.exec(text)
   return match

@@ -1,4 +1,4 @@
-import { Notice } from "@genesy/ui/components/notice"
+import { Notice } from "@verzo/ui/components/notice"
 
 /** The API's error body: `message`, plus `errors` per field on a 422. */
 type ErrorBody = {

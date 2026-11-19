@@ -2,13 +2,13 @@
 
 use crate::common::{self, Api, invoicing::stock, send};
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::{
     build_app,
     mail::Mailer,
     payments::{Provider, fake::Fake},
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 async fn toggle(api: &Api, active: bool) -> Value {
     let (status, body) = api

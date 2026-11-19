@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { farmRecordsPersonsList } from '@genesy/api-client/endpoints/farm-records'
+import { farmRecordsPersonsList } from '@verzo/api-client/endpoints/farm-records'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

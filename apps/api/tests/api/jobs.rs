@@ -2,10 +2,10 @@
 
 use std::{collections::HashSet, time::Duration};
 
-use genesy_360_api::jobs::repo::{self, NewJob};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::jobs::repo::{self, NewJob};
 
 const KIND: &str = "test.noop";
 const LEASE: Duration = Duration::from_secs(60);

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { animate, useReducedMotion, type AnimationPlaybackControls } from 'motion/react';
-// Genesy edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
+// Verzo edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
 import { Check, ChevronDown, Sparkles, type LucideIcon } from 'lucide-react';
 type IconSvgElement = LucideIcon;
 const HugeiconsIcon = ({ icon: Icon, size, strokeWidth }: { icon: IconSvgElement; size?: number | string; strokeWidth?: number }) => <Icon size={size} strokeWidth={strokeWidth} />;

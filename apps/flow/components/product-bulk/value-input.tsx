@@ -1,7 +1,7 @@
 "use client"
 
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { displayValue, type Json, type ProductField } from "@/lib/product-bulk"
 import { selectClass } from "./shared"
 

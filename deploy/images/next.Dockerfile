@@ -17,7 +17,7 @@ COPY . .
 RUN --mount=type=cache,id=genesy-pnpm-store,target=/pnpm-store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir /pnpm-store
 # An app without a public/ folder (landing) gets an empty one, so the COPY below stays uniform.
-RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
+RUN pnpm --filter "@verzo/${APP}" build && mkdir -p "apps/${APP}/public"
 
 FROM ${NODE_IMAGE} AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.

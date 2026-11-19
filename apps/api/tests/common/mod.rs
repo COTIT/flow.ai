@@ -16,11 +16,11 @@ use axum::{
     http::{Method, Request, StatusCode},
 };
 use chrono::Duration;
-use genesy_360_api::{
+use std::net::SocketAddr;
+use verzo_360_api::{
     AppState, RateLimit, Slots, WorkspaceSlots, build_app,
     mail::{Mailer, Outbox},
 };
-use std::net::SocketAddr;
 
 /// Peer address every test request comes from (axum::serve sets it in prod).
 pub const PEER: &str = "127.0.0.1:40000";
@@ -75,20 +75,20 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         request_timeout: std::time::Duration::from_secs(60),
         body_deadline: std::time::Duration::from_secs(60),
         credentials: Some(std::sync::Arc::new(
-            genesy_360_api::CredentialKey::from_hex(CREDENTIALS_KEY).unwrap(),
+            verzo_360_api::CredentialKey::from_hex(CREDENTIALS_KEY).unwrap(),
         )),
         assistant_bridge_secret: None,
         product_bulk_enabled: true,
         anthropic_api_key: None,
-        files: Some(genesy_360_api::storage::Store::memory()),
+        files: Some(verzo_360_api::storage::Store::memory()),
         pdf: None,
-        payments: genesy_360_api::payments::Payments::default().with_globadyme_environment(Some(
-            genesy_360_api::payments::GlobadymeEnvironment::Sandbox,
+        payments: verzo_360_api::payments::Payments::default().with_globadyme_environment(Some(
+            verzo_360_api::payments::GlobadymeEnvironment::Sandbox,
         )),
         checkout_hold_max: 500,
         signup_enabled: true,
-        integrations: genesy_360_api::integrations::Runtime::new(
-            genesy_360_api::integrations::providers::Mode::Live,
+        integrations: verzo_360_api::integrations::Runtime::new(
+            verzo_360_api::integrations::providers::Mode::Live,
         )
         .unwrap(),
     }
@@ -206,16 +206,16 @@ pub async fn signup(app: &Router, email: &str, workspace: &str) -> (String, Stri
 }
 
 /// Invite emails only (signup also sends a verification email to the same outbox).
-pub fn invite_mails(outbox: &Outbox) -> Vec<genesy_360_api::mail::Outgoing> {
+pub fn invite_mails(outbox: &Outbox) -> Vec<verzo_360_api::mail::Outgoing> {
     mails_where(outbox, "invited")
 }
 
 /// Verification emails only.
-pub fn verification_mails(outbox: &Outbox) -> Vec<genesy_360_api::mail::Outgoing> {
+pub fn verification_mails(outbox: &Outbox) -> Vec<verzo_360_api::mail::Outgoing> {
     mails_where(outbox, "Verify your email")
 }
 
-fn mails_where(outbox: &Outbox, subject_part: &str) -> Vec<genesy_360_api::mail::Outgoing> {
+fn mails_where(outbox: &Outbox, subject_part: &str) -> Vec<verzo_360_api::mail::Outgoing> {
     outbox
         .lock()
         .unwrap()

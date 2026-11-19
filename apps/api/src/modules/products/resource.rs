@@ -494,11 +494,11 @@ pub struct ProductDoc {
     #[schema(required = true)]
     vat_group_id: Option<Uuid>,
     export_enabled: bool,
-    /// Sold at the till only; the web shop never lists it (Genesy addition).
+    /// Sold at the till only; the web shop never lists it (Verzo addition).
     store_only: bool,
     /// Short public labels ("Raw", "Unheated"), in order.
     labels: Vec<String>,
-    /// Main category (`/erp/product-categories`), same workspace; null = none (Genesy addition).
+    /// Main category (`/erp/product-categories`), same workspace; null = none (Verzo addition).
     #[schema(required = true)]
     category_id: Option<Uuid>,
     export_price_sync: bool,

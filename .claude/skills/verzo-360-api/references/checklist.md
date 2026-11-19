@@ -1,4 +1,4 @@
-# genesy-360-api done checklist
+# verzo-360-api done checklist
 
 Run from `apps/api`. Paste the result of each command in the step summary.
 
@@ -13,7 +13,7 @@ UPDATE_OPENAPI=1 cargo test --test openapi committed_spec   # regenerate openapi
 grep -ciE 'laravel|vimdesk' openapi.json                    # must print 0
 ```
 
-When `openapi.json` changed, also regenerate and check the TS client from the repo root: `pnpm turbo run generate --filter=@genesy/api-client`, then `pnpm turbo run generate:check --filter=@genesy/api-client --only`.
+When `openapi.json` changed, also regenerate and check the TS client from the repo root: `pnpm turbo run generate --filter=@verzo/api-client`, then `pnpm turbo run generate:check --filter=@verzo/api-client --only`.
 
 Tests need a reachable Postgres 18 (no compose file in this repo; shared dev DB on `127.0.0.1:54320`) and `.env` with `DATABASE_URL` (runtime + tests) and `GENESY_DATABASE_URL` (macros + sqlx-cli, see `sqlx.toml`). sqlx-cli must be built with `--features postgres,rustls,sqlx-toml`.
 

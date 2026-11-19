@@ -4,18 +4,18 @@ import * as React from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   usePurchaseOrdersGet,
-} from "@genesy/api-client/endpoints/purchase-orders"
+} from "@verzo/api-client/endpoints/purchase-orders"
 import {
   usePurchaseReceiptsGet,
-} from "@genesy/api-client/endpoints/purchase-receipts"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import type { CurrencyRef } from "@genesy/api-client/model"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/purchase-receipts"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import type { CurrencyRef } from "@verzo/api-client/model"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -23,8 +23,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime, formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDateTime, formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

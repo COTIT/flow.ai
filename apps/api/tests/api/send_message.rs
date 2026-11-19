@@ -17,13 +17,13 @@ use axum::{
     routing::{get, post},
 };
 use common::{Api, fake_smtp, member_with};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::{
     build_app, cleanup,
     mail::{Mailer, graph},
     outbound::Outbound,
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 const PDF_B64: &str = "JVBERi0xLjQKJcOkw7zDtsOfCg==";
 
@@ -94,7 +94,7 @@ struct Fakes {
     smtp_port: u16,
     inbox: fake_smtp::Inbox,
     graph: GraphLog,
-    outbox: genesy_360_api::mail::Outbox,
+    outbox: verzo_360_api::mail::Outbox,
 }
 
 /// An app whose mailer trusts `localhost` (the SMTP fake), talks to the Graph fake, and

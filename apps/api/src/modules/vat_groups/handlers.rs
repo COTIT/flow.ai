@@ -26,7 +26,7 @@ use crate::{
     },
 };
 
-// Laravel checked `vatgroup.view` for one row; genesy uses the catalog's `get`.
+// Laravel checked `vatgroup.view` for one row; Verzo uses the catalog's `get`.
 permissions! {
     VatGroupCreate => "vatgroup.create",
     VatGroupList => "vatgroup.list",

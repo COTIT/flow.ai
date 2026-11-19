@@ -6,7 +6,7 @@ import {
   farmRecordsHouseholdsList,
   farmRecordsPersonsList,
   farmRecordsPlotsList,
-} from '@genesy/api-client/endpoints/farm-records'
+} from '@verzo/api-client/endpoints/farm-records'
 
 import { useScopeNames } from '@/app/scope'
 import { useSession } from '@/app/session'

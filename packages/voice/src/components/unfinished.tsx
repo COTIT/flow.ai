@@ -2,7 +2,7 @@
 
 import { RotateCcw } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import { useVoice } from "./provider"
 
 /** One retry after a request ended without an answer; the chat line above says why. */

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
-import { formatMoney } from '@genesy/ui/lib/money'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { useSession } from '@/app/session'
 import { ConfirmDialog } from '@/components/ConfirmDialog'

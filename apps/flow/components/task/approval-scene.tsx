@@ -3,8 +3,8 @@
 import { useEffect } from "react"
 import { useTranslations } from "next-intl"
 
-import { useVoice } from "@genesy/voice/components/provider"
-import type { TranscriptRow } from "@genesy/voice/lib/helpers"
+import { useVoice } from "@verzo/voice/components/provider"
+import type { TranscriptRow } from "@verzo/voice/lib/helpers"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import { useTask } from "@/lib/task-store"
 import { BatchReview } from "./batch-review"
@@ -15,7 +15,7 @@ import { ResultsList, ReviewPanel } from "./results"
 import { Withdrawn } from "./withdrawn"
 
 /**
- * The task scene; the orb stays compact. A choice Genesy asked for, the action to approve (a
+ * The task scene; the orb stays compact. A choice Verzo asked for, the action to approve (a
  * replaced proposal shown as never sent), then its receipt in the same place, then the results.
  */
 export function ApprovalScene() {

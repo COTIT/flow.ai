@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla"
 import { useStore } from "zustand"
 
-import type { LineRequest } from "@genesy/api-client/model"
+import type { LineRequest } from "@verzo/api-client/model"
 
 /** One cart line, with the catalog figures it was rung up at (display + `unit_price`). */
 export type CartLine = {

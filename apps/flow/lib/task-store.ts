@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
-import { useSession } from "@genesy/api-client/auth"
-import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
-import type { RecoveryTask } from "@genesy/voice/lib/recovery"
+import { useSession } from "@verzo/api-client/auth"
+import type { VoiceOutcome, VoiceReview } from "@verzo/voice/lib/client-contract"
+import type { RecoveryTask } from "@verzo/voice/lib/recovery"
 
 type TaskState = {
   /** Whose task this is (`ownerKey`): nothing here is shown to another workspace or login. */

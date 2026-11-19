@@ -199,7 +199,7 @@ async function handle(request: Request, scope: GapScope) {
           tools: [],
           reason: "unsupported",
           message:
-            "Recorded for review. Tell the user Genesy can't do this; never promise it later.",
+            "Recorded for review. Tell the user Verzo can't do this; never promise it later.",
         })
       }
       // "What can you do?": curated, permission-filtered capability list (capabilities.ts).
@@ -240,12 +240,12 @@ async function handle(request: Request, scope: GapScope) {
         !manyRecords.test(query) &&
         !/status|task|pending|last/i.test(query)
       ) {
-        // Logged for review: a real gap in Genesy, or a request outside its scope.
+        // Logged for review: a real gap in Verzo, or a request outside its scope.
         noteVoiceFailure("unsupported", undefined, query)
         return voiceResponse({
           tools: [],
           reason: "unsupported",
-          message: "No Genesy tool matches this request. Nothing was changed.",
+          message: "No Verzo tool matches this request. Nothing was changed.",
         })
       }
       return voiceResponse({

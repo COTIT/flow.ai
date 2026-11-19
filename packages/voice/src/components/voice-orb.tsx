@@ -1,19 +1,19 @@
 "use client"
 
 import { useVoice } from "./provider"
-import { GenesyOrb, type GenesyOrbProps } from "./genesy-orb"
+import { VerzoOrb, type VerzoOrbProps } from "./verzo-orb"
 import { orbState, type OrbState } from "../lib/orb"
 
-/** The Genesy orb wired to the voice session: state from the session, level from the right voice. */
+/** The Verzo orb wired to the voice session: state from the session, level from the right voice. */
 export function VoiceOrb({
   label,
   ...props
-}: Omit<GenesyOrbProps, "state" | "level" | "label"> & {
+}: Omit<VerzoOrbProps, "state" | "level" | "label"> & {
   label: (state: OrbState) => string
 }) {
   const voice = useVoice()
   const state = orbState(voice)
-  // Listening follows the user's microphone, speaking follows Genesy's voice.
+  // Listening follows the user's microphone, speaking follows Verzo's voice.
   const level =
     state === "speaking"
       ? voice.outputLevel
@@ -21,6 +21,6 @@ export function VoiceOrb({
         ? voice.inputLevel
         : undefined
   return (
-    <GenesyOrb {...props} state={state} level={level} label={label(state)} />
+    <VerzoOrb {...props} state={state} level={level} label={label(state)} />
   )
 }

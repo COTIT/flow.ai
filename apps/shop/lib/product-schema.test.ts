@@ -1,4 +1,4 @@
-import type { StorefrontProduct } from "@genesy/api-client/model"
+import type { StorefrontProduct } from "@verzo/api-client/model"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { productSchema } from "./product-schema"

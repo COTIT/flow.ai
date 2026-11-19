@@ -4,7 +4,7 @@ import Link from "@/components/shop-link"
 import { useTranslations } from "next-intl"
 import { ShoppingBagIcon } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
+import { buttonVariants } from "@verzo/ui/components/button"
 
 import { cartCount } from "@/lib/cart"
 import { useCart } from "@/lib/use-cart"

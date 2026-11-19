@@ -90,7 +90,7 @@ export function summarize(results, { total, target }) {
 }
 
 const RANK = { broken: 1, missed_tool: 2, missing_capability: 3, partial: 4 }
-const ROLE = { user: "Neema", agent: "Genesy", action: "Action" }
+const ROLE = { user: "Neema", agent: "Verzo", action: "Action" }
 
 /** The `limit` worst scenarios (security first, then broken, missed, missing, partial) with exact transcripts. */
 export function failures(results, limit = 15) {

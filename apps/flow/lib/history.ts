@@ -1,12 +1,12 @@
-import { sessionStore } from "@genesy/api-client/session"
-import { voiceFetch } from "@genesy/voice/lib/fetch"
-import { VoiceRequestError } from "@genesy/voice/lib/errors"
+import { sessionStore } from "@verzo/api-client/session"
+import { voiceFetch } from "@verzo/voice/lib/fetch"
+import { VoiceRequestError } from "@verzo/voice/lib/errors"
 
 export type {
   ConversationHistory as HistoryConversation,
   HistoryMessage,
   HistoryPage as HistoryMessages,
-} from "@genesy/voice/lib/history"
+} from "@verzo/voice/lib/history"
 
 /** Same authenticated transport as the assistant; no conversation content is stored locally. */
 export async function historyRequest<T>(

@@ -1,4 +1,4 @@
-# Genesy Flow current handoff
+# Verzo Flow current handoff
 
 Checkpoint: 2026-11-10. **Phase 1 merged and staging-validated (flag false). Phase 2: 2A (#16) and 2B (#17) merged; follow-ups #18, #19, #21 (gap-triage test speedup) merged; main at `a465a7697`. 2C integrated on `flow/2c-conversation` (see "PR 2C"), PR next; merge when CI is green (standing user authorization). Phase 3 approved, P3-A (Rust) in progress; Phase 5 in progress. Phases 4/6 planned; 2D proposed. Nothing deployed beyond Phase 1 staging.**
 
@@ -8,7 +8,7 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 - `main` includes Phase 1 (COTIT/genesy#13, merge `e041285e7`) and the shop image fix (COTIT/genesy#14, merge `dd6678bfe`).
 - Staging evidence merged in COTIT/genesy#15 (`b70b909a2`).
-- PR 2A merged (#16, `a432dec17`). `packages/voice` (`@genesy/voice`) holds the voice client engine (`components/provider.tsx`), reusable cards/results/controls and pure `lib/*` contracts; Office keeps its conversation screen, secure form, voice pages, all server code (`lib/voice` server modules, `app/api/voice/*`), generated catalog/policy and translations. See DECISIONS.md for the boundary and VERIFICATION.md for evidence.
+- PR 2A merged (#16, `a432dec17`). `packages/voice` (`@verzo/voice`) holds the voice client engine (`components/provider.tsx`), reusable cards/results/controls and pure `lib/*` contracts; Office keeps its conversation screen, secure form, voice pages, all server code (`lib/voice` server modules, `app/api/voice/*`), generated catalog/policy and translations. See DECISIONS.md for the boundary and VERIFICATION.md for evidence.
 
 ## Staging (checked 2026-11-11, read-only)
 
@@ -29,14 +29,14 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 - `apps/flow`: own Next app (port 3005 dev), sign-in via the shared login form and API login, origin-local session (separate from Office; sign in per app), workspace choose/switch, assistant-first shell, `/healthz`, landing with user, workspace and assistant readiness.
 - Voice proxy `apps/flow/app/api/voice/[route]` → `lib/voice-proxy.ts`: allowlisted routes/methods/headers to fixed runtime `VOICE_UPSTREAM_URL` (compose `http://office:3000`; dev `http://localhost:3001`). Details in DECISIONS.md.
-- Voice texts opt-in via `@genesy/i18n/voice` (Office + Flow). Audio via `packages/voice/scripts/prepare-voice-audio.mjs public` in both builds.
+- Voice texts opt-in via `@verzo/i18n/voice` (Office + Flow). Audio via `packages/voice/scripts/prepare-voice-audio.mjs public` in both builds.
 - Deploy kit: `flow` service in staging/production compose (internal + edge), Traefik hosts `staging-flow.genesy.app` / `flow.genesy.app`, health hosts, `ghcr.io/cotit/genesy-flow` built by CI after green main.
 
 ## PR 2C (integrated, `flow/2c-conversation`)
 
-- Conversation-first Flow `/`: `GenesyVoiceProvider` in `apps/flow/components/signed-in.tsx` (`(app)` only); two panes from 1024 px (conversation left, contextual results right), results sheet with a persistent "Review pending" reopen control below. Shared transcript/review/attachments/composer now live in `@genesy/voice` and Office uses them too. Nothing starts on load.
+- Conversation-first Flow `/`: `VerzoVoiceProvider` in `apps/flow/components/signed-in.tsx` (`(app)` only); two panes from 1024 px (conversation left, contextual results right), results sheet with a persistent "Review pending" reopen control below. Shared transcript/review/attachments/composer now live in `@verzo/voice` and Office uses them too. Nothing starts on load.
 - Office handoff: `apps/flow/lib/links.ts` exact-match policy to `OFFICE_PUBLIC_URL` (runtime, per environment); secure forms stay in Office (proxy unchanged).
-- Storefront: Flow `/storefront` (admin-gated review: revisions, badges, separate publish/restore dialogs, 409 handling, device toggle 375/834/1280) + same-origin frame `/storefront/preview` (only route with `frame-ancestors 'self'`). `useStorefrontReview` shared from `@genesy/api-client` with Office.
+- Storefront: Flow `/storefront` (admin-gated review: revisions, badges, separate publish/restore dialogs, 409 handling, device toggle 375/834/1280) + same-origin frame `/storefront/preview` (only route with `frame-ancestors 'self'`). `useStorefrontReview` shared from `@verzo/api-client` with Office.
 - Edge cases: cross-tab session follow (`apps/flow/lib/other-tabs.ts`), page heading outline in the frame (`StorefrontPage headings="page"`).
 - Build: `apps/flow/scripts/check-client-bundle.mjs` runs after `next build` (also inside the image). `FILES_ORIGIN` in Flow CSP via the uploads overlays.
 - Design ops remain `internal` for voice in 2C.
@@ -50,7 +50,7 @@ Read repository instructions → [MASTER_PLAN.md](MASTER_PLAN.md) → this check
 
 ## Phase 5 (component demand)
 
-Demand export: `psql -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql | pnpm --filter @genesy/office voice:demand -- --days 7 --out demand` → `demand.json` + `demand.md`. Thresholded aggregates only (≥ 3 distinct workspaces, ≤ 90 days, no workspace ids); per-row triage input is refused. Migration `20261110120000_assistant_gap_demand` is additive (function only). Phase 6 decides the access path (DB role or operator export) for the worker.
+Demand export: `psql -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql | pnpm --filter @verzo/office voice:demand -- --days 7 --out demand` → `demand.json` + `demand.md`. Thresholded aggregates only (≥ 3 distinct workspaces, ≤ 90 days, no workspace ids); per-row triage input is refused. Migration `20261110120000_assistant_gap_demand` is additive (function only). Phase 6 decides the access path (DB role or operator export) for the worker.
 
 ## Before the first deploy that includes Flow (user actions)
 

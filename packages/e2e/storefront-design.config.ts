@@ -36,7 +36,7 @@ export default defineConfig({
       env: { E2E_DESIGN: "true" },
     },
     {
-      command: `pnpm --filter @genesy/shop exec next start --port ${port} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/shop exec next start --port ${port} --hostname 127.0.0.1`,
       url: shop,
       reuseExistingServer: false,
       env: {

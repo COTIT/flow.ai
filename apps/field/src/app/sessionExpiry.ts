@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 type Nav = { navigate: (to: { to: '/login'; search: { redirect: string }; replace: true }) => unknown; href: () => string }
 

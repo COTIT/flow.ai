@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { farmPassbookMine, farmPassbookPerson } from '@genesy/api-client/endpoints/farm-passbook'
-import { farmPayoutsCreate, farmPayoutsList } from '@genesy/api-client/endpoints/farm-payouts'
-import type { CreatePayoutRequest, EntryResource, Money, PassbookPage } from '@genesy/api-client/model'
+import { farmPassbookMine, farmPassbookPerson } from '@verzo/api-client/endpoints/farm-passbook'
+import { farmPayoutsCreate, farmPayoutsList } from '@verzo/api-client/endpoints/farm-payouts'
+import type { CreatePayoutRequest, EntryResource, Money, PassbookPage } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

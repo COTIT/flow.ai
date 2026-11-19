@@ -1,4 +1,4 @@
-import { EmptyState as SharedEmptyState } from '@genesy/ui/components/empty-state'
+import { EmptyState as SharedEmptyState } from '@verzo/ui/components/empty-state'
 
 /**
  * Zero rows is a legitimate answer, not an error.

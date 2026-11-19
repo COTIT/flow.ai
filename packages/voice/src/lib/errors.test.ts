@@ -57,7 +57,7 @@ describe("voiceErrorMessage", () => {
     ).toBe("<offline>")
   })
 
-  it("keeps text Genesy already translated", () => {
+  it("keeps text Verzo already translated", () => {
     expect(
       voiceErrorMessage(new VoiceRequestError("Your session expired.", 401), t)
     ).toBe("Your session expired.")

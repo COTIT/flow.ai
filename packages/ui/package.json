@@ -1,5 +1,5 @@
 {
-  "name": "@genesy/ui",
+  "name": "@verzo/ui",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -25,9 +25,9 @@
     "next": "^16"
   },
   "devDependencies": {
-    "@genesy/api-client": "workspace:*",
-    "@genesy/eslint-config": "workspace:*",
-    "@genesy/typescript-config": "workspace:*",
+    "@verzo/api-client": "workspace:*",
+    "@verzo/eslint-config": "workspace:*",
+    "@verzo/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

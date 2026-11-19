@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Genesy Office",
+    "title": "Verzo Office",
     "tagline": "Ofisi: bidhaa, akiba, mafungu, ankara na oda."
   },
   "products": {
@@ -182,7 +182,7 @@
     "revoke": "Futa ufunguo",
     "revokeTitle": "Futa {name}?",
     "revokeText": "Programu zinazotumia ufunguo huu zitaacha kufanya kazi mara moja. Hili haliwezi kutenduliwa.",
-    "intro": "Funguo huruhusu duka la mtandaoni na kaunta kuwasiliana na Genesy. Kila akaunti ina funguo zake.",
+    "intro": "Funguo huruhusu duka la mtandaoni na kaunta kuwasiliana na Verzo. Kila akaunti ina funguo zake.",
     "created": "Ufunguo umeundwa",
     "secretHint": "Uhifadhi mahali ambapo seva ya duka inaweza kuusoma.",
     "kinds": {
@@ -219,7 +219,7 @@
     "deleteText": "{url} haitapokea matukio tena. Hili haliwezi kutenduliwa.",
     "intro": "Webhooks huarifu mifumo yako mingine kitu kinapobadilika katika akaunti hii.",
     "created": "Endpoint imeundwa",
-    "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy.",
+    "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Verzo.",
     "eventNames": {
       "lot_created": "Fungu limeundwa",
       "lot_status_changed": "Hali ya bechi imebadilika",
@@ -1747,7 +1747,7 @@
       "backToJournal": "Rudi kwenye ingizo",
       "totalDebit": "Jumla ya debiti",
       "totalCredit": "Jumla ya krediti",
-      "serverAmounts": "Jumla kama zilivyokokotolewa na Genesy.",
+      "serverAmounts": "Jumla kama zilivyokokotolewa na Verzo.",
       "nextStep": "Hatua inayofuata",
       "next": {
         "post": "Kagua ingizo, kisha uliingize kwenye vitabu.",
@@ -1856,7 +1856,7 @@
       "timezone": "Saa za eneo",
       "chooseTimezone": "Chagua saa za eneo",
       "roles": "Akaunti kwa kila jukumu",
-      "rolesHint": "Genesy huingiza kila aina ya tukio la biashara kwenye akaunti unayochagua hapa.",
+      "rolesHint": "Verzo huingiza kila aina ya tukio la biashara kwenye akaunti unayochagua hapa.",
       "unmapped": "Bado hakuna akaunti",
       "save": "Hifadhi mipangilio"
     },

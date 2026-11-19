@@ -1,6 +1,6 @@
 import type { Metadata, MetadataRoute } from "next"
 
-import type { Locale } from "@genesy/i18n/locales"
+import type { Locale } from "@verzo/i18n/locales"
 
 /** The public address. Canonical and hreflang links always name it, also on staging (which is noindex). */
 export const SITE = "https://genesy.app"
@@ -30,7 +30,7 @@ export function pageMetadata(
     },
     openGraph: {
       type: "website",
-      siteName: "Genesy",
+      siteName: "Verzo",
       title,
       description,
       url: pageUrl(locale),

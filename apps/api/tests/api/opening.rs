@@ -584,7 +584,7 @@ impl O {
     ) -> Result<bool, String> {
         let ids: Vec<Uuid> = batches.iter().map(|b| b.parse().unwrap()).collect();
         let mut tx = self.w.pool.begin().await.unwrap();
-        let done = genesy_360_api::opening::apply(
+        let done = verzo_360_api::opening::apply(
             &mut tx,
             self.w.ws.parse().unwrap(),
             &ids,
@@ -1072,12 +1072,12 @@ async fn covered_provider_callback_is_a_no_op_and_new_facts_stay_new(pool: PgPoo
     o.go_active(&batches, &fp).await;
     let o = &o;
     let collect = |id: Uuid| async move {
-        let op = genesy_360_api::gateway::repo::find(&o.w.pool, ws, id)
+        let op = verzo_360_api::gateway::repo::find(&o.w.pool, ws, id)
             .await
             .unwrap()
             .unwrap();
         let mut tx = o.w.pool.begin().await.unwrap();
-        genesy_360_api::invoice_gateway::apply_collection(
+        verzo_360_api::invoice_gateway::apply_collection(
             &o.f.delivery_state,
             &mut tx,
             ws,

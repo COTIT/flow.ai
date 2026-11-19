@@ -28,9 +28,9 @@ vat  = round(base × rate / 100)
 **Per-line VAT:** the response prints no VAT amount per line; `items` echo only the rate (`vat`), the line's `subtotal` (gross) and `total` (excl). The engine keeps each line's own VAT (`Amounts::line_vat`) for screens that show a per-line incl price (stored invoice items, F4); those per-line figures are informational: summed, they can differ from the document's VAT by up to half a cent per line (1000 × €0.01 at 21 %: lines say 0.00, the document 2.10).
 
 **Laravel differences:**
-- Laravel rounded VAT on each line and summed those, and rounded its float grand total on its own. For 3 × 0.07 at 21 % its VAT said 0.03 and its total 0.25. Genesy says VAT 0.04 and total 0.25: per-rate VAT agrees with Laravel's own total.
-- For 3 × 9.99 at 21 % with 10 % off, Laravel answered 32.64 against 26.97 + 5.66 = 32.63. Genesy answers 32.63.
-- 1000 lines of €0.01 at 21 %: Laravel showed VAT €0.00 (and slipped €2.10 into its total); genesy shows VAT €2.10 and total €12.10.
+- Laravel rounded VAT on each line and summed those, and rounded its float grand total on its own. For 3 × 0.07 at 21 % its VAT said 0.03 and its total 0.25. Verzo says VAT 0.04 and total 0.25: per-rate VAT agrees with Laravel's own total.
+- For 3 × 9.99 at 21 % with 10 % off, Laravel answered 32.64 against 26.97 + 5.66 = 32.63. Verzo answers 32.63.
+- 1000 lines of €0.01 at 21 %: Laravel showed VAT €0.00 (and slipped €2.10 into its total); Verzo shows VAT €2.10 and total €12.10.
 - `pricing::engine::tests::matches_laravel_within_rounding` runs all 24 cases of `tests/fixtures/pricing_parity.json`, produced by PHP 8.4 running Laravel's real classes (`tests/fixtures/pricing_oracle.php`). Line sums match exactly for whole-cent inputs, and so does the total whenever one VAT rate is used. With several rates the total can differ by half a cent per rate, and `total_vat` differs where Laravel's per-line rounding lost or gained cents.
 
 ## Request (both routes)
@@ -126,7 +126,7 @@ Laravel reported a bad line differently: spatie Data's validator threw with item
 
 - `cost_excl` = Σ round(purchase_price × quantity). A product line without a purchase price (or with 0) takes the product's (`products::pricing::purchase_price`).
 - `revenue_excl` = Σ line `excl` (after discount, per-line rounded).
-- `margin_percentage` = (revenue − cost) / revenue × 100, unrounded. With zero revenue Laravel divides by 1, so a free line that cost 5 shows −500; genesy keeps that.
+- `margin_percentage` = (revenue − cost) / revenue × 100, unrounded. With zero revenue Laravel divides by 1, so a free line that cost 5 shows −500; Verzo keeps that.
 - Set children (`multi_set_item_id` truthy) are skipped.
 - Transfer lists and hours come from a stored work order; a calculate request never has one, so they are 0.
 

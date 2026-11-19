@@ -12,7 +12,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode
 } from 'react';
-// Genesy edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
+// Verzo edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
 import { Box, Check, Fingerprint, GitBranch, GitPullRequest, Hash, Key, PenTool, Sparkles, type LucideIcon } from 'lucide-react';
 type IconSvgElement = LucideIcon;
 const HugeiconsIcon = ({ icon: Icon, size, strokeWidth }: { icon: IconSvgElement; size?: number | string; strokeWidth?: number }) => <Icon size={size} strokeWidth={strokeWidth} />;

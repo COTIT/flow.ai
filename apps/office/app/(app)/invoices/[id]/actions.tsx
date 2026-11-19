@@ -4,11 +4,11 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useInvoicePaymentsCreate,
   useInvoicePaymentsMarkAsCredited,
-} from "@genesy/api-client/endpoints/invoice-payments"
+} from "@verzo/api-client/endpoints/invoice-payments"
 import {
   useInvoicesCredit,
   useInvoicesDelete,
@@ -17,11 +17,11 @@ import {
   useInvoicesResend,
   useInvoicesSend,
   useInvoicesUpdate,
-} from "@genesy/api-client/endpoints/invoices"
-import type { InvoiceAction, InvoiceResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/invoices"
+import type { InvoiceAction, InvoiceResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogClose,
@@ -30,10 +30,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { InvoiceRefund } from "@/components/invoice-refund"

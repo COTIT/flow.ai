@@ -1,4 +1,4 @@
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 
 /** Prev/next paging from an API list's `meta`; texts come from the app. */
 function Pager({

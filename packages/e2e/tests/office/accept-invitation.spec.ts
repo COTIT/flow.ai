@@ -65,7 +65,7 @@ test("no code: the link is incomplete", async ({ page }) => {
       .getByRole("alert")
       .filter({ hasText: "This invite link is incomplete" })
   ).toBeVisible()
-  await expect(page.getByRole("img", { name: "Genesy" })).toBeVisible()
+  await expect(page.getByRole("img", { name: "Verzo" })).toBeVisible()
   await expectFits(page)
 })
 

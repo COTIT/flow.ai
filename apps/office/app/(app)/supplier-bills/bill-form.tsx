@@ -6,27 +6,27 @@ import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
-import { useRelationsList } from "@genesy/api-client/endpoints/relations"
+import { useSession } from "@verzo/api-client/auth"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
+import { useRelationsList } from "@verzo/api-client/endpoints/relations"
 import {
   getSupplierBillsGetQueryKey,
   getSupplierBillsListQueryKey,
   useSupplierBillsCreate,
   useSupplierBillsUpdate,
-} from "@genesy/api-client/endpoints/supplier-bills"
-import { useTaxProfilesList } from "@genesy/api-client/endpoints/tax-profiles"
+} from "@verzo/api-client/endpoints/supplier-bills"
+import { useTaxProfilesList } from "@verzo/api-client/endpoints/tax-profiles"
 import type {
   AccountResource,
   BillPayload,
   SupplierBillResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { usePayReasons } from "@/components/payables"
 import { AccountPicker } from "@/components/pickers"

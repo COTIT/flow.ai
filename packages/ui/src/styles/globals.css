@@ -60,7 +60,7 @@
 }
 
 :root {
-  /* Genesy brand (style guide 04.2025, gate G7). Every app and component reads these.
+  /* Verzo brand (style guide 04.2025, gate G7). Every app and component reads these.
      Contrast pairs are checked against WCAG AA in tokens.test.ts. */
   --background: #faf8f3;
   --foreground: #1c1b18;

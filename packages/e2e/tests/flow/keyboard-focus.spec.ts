@@ -50,7 +50,7 @@ async function pressByKeyboard(target: import("@playwright/test").Locator) {
 }
 const onBody = (page: Page) => page.evaluate(() => document.activeElement === document.body)
 
-test("P9-1: dismissing the tip by keyboard moves focus to “What can Genesy do?”", async ({ page }) => {
+test("P9-1: dismissing the tip by keyboard moves focus to “What can Verzo do?”", async ({ page }) => {
   await seedSession(page)
   await mockApi(page, discoveryApi(OWNER))
   await page.goto("/")

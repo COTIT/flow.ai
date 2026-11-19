@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { Button } from "@genesy/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { Button } from "@verzo/ui/components/button"
 import {
   bulkRequest,
   type BulkTemplate,

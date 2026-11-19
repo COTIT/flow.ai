@@ -980,9 +980,9 @@ async fn review_action(
 const INVOICE_BRIDGE: &str = "invoice-review-test-bridge-secret-thirty-two-bytes";
 fn assistant_invoice_app(f: &mut crate::common::invoicing::F) {
     f.delivery_state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(INVOICE_BRIDGE.into()).unwrap(),
+        verzo_360_api::AssistantSecret::new(INVOICE_BRIDGE.into()).unwrap(),
     ));
-    f.api.app = genesy_360_api::build_app(f.delivery_state.clone());
+    f.api.app = verzo_360_api::build_app(f.delivery_state.clone());
 }
 
 #[sqlx::test]
@@ -1023,13 +1023,13 @@ async fn assistant_invoice_review_rejects_changed_amount_before_numbering(pool: 
     assert!(row.1.is_some());
 }
 
-fn delivery_ctx(f: &crate::common::invoicing::F) -> genesy_360_api::jobs::kinds::Ctx {
-    genesy_360_api::jobs::kinds::Ctx {
+fn delivery_ctx(f: &crate::common::invoicing::F) -> verzo_360_api::jobs::kinds::Ctx {
+    verzo_360_api::jobs::kinds::Ctx {
         invoice_state: Some(f.delivery_state.clone()),
         assistant_api_key: None,
         db: f.api.pool.clone(),
         files: f.delivery_state.files.clone(),
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: f.delivery_state.credentials.clone(),
         payments: f.delivery_state.payments.clone(),
     }
@@ -1057,7 +1057,7 @@ async fn committed_invoice_job_survives_failure_before_first_claim(pool: PgPool)
     .execute(&pool)
     .await
     .unwrap();
-    let job = genesy_360_api::jobs::repo::claim(
+    let job = verzo_360_api::jobs::repo::claim(
         &pool,
         &["invoice_delivery"],
         1,
@@ -1066,7 +1066,7 @@ async fn committed_invoice_job_survives_failure_before_first_claim(pool: PgPool)
     .await
     .unwrap()
     .unwrap();
-    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+    verzo_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
         .await
         .unwrap();
     let row:(String,bool)=sqlx::query_as("SELECT status,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid").bind(&f.api.ws).bind(&invoice).fetch_one(&pool).await.unwrap();
@@ -1093,7 +1093,7 @@ async fn crash_after_smtp_acceptance_reconciles_without_second_mail(pool: PgPool
     assert_eq!(f.inbox.lock().unwrap().len(), 1);
     assert_eq!(numbered(&f, &invoice).await.0, Some(1000));
     sqlx::raw_sql("DROP TRIGGER fail_finish ON invoice_deliveries;DROP FUNCTION fail_invoice_finish();UPDATE invoice_deliveries SET started_at=now()-interval '11 minutes';").execute(&pool).await.unwrap();
-    let job = genesy_360_api::jobs::repo::claim(
+    let job = verzo_360_api::jobs::repo::claim(
         &pool,
         &["invoice_delivery"],
         1,
@@ -1102,10 +1102,10 @@ async fn crash_after_smtp_acceptance_reconciles_without_second_mail(pool: PgPool
     .await
     .unwrap()
     .unwrap();
-    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+    verzo_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
         .await
         .unwrap();
-    let sweep = genesy_360_api::jobs::repo::Claimed {
+    let sweep = verzo_360_api::jobs::repo::Claimed {
         id: uuid::Uuid::now_v7(),
         kind: "invoice_delivery_sweep".into(),
         workspace_id: None,
@@ -1115,7 +1115,7 @@ async fn crash_after_smtp_acceptance_reconciles_without_second_mail(pool: PgPool
         created_by: None,
         token: uuid::Uuid::now_v7(),
     };
-    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), sweep)
+    verzo_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), sweep)
         .await
         .unwrap();
     let row:(String,bool)=sqlx::query_as("SELECT status,request IS NULL FROM invoice_deliveries WHERE workspace_id=$1::uuid AND invoice_id=$2::uuid").bind(&f.api.ws).bind(&invoice).fetch_one(&pool).await.unwrap();
@@ -1241,7 +1241,7 @@ async fn assistant_invoice_commit_receipt_survives_http_failure_and_worker_compl
     .execute(&pool)
     .await
     .unwrap();
-    let job = genesy_360_api::jobs::repo::claim(
+    let job = verzo_360_api::jobs::repo::claim(
         &pool,
         &["invoice_delivery"],
         1,
@@ -1250,7 +1250,7 @@ async fn assistant_invoice_commit_receipt_survives_http_failure_and_worker_compl
     .await
     .unwrap()
     .unwrap();
-    genesy_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
+    verzo_360_api::jobs::kinds::dispatch(&delivery_ctx(&f), job)
         .await
         .unwrap();
     let row: (String, bool, Option<String>) = sqlx::query_as(query)

@@ -1,27 +1,27 @@
 "use client"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useAccountingAccountsGet,
   useAccountingAccountsList,
-} from "@genesy/api-client/endpoints/accounting"
+} from "@verzo/api-client/endpoints/accounting"
 import {
   useCurrenciesGet,
   useCurrenciesList,
-} from "@genesy/api-client/endpoints/currencies"
-import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
+} from "@verzo/api-client/endpoints/currencies"
+import { useProductCategoriesList } from "@verzo/api-client/endpoints/product-categories"
 import {
   useRelationsGet,
   useRelationsList,
-} from "@genesy/api-client/endpoints/relations"
+} from "@verzo/api-client/endpoints/relations"
 import {
   useWarehousesGet,
   useWarehousesList,
-} from "@genesy/api-client/endpoints/warehouses"
+} from "@verzo/api-client/endpoints/warehouses"
 import type {
   AccountResource,
   RelationResource,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 import {
   PAGE_SIZE,

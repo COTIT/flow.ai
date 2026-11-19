@@ -20,7 +20,7 @@ use crate::{
 
 /// AFM's image CDN: every photo URL in `afm_catalogue.json` starts with it.
 pub const CDN: &str = "https://images.squarespace-cdn.com";
-const AGENT: &str = "GenesyDemoSeed/1.0 (+https://genesy.app; AFM staging demo, with consent)";
+const AGENT: &str = "VerzoDemoSeed/1.0 (+https://genesy.app; AFM staging demo, with consent)";
 /// The file upload limit.
 const MAX_BYTES: usize = 10 * 1024 * 1024;
 const TIMEOUT: Duration = Duration::from_secs(30);

@@ -4,10 +4,10 @@
     "next": "Hiki ndicho unachoweza kufanya sasa",
     "hint": {
       "lead": "Hujui pa kuanzia?",
-      "text": "Genesy inaweza kukusaidia {areas}.",
-      "textGeneral": "Genesy inaweza kukusaidia kuendesha biashara yako kwa sauti au maandishi.",
+      "text": "Verzo inaweza kukusaidia {areas}.",
+      "textGeneral": "Verzo inaweza kukusaidia kuendesha biashara yako kwa sauti au maandishi.",
       "explore": "Gundua ninachoweza kufanya",
-      "whatCanDo": "Genesy inaweza kufanya nini?",
+      "whatCanDo": "Verzo inaweza kufanya nini?",
       "dismiss": "Funga dokezo",
       "areas": {
         "stock": "kusimamia hisa",
@@ -17,7 +17,7 @@
       }
     },
     "explorer": {
-      "title": "Gundua Genesy inachoweza kufanya",
+      "title": "Gundua Verzo inachoweza kufanya",
       "text": "Chagua aina ya kazi. Kila kitu hapa kinatumia ruhusa zako halisi.",
       "groups": {
         "understand": "Hali",
@@ -128,7 +128,7 @@
       },
       "explore": {
         "label": "Gundua uwezekano",
-        "description": "Kila kitu Genesy inaweza kukufanyia, kwa aina ya kazi.",
+        "description": "Kila kitu Verzo inaweza kukufanyia, kwa aina ya kazi.",
         "example": "Unaweza kunisaidia na nini?"
       },
       "compare_sales_periods": {

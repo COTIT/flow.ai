@@ -143,7 +143,7 @@ test.describe("the approval's answer is lost", () => {
     await expect(receipt(page)).toHaveAttribute("data-receipt", "unknown")
     await expect(receipt(page)).toContainText(k.receipt.title.unknown)
     await expect(receipt(page)).toContainText(k.receipt.unknownText)
-    // Never a repeat of the write: only a status question to Genesy.
+    // Never a repeat of the write: only a status question to Verzo.
     await expect(page.getByRole("button", { name: v.approve })).toHaveCount(0)
     await expect(page.getByRole("link", { name: /ORD-0043/ })).toHaveCount(0)
   })

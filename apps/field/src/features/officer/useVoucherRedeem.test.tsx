@@ -7,7 +7,7 @@ const farmVouchersLookup = vi.fn()
 const farmVouchersRedeem = vi.fn()
 const farmVouchersTimeline = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({
   farmVouchersLookup: (...args: unknown[]) => farmVouchersLookup(...args),
   farmVouchersRedeem: (...args: unknown[]) => farmVouchersRedeem(...args),
   farmVouchersTimeline: (...args: unknown[]) => farmVouchersTimeline(...args),

@@ -1,4 +1,4 @@
-import { serviceWorkerSource } from "@genesy/ui/lib/pwa"
+import { serviceWorkerSource } from "@verzo/ui/lib/pwa"
 
 // Built once per deploy, so the version (build time) changes with every release.
 export const dynamic = "force-static"

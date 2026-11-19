@@ -10,7 +10,7 @@ export default defineConfig({
   use: { trace: "on-first-retry" },
   webServer: {
     command:
-      "pnpm --filter @genesy/office exec next start --port 3261 --hostname 127.0.0.1",
+      "pnpm --filter @verzo/office exec next start --port 3261 --hostname 127.0.0.1",
     url: "http://127.0.0.1:3261/login",
     reuseExistingServer: false,
     env: { API_URL: "http://127.0.0.1:9/v1", LANGSMITH_TRACING: "false" },

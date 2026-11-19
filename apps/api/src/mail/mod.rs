@@ -151,7 +151,7 @@ enum Target<'a> {
 
 impl Mailer {
     /// `url` like `smtp://127.0.0.1:1025` or `smtps://resend:<key>@smtp.resend.com:465`.
-    /// `from` like `Genesy <no-reply@genesy.app>`.
+    /// `from` like `Verzo <no-reply@genesy.app>`.
     pub fn smtp(url: &str, from: &str) -> Result<Self, String> {
         let transport = AsyncSmtpTransport::<Tokio1Executor>::from_url(url)
             .map_err(|e| format!("SMTP_URL invalid: {e}"))?
@@ -448,7 +448,7 @@ mod tests {
     #[tokio::test]
     async fn resend_smtp_url_builds_a_mailer() {
         let url = "smtps://resend:re_AbC123_xyz@smtp.resend.com:465";
-        assert!(Mailer::smtp(url, "Genesy <no-reply@genesy.app>").is_ok());
+        assert!(Mailer::smtp(url, "Verzo <no-reply@genesy.app>").is_ok());
     }
 
     #[tokio::test]

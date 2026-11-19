@@ -3,18 +3,18 @@ import { NextIntlClientProvider } from "next-intl"
 import { getLocale } from "next-intl/server"
 import { headers } from "next/headers"
 
-import "@genesy/ui/globals.css"
+import "@verzo/ui/globals.css"
 import "./office.css"
-import "@genesy/voice/styles/voice.css"
-import { QueryProvider } from "@genesy/api-client/query-provider"
-import { ServiceWorker } from "@genesy/ui/components/service-worker"
-import { fontSans } from "@genesy/ui/lib/fonts"
-import { pwaMetadata, pwaViewport } from "@genesy/ui/lib/pwa"
-import { cn } from "@genesy/ui/lib/utils"
+import "@verzo/voice/styles/voice.css"
+import { QueryProvider } from "@verzo/api-client/query-provider"
+import { ServiceWorker } from "@verzo/ui/components/service-worker"
+import { fontSans } from "@verzo/ui/lib/fonts"
+import { pwaMetadata, pwaViewport } from "@verzo/ui/lib/pwa"
+import { cn } from "@verzo/ui/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "Genesy Office",
+  title: "Verzo Office",
   ...pwaMetadata("Office"),
 }
 

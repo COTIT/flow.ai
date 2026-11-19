@@ -1,4 +1,4 @@
-//! `genesy-360-api migrate`: the deploy's own migration step, run as the real binary.
+//! `verzo-360-api migrate`: the deploy's own migration step, run as the real binary.
 
 use std::process::{Command, Output};
 
@@ -12,12 +12,12 @@ fn migrate(db: &str) -> Output {
     let (server, _) = server
         .rsplit_once('/')
         .expect("DATABASE_URL has a database");
-    Command::new(env!("CARGO_BIN_EXE_genesy-360-api"))
+    Command::new(env!("CARGO_BIN_EXE_verzo-360-api"))
         .arg("migrate")
         .env_clear()
         .env("DATABASE_URL", format!("{server}/{db}"))
         .output()
-        .expect("run genesy-360-api")
+        .expect("run verzo-360-api")
 }
 
 /// The summary line; tracing logs (sqlx notices) also go to stdout before it.

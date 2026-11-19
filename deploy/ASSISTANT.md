@@ -108,7 +108,7 @@ Every voice request that fails carries labels on its LangSmith trace (project fr
 - `failure_reason`: `invalid`, `forbidden`, `missing`, `conflict`, `expired`, `size`, `format`, `busy`, `unverified`, `unavailable` or `unsupported`.
 - `failure_category`: `user_fixable` (a refusal the user can correct), `platform_error` (`unverified`/`unavailable`: worth a bug check) or `out_of_scope_candidate` (`unsupported`).
 - `http_status`: the backend status, when there was one.
-- `unsupported_query`: only on `unsupported`, the agent's short phrase for what was asked (at most 120 characters), e.g. "book a delivery truck for Friday". The agent sends it as `discover_genesy_tools` query `unsupported: <request>` when no Genesy tool fits. Review these to decide whether it is a gap Genesy should cover or outside its scope.
+- `unsupported_query`: only on `unsupported`, the agent's short phrase for what was asked (at most 120 characters), e.g. "book a delivery truck for Friday". The agent sends it as `discover_genesy_tools` query `unsupported: <request>` when no Verzo tool fits. Review these to decide whether it is a gap Verzo should cover or outside its scope.
 
 The agent explains each failure to the user in one plain sentence from the result's `reason`, `message` and `fields`; the Office chat shows the matching localized `requestErrors` text. After a completed create or update of an order, invoice, product or lot, the result carries `links` (record number or name and its Office page); the chat shows them as links that open in a new tab, and the agent hears only the record names.
 

@@ -4,20 +4,20 @@ import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
+import { useSession } from "@verzo/api-client/auth"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
 import {
   usePurchaseReceiptsBook,
   usePurchaseReceiptsBookReview,
-} from "@genesy/api-client/endpoints/purchase-receipts"
+} from "@verzo/api-client/endpoints/purchase-receipts"
 import type {
   LandedCostPayload,
   PurchaseOrderResource,
   PurchaseReceiptResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -27,11 +27,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { useIdempotencyKey } from "@/lib/idempotency"
 

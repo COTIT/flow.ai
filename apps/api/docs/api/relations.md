@@ -205,13 +205,13 @@ Soft delete. Its contacts stay, and its number stays taken. A relation with a li
   - `email` is ≤ 255 and stored lowercase. `phone_number` is ≤ 55.
   - `phones` is a list of at most 20 `{type: home|mobile|phone|phone2|work, number ≤ 30}`, with errors at `phones.N.type`.
   - `default_contact` is a boolean, `default_for` is one of the five `default_for_*` values, and `meta` is an object.
-- **Update.** Every key is a patch. Laravel set `email` and `phone_number` to null on every update that left them out; genesy keeps them.
+- **Update.** Every key is a patch. Laravel set `email` and `phone_number` to null on every update that left them out; Verzo keeps them.
 - **Default contact.** A relation has at most one live default contact (unique index). Creating or updating a contact as default clears the flag on the others in the same transaction. Laravel did this on update only, so a relation could end up with several defaults.
 - **Delete.** Soft delete; 404 when the relation itself is deleted.
 
 ## Financial summary `GET /relations/{relation}/financial-summary`
 
-The same keys as Laravel. Every amount is 0, because genesy has no invoices yet; the invoice batch fills in the real sums.
+The same keys as Laravel. Every amount is 0, because Verzo has no invoices yet; the invoice batch fills in the real sums.
 
 - `lite=1`: `relation_id, projected_ltv: null, total_spend, outstanding_amount, outstanding_count, total_customer_value, outstanding_balance, credit_limit, available_credit, account_manager_name: null, customer_since: null, last_payment_date: null, loyalty_points`.
 - **Full keys.** `relation_id, first_send_date, last_send_date, months_since_last, orders_count, years_active, total_spend, avg_order_value, purchases_per_year, expected_lifespan_years: 5, projected_ltv, remaining_ltv, outstanding_amount, outstanding_count, total_customer_value, outstanding_balance, account_manager_name, customer_since ("Y-m-d H:i:s", the creation time), last_payment_date, credit_limit, available_credit`.

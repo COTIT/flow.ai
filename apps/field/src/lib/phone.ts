@@ -1,6 +1,6 @@
 /**
  * Farmer phone numbers. A farmer signs in with the phone number their officer
- * registered; the Genesy API normalises it again on sign-in, so this copy only
+ * registered; the Verzo API normalises it again on sign-in, so this copy only
  * decides, before a round trip, whether the login field holds a phone at all.
  */
 

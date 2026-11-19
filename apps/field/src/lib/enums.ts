@@ -1,5 +1,5 @@
 /**
- * The closed value sets the Genesy API uses for RUAHA records (statuses, provenance, measures),
+ * The closed value sets the Verzo API uses for RUAHA records (statuses, provenance, measures),
  * spelled exactly as the API sends them. Display-only: the API validates every value.
  */
 export type Enums = {

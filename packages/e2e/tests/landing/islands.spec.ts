@@ -1,17 +1,17 @@
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 
-const TITLE = "Every jar has a story. Every farmer gets their share."
+const TITLE = "Turn your intentions into actions."
 
 test("with motion, the hero gets its pollen and the feature strip loops", async ({
   page,
 }) => {
   await page.goto("/")
   await expect(page.locator(".hero canvas")).toBeAttached()
-  await expect(page.getByLabel("What Genesy does")).toBeVisible()
+  await expect(page.getByLabel("Farm-to-retail capabilities")).toBeVisible()
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
     TITLE
   )
-  await expect(page.getByText("Traced from the")).toBeVisible()
+  await expect(page.getByText("The AI-native operating platform for businesses")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 
@@ -23,9 +23,9 @@ test.describe("with reduced motion", () => {
   }) => {
     await page.goto("/")
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(TITLE)
-    await expect(page.getByText("Farm to kitchen, in the open")).toBeVisible()
+    await expect(page.getByText("The AI-native operating platform for businesses")).toBeVisible()
     await expect(
-      page.getByRole("list", { name: "What Genesy does" })
+      page.getByRole("list", { name: "Farm-to-retail capabilities" })
     ).toBeVisible()
     await expect(page.locator("canvas")).toHaveCount(0)
     await expectNoHorizontalScroll(page)
@@ -52,7 +52,7 @@ test.describe("when an animated piece fails to load", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
       TITLE
     )
-    await expect(page.getByLabel("What Genesy does")).toBeVisible()
+    await expect(page.getByLabel("Farm-to-retail capabilities")).toBeVisible()
     await expect(page.locator(".hero canvas")).toHaveCount(0)
     await expect(page.locator(".hero .copy")).toBeVisible()
   })

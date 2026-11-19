@@ -18,7 +18,7 @@ pub const CODE_TAKEN: &str = "The shelf code has already been taken.";
 pub const SIDES: [&str; 2] = ["left", "right"];
 
 // Laravel WarehouseSectionRowShelfResource. Laravel printed its parent ids as internal
-/// integers; genesy prints the uuids.
+/// integers; Verzo prints the uuids.
 #[derive(Serialize, ToSchema)]
 #[schema(description = "A shelf inside a warehouse row.")]
 pub struct ShelfResource {

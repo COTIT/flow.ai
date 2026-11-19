@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmRecordsPersonsHoldings } from '@genesy/api-client/endpoints/farm-records'
-import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
+import { farmRecordsPersonsHoldings } from '@verzo/api-client/endpoints/farm-records'
+import type { Provenance as ApiProvenance } from '@verzo/api-client/model'
 
 import { useSession } from '@/app/session'
 import { workspaceId } from '@/app/workspace'

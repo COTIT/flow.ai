@@ -1,7 +1,7 @@
 /** `mailto:` link of the one call to action. shortcut: placeholder address until the real one is set. */
 export function contactHref(configured: string | undefined) {
   const email = configured?.trim() || "hello@genesy.app"
-  return `mailto:${email}?subject=${encodeURIComponent("Genesy for my organisation")}`
+  return `mailto:${email}?subject=${encodeURIComponent("Verzo for my organisation")}`
 }
 
 type Env = Partial<Record<string, string>>

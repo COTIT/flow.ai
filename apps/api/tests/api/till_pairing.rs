@@ -9,9 +9,9 @@ use axum::{
     http::{Method, StatusCode},
 };
 use common::{Api, member_with, send, send_raw};
-use genesy_360_api::{build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer};
 
 const PIN: &str = "4821";
 

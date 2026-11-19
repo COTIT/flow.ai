@@ -7,10 +7,10 @@ import {
   getWarehousesListQueryKey,
   warehousesCreate,
   warehousesList,
-} from "@genesy/api-client/endpoints/warehouses"
-import { sessionStore } from "@genesy/api-client/session"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+} from "@verzo/api-client/endpoints/warehouses"
+import { sessionStore } from "@verzo/api-client/session"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
 import { useCan } from "@/lib/can"
 import { allWarehouses, findWarehouse } from "@/lib/warehouses"
 

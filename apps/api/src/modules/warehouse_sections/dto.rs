@@ -299,7 +299,7 @@ pub fn count(r: &mut Rules, key: &str, v: Option<Value>) -> Option<i32> {
 }
 
 /// A workspace member's uuid; membership is checked by the service. Laravel took an integer
-/// user id here, which genesy doesn't have.
+/// user id here, which Verzo doesn't have.
 fn manager(r: &mut Rules, v: Option<Value>) -> Option<Uuid> {
     let v = filled(v)?;
     let id = v.as_str().and_then(|s| Uuid::parse_str(s.trim()).ok());

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { DataTable } from '@/components/DataTable'

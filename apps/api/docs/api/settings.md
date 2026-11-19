@@ -12,7 +12,7 @@ One row per workspace in `settings`: `data jsonb`, one key per section, plus `up
 
 ## `GET /settings` (`setting.get`)
 
-Laravel checked `setting.view`, which no team can hold; genesy checks the catalog's `setting.get` (see conventions).
+Laravel checked `setting.view`, which no team can hold; Verzo checks the catalog's `setting.get` (see conventions).
 
 Every settings read returns `{data: ..., meta: {globadyme_environment: "sandbox" | "production" | null, production_origin_verified: true}}`. `meta` comes from trusted deployment configuration and stays outside writable settings `data`. The fixed production API origin is approved; merchant credentials and go-live approval still require provider verification. A null realm disables Globadyme setup while legacy provider settings remain available. Field presence does not verify provider credentials.
 
@@ -90,7 +90,7 @@ A partial object keyed by section: `{"invoice": {...}, "smtp": {...}}`. Answers 
 | `general.*` | strings ≤ 255 (Laravel had no rules; a non-string crashed its cast) |
 | `meta` | object or null |
 
-**`invoice.customer_ref` difference:** Laravel's rules had trailing spaces in the keys, so the flags were never validated. Genesy validates `ordered_by`, `po_number` and `reference` as booleans and stores them.
+**`invoice.customer_ref` difference:** Laravel's rules had trailing spaces in the keys, so the flags were never validated. Verzo validates `ordered_by`, `po_number` and `reference` as booleans and stores them.
 
 ## Integration credentials
 

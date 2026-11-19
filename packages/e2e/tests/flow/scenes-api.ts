@@ -377,6 +377,12 @@ export function sceneWorld(
     .on("GET", `${base}/product-bulk-runs`, () => ({
       data: { runs: [], next: null },
     }))
+    .on("GET", `${base}/product-bulk-runs/template`, () => ({
+      data: { fields: [], custom_fields: [] },
+    }))
+    .on("GET", `${base}/product-bulk-runs/settings`, () => ({
+      data: { per_run_cap_usd: "0", can_edit: role === "owner" },
+    }))
     .on("GET", `${base}/scheduled-reports`, () => ({ data: [] }))
     .on("GET", `${base}/storefront/pages/home`, () => NO_DESIGN)
     .on("GET", `${base}/storefront/pages/home/revisions`, () => NO_REVISIONS)
@@ -454,6 +460,12 @@ export const sceneTable = (ws = "w1"): Record<string, MockReply> => ({
   },
   [`GET /workspace/${ws}/product-bulk-runs`]: {
     body: { data: { runs: [], next: null } },
+  },
+  [`GET /workspace/${ws}/product-bulk-runs/template`]: {
+    body: { data: { fields: [], custom_fields: [] } },
+  },
+  [`GET /workspace/${ws}/product-bulk-runs/settings`]: {
+    body: { data: { per_run_cap_usd: "0", can_edit: true } },
   },
   [`GET /workspace/${ws}/scheduled-reports`]: { body: { data: [] } },
   [`GET /workspace/${ws}/storefront/pages/home`]: { body: NO_DESIGN },

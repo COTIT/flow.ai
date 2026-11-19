@@ -3,16 +3,16 @@
 A synthetic user ("Neema", an operations lead at a co-op) asks the Office voice assistant the 93 requests in
 `scenarios.json` in text mode, and a rule-based grader classifies each answer. It finds capability gaps before real
 users do. It is slow, model-dependent and costs ElevenLabs credit, so it is **not** part of CI. Only the
-offline unit tests (`*.test.mjs`) run in `pnpm --filter @genesy/e2e test`.
+offline unit tests (`*.test.mjs`) run in `pnpm --filter @verzo/e2e test`.
 
 ## Run it
 
 ```bash
 # Local full stack with the assistant on (key and agent id from your env; never stored or logged):
-VOICE=1 E2E_STACK_OFFSET=40 ELEVENLABS_API_KEY=… ELEVENLABS_AGENT_ID=… pnpm --filter @genesy/e2e stack:up
-E2E_STACK_OFFSET=40 pnpm --filter @genesy/e2e voice-probe                          # whole bank
-E2E_STACK_OFFSET=40 VOICE_PROBE_ONLY=morning-agenda pnpm --filter @genesy/e2e voice-probe   # one scenario
-pnpm --filter @genesy/e2e voice-probe:coverage                                      # static coverage, offline
+VOICE=1 E2E_STACK_OFFSET=40 ELEVENLABS_API_KEY=… ELEVENLABS_AGENT_ID=… pnpm --filter @verzo/e2e stack:up
+E2E_STACK_OFFSET=40 pnpm --filter @verzo/e2e voice-probe                          # whole bank
+E2E_STACK_OFFSET=40 VOICE_PROBE_ONLY=morning-agenda pnpm --filter @verzo/e2e voice-probe   # one scenario
+pnpm --filter @verzo/e2e voice-probe:coverage                                      # static coverage, offline
 ```
 
 - `VOICE_PROBE_BANK=adversarial`: the 24 adversarial scenarios (`adversarial.json`: rapid fire, long and chained

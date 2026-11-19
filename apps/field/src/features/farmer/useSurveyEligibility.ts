@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { farmSurveysEligibility } from '@genesy/api-client/endpoints/farm-surveys'
-import type { Eligibility } from '@genesy/api-client/model'
+import { farmSurveysEligibility } from '@verzo/api-client/endpoints/farm-surveys'
+import type { Eligibility } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

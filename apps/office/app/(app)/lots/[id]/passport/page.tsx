@@ -5,8 +5,8 @@ import { ExternalLinkIcon, PlusIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useFilesList } from "@genesy/api-client/endpoints/files"
+import { useSession } from "@verzo/api-client/auth"
+import { useFilesList } from "@verzo/api-client/endpoints/files"
 import {
   getLotsPassportGetQueryKey,
   useLotsGet,
@@ -14,27 +14,27 @@ import {
   useLotsPassportPublish,
   useLotsPassportSave,
   useLotsPassportUnpublish,
-} from "@genesy/api-client/endpoints/lots"
-import { useProductsGet } from "@genesy/api-client/endpoints/products"
-import { useStorefrontConnectionGet } from "@genesy/api-client/endpoints/storefront-connection"
+} from "@verzo/api-client/endpoints/lots"
+import { useProductsGet } from "@verzo/api-client/endpoints/products"
+import { useStorefrontConnectionGet } from "@verzo/api-client/endpoints/storefront-connection"
 import type {
   Block,
   FileResource,
   LotResource,
   Passport,
   PassportResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { PassportView } from "@genesy/ui/components/passport-view"
-import { Tabs, TabsList, TabsTrigger } from "@genesy/ui/components/tabs"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { PassportView } from "@verzo/ui/components/passport-view"
+import { Tabs, TabsList, TabsTrigger } from "@verzo/ui/components/tabs"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { cn } from "@verzo/ui/lib/utils"
 import { useCan } from "@/lib/can"
 import { Bento, DetailSkeleton, Tile, type Tone } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"

@@ -48,7 +48,7 @@ fn heading(text: &str) -> Value {
 
 #[test]
 fn edit_operations_are_documented() {
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     for (path, id) in [
         (
             "/workspace/{workspace}/storefront/pages/home/edits",

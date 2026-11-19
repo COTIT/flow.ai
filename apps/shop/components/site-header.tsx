@@ -1,8 +1,8 @@
 import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 
-import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { LocaleSwitcher } from "@verzo/i18n/locale-switcher"
+import { ThemeToggle } from "@verzo/ui/components/theme-toggle"
 
 import { NAV } from "@/lib/nav"
 
@@ -23,7 +23,7 @@ export async function SiteHeader({ shopName }: { shopName?: string }) {
         aria-label={t("nav.home")}
         className="inline-flex min-h-11 items-center rounded-sm md:min-h-0"
       >
-        {/* The shop is AFM's; Genesy is credited in the footer. */}
+        {/* The shop is AFM's; Verzo is credited in the footer. */}
         <span
           aria-hidden
           className="afm-wordmark max-w-[9.5rem] text-[15px] leading-[1.15] font-semibold tracking-[0.01em] md:max-w-none md:text-[17px]"

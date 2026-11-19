@@ -17,7 +17,10 @@ use axum::{
     http::{Request, Response},
 };
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use genesy_360_api::{
+use rust_decimal::Decimal;
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::{
     CredentialKey,
     integrations::{
         capability::{
@@ -28,9 +31,6 @@ use genesy_360_api::{
     },
     outbound::Outbound,
 };
-use rust_decimal::Decimal;
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 use crate::common;
 
@@ -290,7 +290,7 @@ fn po(eid: &str) -> NewPo {
     }
 }
 
-fn rejected(o: CreateOutcome) -> genesy_360_api::integrations::capability::ProviderError {
+fn rejected(o: CreateOutcome) -> verzo_360_api::integrations::capability::ProviderError {
     match o {
         CreateOutcome::Rejected(e) => e,
         CreateOutcome::Created { id, .. } => panic!("created {id}"),
@@ -299,7 +299,7 @@ fn rejected(o: CreateOutcome) -> genesy_360_api::integrations::capability::Provi
     }
 }
 
-fn ambiguous(o: CreateOutcome) -> genesy_360_api::integrations::capability::ProviderError {
+fn ambiguous(o: CreateOutcome) -> verzo_360_api::integrations::capability::ProviderError {
     match o {
         CreateOutcome::Ambiguous(e) => e,
         CreateOutcome::Created { id, .. } => panic!("created {id}"),

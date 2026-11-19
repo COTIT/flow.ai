@@ -5,7 +5,7 @@ import type { HistoryEvent } from "../lib/history"
 import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
-  GenesyVoiceProvider,
+  VerzoVoiceProvider,
   useVoice,
   type VoiceContextValue,
 } from "./provider"
@@ -58,10 +58,10 @@ vi.mock("next-intl", () => ({
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }))
-vi.mock("@genesy/api-client/auth", () => ({
+vi.mock("@verzo/api-client/auth", () => ({
   useSession: (pick: (s: typeof login) => unknown) => pick(login),
 }))
-vi.mock("@genesy/api-client/session", () => ({
+vi.mock("@verzo/api-client/session", () => ({
   sessionStore: { getState: () => login },
 }))
 
@@ -89,12 +89,12 @@ async function mount(historyEnabled = true, onUnauthorized?: () => void) {
   root = createRoot(host)
   await act(async () =>
     root.render(
-      <GenesyVoiceProvider
+      <VerzoVoiceProvider
         historyEnabled={historyEnabled}
         onUnauthorized={onUnauthorized}
       >
         <Probe />
-      </GenesyVoiceProvider>
+      </VerzoVoiceProvider>
     )
   )
 }

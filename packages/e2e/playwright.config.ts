@@ -72,7 +72,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: `pnpm --filter @genesy/shop exec next start --port ${shopPort} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/shop exec next start --port ${shopPort} --hostname 127.0.0.1`,
       url: shop,
       reuseExistingServer: false,
       env: {
@@ -85,21 +85,21 @@ export default defineConfig({
     {
       // The office calls the API from the browser; specs answer with mockApi. Port 9 is
       // closed, so a call that slips past the mock fails instead of reaching a backend.
-      command: `pnpm --filter @genesy/office exec next start --port ${officePort} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/office exec next start --port ${officePort} --hostname 127.0.0.1`,
       url: `${office}/login`,
       reuseExistingServer: false,
       env: { API_URL: "http://127.0.0.1:9/v1" },
     },
     {
       // Field (Vite) calls the API from the browser too; mockApi answers, port 9 catches leaks.
-      command: `pnpm --filter @genesy/field exec vite preview --port ${fieldPort} --host 127.0.0.1 --strictPort`,
+      command: `pnpm --filter @verzo/field exec vite preview --port ${fieldPort} --host 127.0.0.1 --strictPort`,
       url: `${field}/login`,
       reuseExistingServer: false,
       env: { API_URL: "http://127.0.0.1:9/v1" },
     },
     {
       // The till calls the API from the browser like the office; mockApi answers, port 9 catches leaks.
-      command: `pnpm --filter @genesy/till exec next start --port ${tillPort} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/till exec next start --port ${tillPort} --hostname 127.0.0.1`,
       url: `${till}/setup`,
       reuseExistingServer: false,
       env: { API_URL: "http://127.0.0.1:9/v1" },
@@ -107,7 +107,7 @@ export default defineConfig({
     {
       // The landing page calls no API. A contact address set at start (not build) time proves
       // compose can change it without a rebuild.
-      command: `pnpm --filter @genesy/landing exec next start --port ${landingPort} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/landing exec next start --port ${landingPort} --hostname 127.0.0.1`,
       url: landing,
       reuseExistingServer: false,
       env: { SITE_URL: landing, NEXT_PUBLIC_CONTACT_EMAIL: "team@genesy.test" },
@@ -115,7 +115,7 @@ export default defineConfig({
     {
       // Flow calls /v1 from the browser (mockApi answers, port 9 catches leaks); its server
       // proxies /api/voice/* to the mock, standing in for Office's voice server.
-      command: `pnpm --filter @genesy/flow exec next start --port ${flowPort} --hostname 127.0.0.1`,
+      command: `pnpm --filter @verzo/flow exec next start --port ${flowPort} --hostname 127.0.0.1`,
       url: `${flow}/login`,
       reuseExistingServer: false,
       env: {

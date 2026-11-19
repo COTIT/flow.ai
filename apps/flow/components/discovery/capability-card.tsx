@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl"
 
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
-import type { FlowCapability, FlowStatus } from "@genesy/voice/lib/capabilities"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
+import type { FlowCapability, FlowStatus } from "@verzo/voice/lib/capabilities"
 
 const BADGE = {
   available: "secondary",

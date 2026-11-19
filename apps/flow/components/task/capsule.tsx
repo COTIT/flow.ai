@@ -4,17 +4,17 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { X } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
-import { useVoice } from "@genesy/voice/components/provider"
-import { ReviewTitle } from "@genesy/voice/components/review-details"
-import { clarifyOf, taskView, type TaskState } from "@genesy/voice/lib/task"
+import { Button } from "@verzo/ui/components/button"
+import { useVoice } from "@verzo/voice/components/provider"
+import { ReviewTitle } from "@verzo/voice/components/review-details"
+import { clarifyOf, taskView, type TaskState } from "@verzo/voice/lib/task"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import { taskStore, useTask } from "@/lib/task-store"
 import { ProductBulkIndicator } from "./product-bulk-indicator"
 
 const ENDED: TaskState[] = ["completed", "partial", "failed", "cancelled", "unknown"]
 
-/** The task Genesy is on, from the provider's real state; follows every scene, never covers one. */
+/** The task Verzo is on, from the provider's real state; follows every scene, never covers one. */
 export function useTaskView() {
   const voice = useVoice()
   const decided = useTask((s) => s.decided)

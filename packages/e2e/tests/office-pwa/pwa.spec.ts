@@ -3,7 +3,7 @@ import { expect, expectNoHorizontalScroll, expectTapTargets, test } from "../../
 
 test("can be added to the home screen as 'Office'", async ({ page }) => {
   await page.goto("/login")
-  await expectInstallable(page, { name: "Genesy Office", shortName: "Office", startUrl: "/" })
+  await expectInstallable(page, { name: "Verzo Office", shortName: "Office", startUrl: "/" })
 })
 
 test("with no connection, a page shows a plain 'you are offline' screen, not a browser error", async ({

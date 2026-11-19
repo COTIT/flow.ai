@@ -17,7 +17,7 @@ use crate::outbound::Outbound;
 pub const SANDBOX_API_URL: &str = "https://api.sbx.globadyme.com/api";
 /// Production host with verified public API route prefix.
 pub const PRODUCTION_API_URL: &str = "https://api.prd.globadyme.com/api";
-const USER_AGENT: &str = "Genesy/0.1 Globadyme";
+const USER_AGENT: &str = "Verzo/0.1 Globadyme";
 const MAX_BODY: usize = 2 * 1024 * 1024;
 
 /// Immutable account revision; never share this client with another account or revision.

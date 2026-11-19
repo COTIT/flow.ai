@@ -171,7 +171,7 @@
     "paidMultilingualAcceptance": "Deferred by user scope correction: exhaustive model/capability benchmark not completed and not a gate for initial deployment.",
     "environmentAgentBindings": "Production agent matches verified development conversation/platform settings; private credentials and single-workspace allowlist prepared on server, admission disabled. Applying runtime configuration remains pending deployment.",
     "physicalDevices": "user-owned after production deployment: Android/Chrome and iPhone/Safari microphone, speaker and camera; not tested",
-    "agentTemplateAhead": "Template c9d1664e974b is not yet published by deploy/assistant-agent.sh to: development, production. Published and read back: staging (agtvrsn_9601m7asqetjey1anmwame4ydtyh)."
+    "agentTemplateAhead": "Verzo template 19a962448b3f15b51fc798e5510d86e73864e60466ea3899ef9acae4b3dbb6d3 is pending publication to development, staging, and production. Previous provider observations still apply to their recorded templates."
   },
   "scopeCorrection": "User directed stop scope creep: finish existing implementation and queued checks; no added features, test matrices or exhaustive model benchmark.",
   "continuity": {

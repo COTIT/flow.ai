@@ -45,7 +45,7 @@ Delete is soft and has no "in use" guard (Laravel parity).
 
 ## Currency rates `/currency-rates`
 
-Exchange rates the workspace enters itself. Genesy fetches no market rates. A rate means 1 major unit of `from` = `rate` major units of `to` (1 EUR = 2950.5 TZS).
+Exchange rates the workspace enters itself. Verzo fetches no market rates. A rate means 1 major unit of `from` = `rate` major units of `to` (1 EUR = 2950.5 TZS).
 
 | Route | Permission |
 |---|---|

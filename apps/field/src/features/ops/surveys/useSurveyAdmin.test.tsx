@@ -20,7 +20,7 @@ const api = {
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
 
-vi.mock('@genesy/api-client/endpoints/farm-surveys', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-surveys', () => ({
   farmSurveysList: forward('farmSurveysList'),
   farmSurveysGet: forward('farmSurveysGet'),
   farmSurveysCreate: forward('farmSurveysCreate'),
@@ -33,8 +33,8 @@ vi.mock('@genesy/api-client/endpoints/farm-surveys', () => ({
   farmSurveysResults: forward('farmSurveysResults'),
   farmSurveysVouchers: forward('farmSurveysVouchers'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({ farmVouchersVoid: forward('farmVouchersVoid') }))
-vi.mock('@genesy/api-client/endpoints/currencies', () => ({ currenciesList: forward('currenciesList') }))
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({ farmVouchersVoid: forward('farmVouchersVoid') }))
+vi.mock('@verzo/api-client/endpoints/currencies', () => ({ currenciesList: forward('currenciesList') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/ops/surveys/useSurveyAdmin')

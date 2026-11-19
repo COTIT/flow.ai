@@ -15,11 +15,11 @@ use axum::{
     extract::ConnectInfo,
     http::{HeaderMap, Method, Request, StatusCode},
 };
-use genesy_360_api::{AppState, RateLimit, Slots, WorkspaceSlots, build_app, db, mail::Mailer};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use tower::ServiceExt;
+use verzo_360_api::{AppState, RateLimit, Slots, WorkspaceSlots, build_app, db, mail::Mailer};
 
 const PEER: &str = "203.0.113.7:4000";
 

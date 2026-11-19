@@ -1,1 +1,1 @@
-export { useIdempotencyKey } from "@genesy/api-client/idempotency"
+export { useIdempotencyKey } from "@verzo/api-client/idempotency"

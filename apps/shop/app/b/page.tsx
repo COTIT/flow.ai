@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { getTranslations } from "next-intl/server"
 
-import { Notice } from "@genesy/ui/components/notice"
+import { Notice } from "@verzo/ui/components/notice"
 
 import { PageIntro } from "@/components/page-intro"
 import { TraceForm } from "@/components/trace-form"

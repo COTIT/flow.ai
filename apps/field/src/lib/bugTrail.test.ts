@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { createApiClient } from '@genesy/api-client/client'
+import { createApiClient } from '@verzo/api-client/client'
 
 import { clearTrail, installClickTrail, recordTrail, redactUrl, trailApi, trailSnapshot } from '@/lib/bugTrail'
 

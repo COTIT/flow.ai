@@ -5,19 +5,19 @@ import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { ExternalLink, Mic, MicOff, Paperclip, Send } from "lucide-react"
 
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Notice, type NoticeVariant } from "@genesy/ui/components/notice"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Notice, type NoticeVariant } from "@verzo/ui/components/notice"
 import {
   AttachmentList,
   AttachmentPreview,
-} from "@genesy/voice/components/attachments"
-import { useVoice } from "@genesy/voice/components/provider"
-import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
-import { ConversationResults } from "@genesy/voice/components/conversation-results"
-import { isBlankMessage } from "@genesy/voice/lib/blank"
-import { ATTACHMENT_ACCEPT } from "@genesy/voice/lib/helpers"
-import type { SessionPhase } from "@genesy/voice/lib/presentation"
+} from "@verzo/voice/components/attachments"
+import { useVoice } from "@verzo/voice/components/provider"
+import { VoiceUnfinished } from "@verzo/voice/components/unfinished"
+import { ConversationResults } from "@verzo/voice/components/conversation-results"
+import { isBlankMessage } from "@verzo/voice/lib/blank"
+import { ATTACHMENT_ACCEPT } from "@verzo/voice/lib/helpers"
+import type { SessionPhase } from "@verzo/voice/lib/presentation"
 import { Pills } from "@/components/discovery/pills" // F3
 import { EndCall } from "@/components/frame/conversation"
 import { TaskCapsule } from "@/components/task/capsule" // F4

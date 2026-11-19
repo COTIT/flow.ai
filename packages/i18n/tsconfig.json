@@ -1,5 +1,5 @@
 {
-  "extends": "@genesy/typescript-config/react-library.json",
+  "extends": "@verzo/typescript-config/react-library.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",

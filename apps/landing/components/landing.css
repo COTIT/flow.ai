@@ -564,6 +564,21 @@
       gap: 48px;
     }
   }
+  .platform-steps {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem)
+      clamp(1.5rem, 4vw, 3rem) clamp(3rem, 6vw, 4.5rem);
+    font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+    font-weight: 600;
+  }
+  .platform-steps li {
+    padding: 0.8rem 0.6rem;
+  }
+  .platform-steps li + li {
+    border-top: 1px solid var(--line);
+  }
   .hero .copy {
     display: grid;
     gap: 20px;
@@ -1081,11 +1096,6 @@
     inset: 0;
     z-index: 0;
     opacity: 0.7;
-  }
-  .rotating {
-    display: inline-flex;
-    gap: 0.4em;
-    align-items: baseline;
   }
   .loop-wrap {
     padding-block: 8px 24px;

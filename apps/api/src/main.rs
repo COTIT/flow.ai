@@ -2,26 +2,26 @@
 
 use std::{net::SocketAddr, time::Duration};
 
-use genesy_360_api::{
+use sqlx::postgres::PgConnectOptions;
+use tracing_subscriber::EnvFilter;
+use verzo_360_api::{
     AppState, RateLimit, Slots, WorkspaceSlots, build_app,
     config::Config,
     db, healthcheck, integrations, jobs,
     mail::{self, Mailer},
     outbound, payments, pdf, storage, warm_up,
 };
-use sqlx::postgres::PgConnectOptions;
-use tracing_subscriber::EnvFilter;
 
 fn main() {
     if std::env::args().nth(1).as_deref() == Some("parse-product-source") {
-        std::process::exit(genesy_360_api::product_bulk_runs::parser::child_main());
+        std::process::exit(verzo_360_api::product_bulk_runs::parser::child_main());
     }
     serve();
 }
 
 #[tokio::main]
 async fn serve() {
-    // `genesy-360-api healthcheck`: compose healthcheck for the shell-less image. Needs only
+    // `verzo-360-api healthcheck`: compose healthcheck for the shell-less image. Needs only
     // BIND_ADDR's port, not the full config (secrets, DB), and exits right away.
     if std::env::args().nth(1).as_deref() == Some("healthcheck") {
         let port = std::env::var("BIND_ADDR")
@@ -33,11 +33,16 @@ async fn serve() {
 
     // .env optional: dev convenience, prod injects real env.
     dotenvy::dotenv().ok();
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .init();
+    // Existing environments may still target the crate's old name in RUST_LOG.
+    let log_filter = std::env::var(EnvFilter::DEFAULT_ENV)
+        .ok()
+        .and_then(|directives| {
+            EnvFilter::try_new(directives.replace("genesy_360_api", "verzo_360_api")).ok()
+        })
+        .unwrap_or_else(|| "info".into());
+    tracing_subscriber::fmt().with_env_filter(log_filter).init();
 
-    // `genesy-360-api migrate`: the deploy's migration step (one-off container), then exit.
+    // `verzo-360-api migrate`: the deploy's migration step (one-off container), then exit.
     // Reads only DATABASE_URL(_FILE), so CI can migrate its template DB without app config.
     if std::env::args().nth(1).as_deref() == Some("migrate") {
         let result = match Config::database_url_from_env()
@@ -198,10 +203,10 @@ async fn serve() {
         signup_enabled: config.signup_enabled,
         integrations,
     };
-    // `genesy-360-api seed-farm-demo`: the RUAHA demo workspace, then exit. CLI only: no route
+    // `verzo-360-api seed-farm-demo`: the RUAHA demo workspace, then exit. CLI only: no route
     // ever seeds. Runs before the listener binds, so it can run beside a live server.
     if std::env::args().nth(1).as_deref() == Some("seed-farm-demo") {
-        use genesy_360_api::farm_demo::{self, STAFF, WORKSPACE};
+        use verzo_360_api::farm_demo::{self, STAFF, WORKSPACE};
         match farm_demo::run(state).await {
             Ok(r) if r.created => {
                 // Printed once, to stdout only: the passwords exist nowhere else.
@@ -228,14 +233,14 @@ async fn serve() {
         }
         return;
     }
-    // `genesy-360-api seed-demo`: every part of the staging demo, then exit. Refuses unless
+    // `verzo-360-api seed-demo`: every part of the staging demo, then exit. Refuses unless
     // GENESY_ALLOW_DEMO_SEED is set (staging compose only). Secrets go to stdout once.
     if std::env::args().nth(1).as_deref() == Some("seed-demo") {
         // `--images` (staging's seed service): AFM's photos into the file store too.
         let photos = std::env::args()
             .any(|a| a == "--images")
-            .then(|| genesy_360_api::demo::photos::Photos::afm().expect("outbound http client"));
-        match genesy_360_api::demo::run_with_photos(state, config.allow_demo_seed, photos).await {
+            .then(|| verzo_360_api::demo::photos::Photos::afm().expect("outbound http client"));
+        match verzo_360_api::demo::run_with_photos(state, config.allow_demo_seed, photos).await {
             Ok(s) if s.created => {
                 println!(
                     "{:<16} | {:<14} | {:<32} | {:<40} | path",
@@ -278,7 +283,7 @@ async fn serve() {
         }
         return;
     }
-    // `genesy-360-api seed-afm-catalog --workspace afm|afm-demo [--images] [--app-key]`: AFM's
+    // `verzo-360-api seed-afm-catalog --workspace afm|afm-demo [--images] [--app-key]`: AFM's
     // catalogue into AFM's own workspace (production or staging), then exit. Safe to rerun.
     // With `--app-key`, stdout carries only the new shop key, for the operator's pipe.
     if std::env::args().nth(1).as_deref() == Some("seed-afm-catalog") {
@@ -294,9 +299,9 @@ async fn serve() {
         let photos = args
             .iter()
             .any(|a| a == "--images")
-            .then(|| genesy_360_api::demo::photos::Photos::afm().expect("outbound http client"));
+            .then(|| verzo_360_api::demo::photos::Photos::afm().expect("outbound http client"));
         let key = args.iter().any(|a| a == "--app-key");
-        match genesy_360_api::demo::afm::sync(state, workspace, photos.as_ref(), key).await {
+        match verzo_360_api::demo::afm::sync(state, workspace, photos.as_ref(), key).await {
             Ok(done) => {
                 eprintln!("seed-afm-catalog {workspace}: {done:?}");
                 if let Some(k) = done.app_key {
@@ -314,11 +319,11 @@ async fn serve() {
         }
         return;
     }
-    // `genesy-360-api set-user-password --workspace afm --email E [--admin] [--first-name F
+    // `verzo-360-api set-user-password --workspace afm --email E [--admin] [--first-name F
     // --last-name L]`: operator-typed password, one line on stdin (deploy/set-user-password.sh).
     if std::env::args().nth(1).as_deref() == Some("set-user-password") {
         let args: Vec<String> = std::env::args().skip(2).collect();
-        let code = genesy_360_api::bootstrap::set_user_password_cli(
+        let code = verzo_360_api::bootstrap::set_user_password_cli(
             &state,
             &args,
             std::io::stdin().lock(),
@@ -327,7 +332,7 @@ async fn serve() {
         .await;
         std::process::exit(code);
     }
-    // `genesy-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
+    // `verzo-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
     // the first owner of a production install (signup is off there). Refuses an existing email.
     if std::env::args().nth(1).as_deref() == Some("create-owner") {
         let args: Vec<String> = std::env::args().skip(2).collect();
@@ -345,7 +350,7 @@ async fn serve() {
         };
         let first = arg("--first-name").unwrap_or_else(|| "Owner".into());
         let last = arg("--last-name").unwrap_or_else(|| "Admin".into());
-        match genesy_360_api::bootstrap::create_owner(&state, &email, &workspace, &first, &last)
+        match verzo_360_api::bootstrap::create_owner(&state, &email, &workspace, &first, &last)
             .await
         {
             Ok(owner) => {

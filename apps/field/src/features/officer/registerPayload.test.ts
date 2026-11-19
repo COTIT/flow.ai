@@ -114,7 +114,7 @@ describe('buildRegisterPayload', () => {
     expect(build({ cycles: [cycle({ harvest_quantity_kg: '' })] }).cycles[0].harvest).toBeNull()
   })
 
-  // Genesy takes decimals and dates as strings or null; a blank string is a 422, not "no value".
+  // Verzo takes decimals and dates as strings or null; a blank string is a 422, not "no value".
   test('blank optional values are sent as null', () => {
     const p = build({ plot_area_ha: '', season_label: '', planted_on: '' })
     expect(p.plot.area_ha).toBeNull()

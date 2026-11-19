@@ -1,7 +1,7 @@
 import type {
   StorefrontDesignCollection,
   StorefrontDesignDocument,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 /** A proposed design the review page hands its preview frame: the API's dry run, never saved. */
 export type Proposal = {

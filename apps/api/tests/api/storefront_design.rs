@@ -41,7 +41,7 @@ async fn write_as(
 
 #[test]
 fn every_storefront_design_operation_is_documented() {
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     for (method, path, id) in [
         (
             "get",

@@ -1,4 +1,4 @@
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 
