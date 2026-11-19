@@ -3,6 +3,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/products", "product.list"],
   ["/stock/warehouses", "warehouse.list"],
   ["/stock/counts", "stocktake.list"],
+  ["/stock/valuation", "accounting.read"],
   ["/stock", "stock.list"],
   ["/orders", "order.list"],
   ["/invoices", "invoice.list"],

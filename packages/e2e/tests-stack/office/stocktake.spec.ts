@@ -9,7 +9,7 @@ import {
   test,
   urls,
 } from "../../src/stack"
-import { expectNoRawValues } from "../../src/test"
+import { expectNoRawValues, pick } from "../../src/test"
 
 /** The detail page's "Next step" card. */
 const next = (page: Page) => page.getByRole("region", { name: "Next step" })
@@ -76,7 +76,7 @@ test.describe("stock counts", () => {
 
     await page.getByRole("button", { name: "New count" }).first().click()
     let dialog = page.getByRole("dialog")
-    await dialog.getByLabel("Warehouse").selectOption({ label: "Back store" })
+    await pick(dialog.getByLabel("Warehouse"), "Back store")
     await dialog.getByLabel("Reason").fill("Year end")
     await dialog.getByRole("button", { name: "Create count" }).click()
     await expect(

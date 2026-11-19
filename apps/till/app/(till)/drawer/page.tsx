@@ -184,6 +184,20 @@ export default function DrawerPage() {
       aside={
         <>
           {opened ? <Notice variant="success" title={t("opened")} /> : null}
+          <Link
+            href="/drawer/adjust"
+            prefetch={false}
+            className="badge-link w-fit underline"
+          >
+            {t("adjust")}
+          </Link>
+          <Link
+            href="/returns"
+            prefetch={false}
+            className="badge-link w-fit underline"
+          >
+            {t("returns")}
+          </Link>
           {waiting ? (
             <Notice
               variant="warning"
@@ -199,9 +213,7 @@ export default function DrawerPage() {
               }
             />
           ) : null}
-          {close.error ? (
-            refused(close.error)
-          ) : null}
+          {close.error ? refused(close.error) : null}
         </>
       }
       submitLabel={t("close")}
@@ -217,9 +229,14 @@ export default function DrawerPage() {
       aside={
         <>
           <Notice variant="info" title={t("none")} />
-          {open.error ? (
-            refused(open.error)
-          ) : null}
+          <Link
+            href="/returns"
+            prefetch={false}
+            className="badge-link w-fit underline"
+          >
+            {t("returns")}
+          </Link>
+          {open.error ? refused(open.error) : null}
         </>
       }
       submitLabel={t("open")}

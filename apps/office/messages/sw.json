@@ -1350,11 +1350,21 @@
     "profiles": {
       "products_create": "Bidhaa mpya",
       "products_update": "Sasisha bidhaa zilizopo",
-      "relations": "Wateja na wasambazaji wapya"
+      "relations": "Wateja na wasambazaji wapya",
+      "bank_statement": "Taarifa ya benki",
+      "opening_inventory": "Hisa za mwanzo",
+      "opening_receivables": "Masalio ya mwanzo ya wateja",
+      "opening_payables": "Masalio ya mwanzo ya wasambazaji",
+      "opening_trial_balance": "Mizania ya mwanzo"
     },
     "profileShort": {
       "products": "Bidhaa",
-      "relations": "Wateja na wasambazaji"
+      "relations": "Wateja na wasambazaji",
+      "bank_statement": "Taarifa ya benki",
+      "opening_inventory": "Hisa za mwanzo",
+      "opening_receivables": "Masalio ya mwanzo ya wateja",
+      "opening_payables": "Masalio ya mwanzo ya wasambazaji",
+      "opening_trial_balance": "Mizania ya mwanzo"
     },
     "matchKeys": {
       "product_nr_formatted": "Namba ya bidhaa",
@@ -1400,8 +1410,45 @@
       "zipcode": "Msimbo wa posta",
       "city": "Mji",
       "state": "Mkoa",
-      "country": "Nchi"
-    }
+      "country": "Nchi",
+      "booking_date": "Tarehe ya kurekodi",
+      "amount": "Kiasi cha pesa",
+      "warehouse_id": "Kitambulisho cha ghala",
+      "product_id": "Kitambulisho cha bidhaa",
+      "quantity": "Kiasi",
+      "value": "Thamani",
+      "invoice_number": "Namba ya ankara",
+      "bill_number": "Namba ya ankara ya msambazaji",
+      "face": "Iliyotozwa",
+      "settled": "Iliyolipwa",
+      "credited": "Iliyopunguzwa",
+      "refunded": "Iliyorudishwa",
+      "outstanding": "Inayodaiwa",
+      "carrying": "Thamani ya kitabu",
+      "account_code": "Namba ya akaunti",
+      "debit": "Debiti",
+      "credit": "Krediti",
+      "register_id": "Kitambulisho cha kasha",
+      "vault_id": "Kitambulisho cha sefu",
+      "bank_account_id": "Kitambulisho cha akaunti ya benki"
+    },
+    "mode": "Eneo la kazi",
+    "modes": {
+      "existing": "Lina hisa tayari (thamani tu)",
+      "empty": "Jipya, bado halina hisa"
+    },
+    "statement": "Taarifa",
+    "bankAccount": "Akaunti ya benki",
+    "chooseBankAccount": "Chagua akaunti ya benki",
+    "header": {
+      "reference": "Kumbukumbu ya taarifa",
+      "start_date": "Kuanzia",
+      "end_date": "Hadi",
+      "opening_balance": "Salio la mwanzo",
+      "closing_balance": "Salio la mwisho"
+    },
+    "openingNote": "Mistari ya mwanzo huandaliwa tu. Ikague pamoja kwenye ukurasa wa ukaguzi wa salio la mwanzo.",
+    "needStatement": "Chagua akaunti ya benki na ujaze maelezo yote ya taarifa."
   },
   "purchases": {
     "title": "Manunuzi",
@@ -1556,7 +1603,8 @@
       "cash": "Fedha taslimu",
       "setup": "Mipangilio",
       "banking": "Benki",
-      "exceptions": "Hitilafu"
+      "exceptions": "Hitilafu",
+      "opening": "Ufunguzi"
     },
     "roles": {
       "receivables": "Madeni ya wateja",
@@ -1621,7 +1669,8 @@
       "stale_document": "Hii imebadilika tangu ulipoifungua. Tumepakia toleo jipya: likague kisha ujaribu tena.",
       "accounting_not_configured": "Uhasibu bado haujaanza. Kuingiza kunaanza mara vitabu vikiandaliwa na kuwashwa.",
       "accounting_period_closed": "Hakuna kipindi wazi kwa tarehe hii. Ongeza au fungua kipindi kwanza.",
-      "unsupported_active_erp_operation": "Hili haliwezi kubadilishwa hapa. Maingizo yaliyoingizwa na mipangilio inayotumika hubaki yalivyo; sahihisha kwa ubatilishaji."
+      "unsupported_active_erp_operation": "Hili haliwezi kubadilishwa hapa. Maingizo yaliyoingizwa na mipangilio inayotumika hubaki yalivyo; sahihisha kwa ubatilishaji.",
+      "already_active": "Vitabu hivi tayari vimeanzishwa."
     },
     "accounts": {
       "title": "Orodha ya akaunti",
@@ -1964,6 +2013,60 @@
         "matched": "Mstari wa benki umeoanishwa.",
         "unmatched": "Uoanishaji umerudishwa."
       }
+    },
+    "opening": {
+      "title": "Ufunguzi na uanzishaji",
+      "setupInfo": "Uanzishaji unaanza vitabu kwa salio la ufunguzi ulilokagua. Leta faili za ufunguzi kwanza, zikague hapa, kisha anzisha mara moja.",
+      "readOnly": "Unaweza kuona ufunguzi. Kuukagua kunahitaji ruhusa ya kuweka mipangilio ya hesabu.",
+      "batches": "Faili za ufunguzi",
+      "noBatches": "Bado hakuna faili ya ufunguzi iliyokamilika. Leta hisa, salio na mizania ya ufunguzi kupitia Mipangilio → Uletaji kwanza.",
+      "profiles": {
+        "opening_inventory": "Hisa ya ufunguzi",
+        "opening_receivables": "Madeni ya wateja",
+        "opening_payables": "Madeni kwa wasambazaji",
+        "opening_trial_balance": "Mizania ya ufunguzi"
+      },
+      "review": "Kagua ufunguzi",
+      "reviewAgain": "Kagua tena",
+      "reviewTitle": "Ukaguzi",
+      "cutover": "Siku ya kuanza",
+      "stock": "Hisa",
+      "stockValue": "Vipande {quantity} vya thamani {value}",
+      "receivables": "Wateja wanadaiwa",
+      "payables": "Unadaiwa na wasambazaji",
+      "open": "{count, plural, one {deni # } other {madeni #}}, {amount}",
+      "trialBalance": "Mizania",
+      "debitCredit": "Debiti {debit}, krediti {credit}",
+      "ready": "Kila kitu kiko sawa. Vitabu vinaweza kuanzishwa.",
+      "notReady": "{count, plural, one {Jambo # la kurekebisha kabla ya kuanzisha} other {Mambo # ya kurekebisha kabla ya kuanzisha}}",
+      "finalTitle": "Uanzishaji ni wa mwisho",
+      "final": "Kuanzia {date} kila mauzo, ununuzi, malipo na mabadiliko ya hisa yanaandikwa. Uanzishaji hauwezi kutenduliwa; makosa yanarekebishwa baadaye kwa marekebisho.",
+      "confirm": "Nimekagua takwimu hizi na nataka kuanzisha vitabu.",
+      "activate": "Anzisha vitabu",
+      "activated": "Vitabu vimeanzishwa.",
+      "noActivateRight": "Kuanzisha kunahitaji ruhusa ya uanzishaji. Muulize mmiliki.",
+      "activeInfo": "Vitabu vimekuwa hai tangu {at}. Haya ni salio lililoletwa na ufunguzi.",
+      "balances": "Salio la ufunguzi",
+      "noBalances": "Ufunguzi haukuwa na madeni ya wateja au wasambazaji.",
+      "kinds": {
+        "invoice": "Ankara {number}",
+        "supplier_bill": "Ankara ya msambazaji {number}"
+      },
+      "noParty": "Hakuna mteja wala msambazaji",
+      "outstanding": "Deni {amount}",
+      "corrected": "{count, plural, one {imerekebishwa mara moja} other {imerekebishwa mara #}}, ilianza {from}",
+      "correct": "Rekebisha salio hili",
+      "correctTitle": "Rekebisha salio la ufunguzi",
+      "correctedAmount": "Deni sahihi",
+      "date": "Tarehe ya kuandika",
+      "reason": "Sababu",
+      "evidence": "Ushahidi (hati au rejea)",
+      "reviewCorrection": "Kagua marekebisho",
+      "saveCorrection": "Andika marekebisho",
+      "cancel": "Ghairi",
+      "correctionReview": "Kagua kabla ya kuandika",
+      "correctionPlan": "Deni linatoka {from} kwenda {to} ({delta}), dhidi ya salio la ufunguzi. Kiasi cha awali cha ufunguzi kinabaki kama kilivyo.",
+      "correctionSaved": "Marekebisho yameandikwa."
     }
   },
   "taxes": {
@@ -2054,7 +2157,9 @@
       "tax_profile_verified": "Wasifu huu umethibitishwa na hauwezi kubadilishwa. Tengeneza marekebisho badala yake.",
       "tax_profile_correction_exists": "Wasifu huu tayari una marekebisho.",
       "tax_profile_overlap": "Wasifu mwingine uliothibitishwa tayari unahusu nchi, mkoa, aina, kundi na tarehe hizo hizo."
-    }
+    },
+    "customer": "Mteja",
+    "chooseCustomer": "Chagua mteja"
   },
   "warehouses": {
     "title": "Maghala",
@@ -2510,5 +2615,63 @@
       "reverseTitle": "Batilisha marekebisho ya gharama",
       "reverseText": "Inawezekana tu ikiwa hakuna kilichosogea kwenye hisa hiyo tangu hapo."
     }
+  },
+  "picker": {
+    "choose": "Chagua…",
+    "search": "Tafuta",
+    "loading": "Inapakia…",
+    "error": "Orodha haikupakia. Funga ujaribu tena.",
+    "none": "Hakuna kinacholingana.",
+    "more": "Onyesha zaidi ({shown} kati ya {total})"
+  },
+  "valuation": {
+    "title": "Thamani ya hisa",
+    "lead": "Thamani ya hisa kwa bidhaa na ghala kwa siku moja, ikilinganishwa na akaunti ya hisa.",
+    "product": "Bidhaa",
+    "warehouse": "Ghala",
+    "quantity": "Kiasi",
+    "value": "Thamani",
+    "asOf": "Tarehe",
+    "allWarehouses": "Maghala yote",
+    "show": "Onyesha",
+    "on": "Thamani mwisho wa {day}",
+    "cutover": "vitabu vilianza {day}",
+    "differs": "Thamani ya hisa na akaunti ya hisa zinatofautiana kwa {difference}",
+    "differsText": "Angalia mapokezi yasiyorekodiwa, hesabu na upunguzaji wa thamani. Tofauti inabaki hadi vitabu vilingane.",
+    "oneWarehouse": "Akaunti ya hisa inalinganishwa kwa maghala yote pamoja tu.",
+    "empty": "Hakuna thamani ya hisa siku hii",
+    "total": "Jumla ya thamani ya hisa",
+    "gl": "Akaunti ya hisa",
+    "difference": "Tofauti"
+  },
+  "opening": {
+    "title": "Ukaguzi wa salio la mwanzo",
+    "lead": "Kagua masalio ya mwanzo uliyoingiza kabla vitabu kuanza. Hakuna kinachohifadhiwa hapa.",
+    "later": "Kuanzisha vitabu (kuamilisha) ni hatua ya baadaye. Ukurasa huu unakagua uingizaji wa mwanzo tu.",
+    "batches": "Uingizaji wa mwanzo uliokamilika",
+    "none": "Usijumuishe",
+    "nothing": "Bado hakuna uingizaji wa mwanzo uliokamilika. Ingiza faili ya mwanzo kwanza.",
+    "review": "Kagua salio la mwanzo",
+    "reviewing": "Inakagua…",
+    "result": "Matokeo",
+    "ready": "Tayari",
+    "notReady": "Inahitaji marekebisho",
+    "issues": "Cha kurekebisha",
+    "allGood": "Uingizaji wa mwanzo unakubaliana.",
+    "fingerprint": "Namba ya ukaguzi {value}",
+    "inventory": "Hisa za mwanzo",
+    "mode": "Hali",
+    "quantity": "Kiasi",
+    "value": "Thamani",
+    "trialBalance": "Mizania ya mwanzo",
+    "debit": "Debiti",
+    "credit": "Krediti",
+    "receivables": "Wateja wanadaiwa",
+    "payables": "Wasambazaji wanadai",
+    "count": "Ankara",
+    "face": "Iliyotozwa",
+    "settled": "Iliyolipwa",
+    "outstanding": "Inayodaiwa",
+    "carrying": "Thamani ya kitabu"
   }
 }

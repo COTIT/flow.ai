@@ -24,6 +24,7 @@ import { Card } from "@genesy/ui/components/card"
 import { Checkbox } from "@genesy/ui/components/checkbox"
 import { Input } from "@genesy/ui/components/input"
 import { Choices, Field, selectClass } from "@/components/field"
+import { CategoryPicker, RelationPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
@@ -39,7 +40,9 @@ type Component = {
 }
 type Exemption = {
   key: string
-  product_category_id: string
+  /** A product category or one customer (relation); the API takes exactly one. */
+  kind: "category" | "customer"
+  target: string
   reason: string
   evidence_ref: string
 }
@@ -53,7 +56,8 @@ const blankComponent = (): Component => ({
 })
 const blankExemption = (): Exemption => ({
   key: crypto.randomUUID(),
-  product_category_id: "",
+  kind: "category",
+  target: "",
   reason: "",
   evidence_ref: "",
 })
@@ -89,14 +93,13 @@ export function TaxForm({
       : [blankComponent()]
   )
   const [exemptions, setExemptions] = React.useState<Exemption[]>(() =>
-    (from?.exemptions ?? [])
-      .filter((e) => e.product_category_id)
-      .map((e) => ({
-        key: crypto.randomUUID(),
-        product_category_id: e.product_category_id ?? "",
-        reason: e.reason,
-        evidence_ref: e.evidence_ref,
-      }))
+    (from?.exemptions ?? []).map((e) => ({
+      key: crypto.randomUUID(),
+      kind: e.relation_id ? "customer" : "category",
+      target: e.relation_id ?? e.product_category_id ?? "",
+      reason: e.reason,
+      evidence_ref: e.evidence_ref,
+    }))
   )
   const done = (id: string, message: "created" | "saved") => {
     for (const queryKey of [
@@ -162,7 +165,9 @@ export function TaxForm({
             recoverable: c.recoverable,
           })),
           exemptions: exemptions.map((x) => ({
-            product_category_id: x.product_category_id,
+            ...(x.kind === "customer"
+              ? { relation_id: x.target }
+              : { product_category_id: x.target }),
             reason: x.reason.trim(),
             evidence_ref: x.evidence_ref.trim(),
           })),
@@ -410,36 +415,55 @@ export function TaxForm({
         {exemptions.map((x, i) => (
           <fieldset
             key={x.key}
-            className="grid gap-3 border-t border-(--hair) pt-4 first-of-type:border-0 first-of-type:pt-0 md:grid-cols-[1.5fr_2fr_1fr_auto] md:items-end"
+            className="grid gap-3 border-t border-(--hair) pt-4 first-of-type:border-0 first-of-type:pt-0 md:grid-cols-[1fr_1.5fr_2fr_1fr_auto] md:items-end"
           >
             <legend className="sr-only">
               {t("taxes.exemption", { n: i + 1 })}
             </legend>
+            <Field id={`tx-${x.key}-kind`} label={t("taxes.appliesTo")}>
+              <select
+                className={selectClass}
+                value={x.kind}
+                onChange={(e) =>
+                  setExemption(x.key, {
+                    kind: e.target.value as Exemption["kind"],
+                    target: "",
+                  })
+                }
+              >
+                <option value="category">{t("taxes.category")}</option>
+                <option value="customer">{t("taxes.customer")}</option>
+              </select>
+            </Field>
             <Field
-              id={`tx-${x.key}-cat`}
-              label={t("taxes.category")}
+              id={`tx-${x.key}-target`}
+              label={
+                x.kind === "customer"
+                  ? t("taxes.customer")
+                  : t("taxes.category")
+              }
               errors={
                 err(`exemptions.${i}.product_category_id`) ??
+                err(`exemptions.${i}.relation_id`) ??
                 err(`exemptions.${i}`)
               }
             >
-              <select
-                className={selectClass}
-                required
-                value={x.product_category_id}
-                onChange={(e) =>
-                  setExemption(x.key, { product_category_id: e.target.value })
-                }
-              >
-                <option value="" disabled>
-                  {t("taxes.chooseCategory")}
-                </option>
-                {categoryOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+              {x.kind === "customer" ? (
+                <RelationPicker
+                  value={x.target}
+                  onChange={(id) => setExemption(x.key, { target: id })}
+                  placeholder={t("taxes.chooseCustomer")}
+                />
+              ) : (
+                <CategoryPicker
+                  value={x.target}
+                  onChange={(id) => setExemption(x.key, { target: id })}
+                  knownLabel={
+                    categoryOptions.find((o) => o.value === x.target)?.label
+                  }
+                  placeholder={t("taxes.chooseCategory")}
+                />
+              )}
             </Field>
             <Field
               id={`tx-${x.key}-reason`}
@@ -487,7 +511,7 @@ export function TaxForm({
           type="button"
           variant="outline"
           className="self-start"
-          disabled={exemptions.length >= 100 || categoryOptions.length === 0}
+          disabled={exemptions.length >= 100}
           onClick={() => setExemptions((es) => [...es, blankExemption()])}
         >
           {t("taxes.addExemption")}

@@ -840,6 +840,38 @@
       "search": {
         "name": "Search",
         "purpose": "Search across the workspace"
+      },
+      "accounting": {
+        "name": "Accounting",
+        "purpose": "Book overview, journals, periods and closing"
+      },
+      "accounting_reports": {
+        "name": "Accounting reports",
+        "purpose": "Trial balance, profit and loss, balance sheet, aging and ledgers"
+      },
+      "purchases": {
+        "name": "Purchases",
+        "purpose": "Purchase orders and goods receipts"
+      },
+      "supplier_bills": {
+        "name": "Supplier bills",
+        "purpose": "Bills from suppliers, matching and posting"
+      },
+      "supplier_payments": {
+        "name": "Supplier payments",
+        "purpose": "Payments to suppliers and what they settle"
+      },
+      "purchase_returns": {
+        "name": "Purchase returns",
+        "purpose": "Goods sent back to suppliers"
+      },
+      "sales_returns": {
+        "name": "Sales returns",
+        "purpose": "Customer returns, credits and restocks"
+      },
+      "stock_counts": {
+        "name": "Stock counts",
+        "purpose": "Stocktakes: count a warehouse and post the differences"
       }
     },
     "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",

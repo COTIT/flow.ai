@@ -629,7 +629,9 @@
       "takings",
       "income",
       "sell",
-      "week"
+      "week",
+      "results",
+      "analytics"
     ],
     "nl": [
       "omzet",
@@ -1117,7 +1119,7 @@
     "sw": ["tengeneza", "ankara", "oda"]
   },
   "orders_list": {
-    "en": ["show", "today", "waiting", "picked"],
+    "en": ["show", "today", "waiting", "picked", "newest", "latest", "draft"],
     "nl": ["bestellingen", "vandaag", "verkooporders", "verkooporder"],
     "sw": ["onyesha", "oda", "leo"]
   },
@@ -1137,7 +1139,7 @@
     "sw": ["onyesha", "malipo", "mtandaoni"]
   },
   "search_quick": {
-    "en": [],
+    "en": ["contacts", "business", "named"],
     "nl": ["zoek", "overal"],
     "sw": ["tafuta", "mahali"]
   },
@@ -1145,6 +1147,11 @@
     "en": [],
     "nl": ["pdf", "factuur", "maak"],
     "sw": ["pdf", "ankara", "tengeneza"]
+  },
+  "currencies_get": {
+    "en": ["open", "currency"],
+    "nl": ["open", "valuta"],
+    "sw": ["fungua", "sarafu"]
   },
   "currencies_list": {
     "en": [],
@@ -1177,8 +1184,18 @@
     "sw": ["badilisha", "jina", "kundi", "bidhaa"]
   },
   "product_fields_list": {
-    "en": ["custom fields", "product fields", "field definitions", "available fields"],
-    "nl": ["productvelden", "aangepaste velden", "velddefinities", "veldenlijst"],
+    "en": [
+      "custom fields",
+      "product fields",
+      "field definitions",
+      "available fields"
+    ],
+    "nl": [
+      "productvelden",
+      "aangepaste velden",
+      "velddefinities",
+      "veldenlijst"
+    ],
     "sw": ["orodha", "sehemu maalum", "bidhaa", "uga"]
   },
   "product_fields_get": {
@@ -1284,6 +1301,11 @@
     "en": ["delete", "warehouse"],
     "nl": ["verwijder", "magazijn"],
     "sw": ["futa", "ghala"]
+  },
+  "warehouses_get": {
+    "en": ["open", "warehouse"],
+    "nl": ["open", "magazijn"],
+    "sw": ["fungua", "ghala"]
   },
   "warehouses_list": {
     "en": [],
@@ -1500,9 +1522,251 @@
     "nl": ["pauzeren"],
     "sw": ["sitisha"]
   },
+  "relations_get": {
+    "en": ["open", "customer"],
+    "nl": ["open", "klant"],
+    "sw": ["fungua", "mteja"]
+  },
   "relations_list": {
     "en": ["supplier", "suppliers", "relation", "relations", "vendors"],
     "nl": ["leverancier", "leveranciers", "relatie", "relaties"],
     "sw": ["msambazaji", "wasambazaji", "uhusiano"]
+  },
+  "accounting_setup_get": {
+    "en": ["accounting", "setup", "book", "currency", "chart"],
+    "nl": ["boekhouding", "instellingen", "administratie"],
+    "sw": ["mipangilio", "uhasibu", "vitabu"]
+  },
+  "accounting_accounts_list": {
+    "en": ["chart", "ledger", "codes"],
+    "nl": ["rekeningschema", "grootboekrekeningen"],
+    "sw": ["akaunti", "leja"]
+  },
+  "accounting_years_list": {
+    "en": ["fiscal", "years", "financial", "year"],
+    "nl": ["boekjaren", "boekjaar"],
+    "sw": ["miaka", "fedha", "mwaka"]
+  },
+  "accounting_periods_list": {
+    "en": ["accounting", "periods", "month"],
+    "nl": ["perioden", "boekperiode", "maand", "boekperiodes"],
+    "sw": ["vipindi", "kipindi", "mwezi"]
+  },
+  "accounting_journals_list": {
+    "en": ["journals", "journal", "entries", "bookings"],
+    "nl": ["journaalposten", "memoriaal", "boekingen"],
+    "sw": ["majarida", "maingizo"]
+  },
+  "accounting_journals_get": {
+    "en": ["journal", "entry", "lines", "debit", "credit"],
+    "nl": ["journaalpost", "regels", "debet", "credit"],
+    "sw": ["jarida", "ingizo", "debiti", "krediti"]
+  },
+  "accounting_close_checks": {
+    "en": ["close", "checks", "month", "end", "closing", "ready"],
+    "nl": ["afsluitcontrole", "maandafsluiting"],
+    "sw": ["ukaguzi", "kufunga", "mwisho", "mwezi"]
+  },
+  "accounting_trial_balance": {
+    "en": ["trial", "balance", "balances"],
+    "nl": ["proefbalans", "saldibalans"],
+    "sw": ["mizani", "majaribio", "salio"]
+  },
+  "accounting_general_ledger": {
+    "en": ["general", "ledger", "movements"],
+    "nl": ["grootboek"],
+    "sw": ["leja", "kuu"]
+  },
+  "accounting_profit_and_loss": {
+    "en": ["profit", "loss", "income", "earnings"],
+    "nl": ["winst", "verlies", "resultatenrekening"],
+    "sw": ["faida", "hasara", "mapato"]
+  },
+  "accounting_balance_sheet": {
+    "en": ["balance", "sheet", "assets", "liabilities", "equity"],
+    "nl": ["balans", "activa", "passiva", "eigen", "vermogen"],
+    "sw": ["mizania", "mali", "madeni", "mtaji"]
+  },
+  "accounting_receivables_aging": {
+    "en": ["receivables", "aging", "overdue", "owe", "debtors"],
+    "nl": ["debiteuren", "ouderdom", "openstaand", "achterstallig"],
+    "sw": ["wadaiwa", "madeni", "muda"]
+  },
+  "accounting_payables_aging": {
+    "en": ["payables", "aging", "suppliers", "owed", "creditors", "due"],
+    "nl": ["crediteuren", "ouderdom", "te", "betalen", "leveranciers"],
+    "sw": ["wadai", "madeni", "muda"]
+  },
+  "accounting_party_ledger": {
+    "en": ["party", "ledger", "supplier"],
+    "nl": ["relatie", "grootboek", "rekeningoverzicht"],
+    "sw": ["leja", "mhusika", "taarifa", "akaunti"]
+  },
+  "accounting_inventory_valuation": {
+    "en": ["valuation", "value", "cost"],
+    "nl": ["kostprijs"],
+    "sw": ["thamani", "hifadhi", "gharama", "bidhaa"]
+  },
+  "accounting_bank_accounts_list": {
+    "en": ["bank"],
+    "nl": ["bankrekeningen", "bank"],
+    "sw": ["akaunti", "benki"]
+  },
+  "bank_statements_list": {
+    "en": ["bank", "statements", "imported"],
+    "nl": ["bankafschriften", "afschriften"],
+    "sw": ["taarifa", "benki"]
+  },
+  "bank_statements_get": {
+    "en": ["bank", "balance"],
+    "nl": ["bankafschrift", "saldo"],
+    "sw": ["taarifa", "benki", "salio"]
+  },
+  "bank_statements_lines": {
+    "en": ["bank", "lines", "unmatched"],
+    "nl": ["afschriftregels", "transacties", "afgeletterd"],
+    "sw": ["mistari", "taarifa", "benki"]
+  },
+  "accounting_cash_places_list": {
+    "en": ["cash", "places", "cash", "drawers", "safe", "money", "location"],
+    "nl": ["kasplaatsen", "kas", "kluis"],
+    "sw": ["mahali", "fedha", "taslimu", "sefu"]
+  },
+  "accounting_exceptions_list": {
+    "en": [
+      "accounting",
+      "exceptions",
+      "problems",
+      "provider",
+      "payment",
+      "issues"
+    ],
+    "nl": ["uitzonderingen", "problemen", "boekhouding"],
+    "sw": ["hitilafu", "matatizo", "uhasibu"]
+  },
+  "accounting_exceptions_get": {
+    "en": ["accounting", "exception", "problem"],
+    "nl": ["uitzondering", "probleem", "details"],
+    "sw": ["hitilafu", "tatizo"]
+  },
+  "purchase_cost_adjustments_list": {
+    "en": ["landed", "cost", "adjustments", "freight", "purchase", "costs"],
+    "nl": ["kostenaanpassingen", "inkoopkosten", "vracht"],
+    "sw": ["marekebisho", "gharama", "ununuzi", "usafirishaji"]
+  },
+  "purchase_cost_adjustments_get": {
+    "en": ["landed", "cost", "adjustment"],
+    "nl": ["kostenaanpassing", "details"],
+    "sw": ["marekebisho", "gharama"]
+  },
+  "purchase_orders_list": {
+    "en": ["purchase", "orders", "po", "suppliers", "ordered"],
+    "nl": ["inkooporders", "leveranciers"],
+    "sw": ["oda", "ununuzi"]
+  },
+  "purchase_orders_get": {
+    "en": ["purchase", "lines"],
+    "nl": ["inkooporder", "details", "regels"],
+    "sw": ["oda", "ununuzi"]
+  },
+  "purchase_orders_events": {
+    "en": ["purchase"],
+    "nl": ["inkooporder", "geschiedenis"],
+    "sw": ["historia", "oda", "ununuzi"]
+  },
+  "purchase_receipts_list": {
+    "en": ["goods", "receipts", "purchase"],
+    "nl": [
+      "ontvangsten",
+      "goederenontvangst",
+      "inkooporder",
+      "goederenontvangsten"
+    ],
+    "sw": ["mapokezi", "bidhaa", "zilizopokelewa"]
+  },
+  "purchase_receipts_get": {
+    "en": ["goods", "receipt"],
+    "nl": ["ontvangst", "details", "inkooporder"],
+    "sw": ["pokezi", "bidhaa"]
+  },
+  "supplier_bills_list": {
+    "en": ["supplier", "bills", "vendor", "invoices", "purchase", "invoices"],
+    "nl": ["inkoopfacturen", "leveranciersfacturen"],
+    "sw": ["ankara", "bili"]
+  },
+  "supplier_bills_get": {
+    "en": ["supplier", "bill"],
+    "nl": ["inkoopfactuur", "details"],
+    "sw": ["bili", "msambazaji"]
+  },
+  "supplier_payments_list": {
+    "en": ["supplier", "payments", "paid", "vendors"],
+    "nl": ["leveranciersbetalingen", "betaald"],
+    "sw": ["malipo", "msambazaji"]
+  },
+  "supplier_payments_get": {
+    "en": ["supplier", "payment"],
+    "nl": ["leveranciersbetaling", "details"],
+    "sw": ["malipo", "msambazaji"]
+  },
+  "purchase_returns_list": {
+    "en": ["purchase", "returns", "returned", "to", "supplier"],
+    "nl": ["inkoopretouren", "retour", "leverancier"],
+    "sw": ["marejesho", "ununuzi", "msambazaji"]
+  },
+  "purchase_returns_get": {
+    "en": ["purchase", "return"],
+    "nl": ["inkoopretour", "details"],
+    "sw": ["rejesho", "ununuzi"]
+  },
+  "tax_profiles_list": {
+    "en": ["tax", "profiles", "vat", "rates"],
+    "nl": ["btw", "profielen", "belastingtarieven"],
+    "sw": ["wasifu", "kodi", "viwango", "vat"]
+  },
+  "tax_profiles_get": {
+    "en": ["tax", "profile", "vat"],
+    "nl": ["btw", "profiel", "details"],
+    "sw": ["wasifu", "kodi"]
+  },
+  "shipments_list": {
+    "en": ["shipments", "dispatched"],
+    "nl": ["zendingen", "leveringen", "verzonden"],
+    "sw": ["usafirishaji", "mizigo", "iliyotumwa"]
+  },
+  "shipments_get": {
+    "en": ["shipment"],
+    "nl": ["zending", "details"],
+    "sw": ["usafirishaji"]
+  },
+  "stocktakes_list": {
+    "en": ["stocktakes", "counts", "count"],
+    "nl": ["voorraadtellingen", "inventarisatie"],
+    "sw": ["kuhesabu", "hifadhi", "hesabu"]
+  },
+  "stocktakes_get": {
+    "en": ["stocktake", "count", "counted", "expected"],
+    "nl": ["telling", "details", "geteld", "verwacht"],
+    "sw": ["hesabu", "hifadhi"]
+  },
+  "sales_returns_list": {
+    "en": ["sales", "returns", "returns", "credit"],
+    "nl": ["verkoopretouren", "retouren"],
+    "sw": ["marejesho", "mauzo"]
+  },
+  "sales_returns_get": {
+    "en": ["sales", "return", "restock"],
+    "nl": ["verkoopretour", "details"],
+    "sw": ["rejesho", "mauzo"]
+  },
+  "purchase_units_list": {
+    "en": ["purchase", "units", "pack", "size", "case", "supplier", "unit"],
+    "nl": ["inkoopeenheden", "verpakking"],
+    "sw": ["vipimo", "ununuzi", "kifurushi"]
+  },
+  "farm_records_persons_list": {
+    "en": ["farmer", "farmers"],
+    "nl": ["boer", "boeren"],
+    "sw": ["mkulima", "wakulima"]
   }
 }

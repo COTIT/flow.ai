@@ -93,6 +93,25 @@
     "vat_groups_create",
     "warehouses_create",
     "webhooks_create",
-    "workspaces_update"
+    "workspaces_update",
+    "accounting_accounts_list",
+    "accounting_bank_accounts_list",
+    "bank_statements_list",
+    "accounting_cash_places_list",
+    "accounting_exceptions_list",
+    "accounting_years_list",
+    "accounting_journals_list",
+    "accounting_periods_list",
+    "accounting_profit_and_loss",
+    "accounting_trial_balance",
+    "accounting_setup_get",
+    "purchase_cost_adjustments_list",
+    "purchase_orders_list",
+    "purchase_returns_list",
+    "sales_returns_list",
+    "stocktakes_list",
+    "supplier_bills_list",
+    "supplier_payments_list",
+    "tax_profiles_list"
   ]
 }

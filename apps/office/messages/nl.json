@@ -1350,11 +1350,21 @@
     "profiles": {
       "products_create": "Nieuwe producten",
       "products_update": "Bestaande producten bijwerken",
-      "relations": "Nieuwe klanten en leveranciers"
+      "relations": "Nieuwe klanten en leveranciers",
+      "bank_statement": "Bankafschrift",
+      "opening_inventory": "Openingsvoorraad",
+      "opening_receivables": "Openingssaldi klanten",
+      "opening_payables": "Openingssaldi leveranciers",
+      "opening_trial_balance": "Openingsbalans"
     },
     "profileShort": {
       "products": "Producten",
-      "relations": "Klanten en leveranciers"
+      "relations": "Klanten en leveranciers",
+      "bank_statement": "Bankafschrift",
+      "opening_inventory": "Openingsvoorraad",
+      "opening_receivables": "Openingssaldi klanten",
+      "opening_payables": "Openingssaldi leveranciers",
+      "opening_trial_balance": "Openingsbalans"
     },
     "matchKeys": {
       "product_nr_formatted": "Productnummer",
@@ -1400,8 +1410,45 @@
       "zipcode": "Postcode",
       "city": "Plaats",
       "state": "Provincie",
-      "country": "Land"
-    }
+      "country": "Land",
+      "booking_date": "Boekdatum",
+      "amount": "Bedrag",
+      "warehouse_id": "Magazijn-id",
+      "product_id": "Product-id",
+      "quantity": "Aantal",
+      "value": "Waarde",
+      "invoice_number": "Factuurnummer",
+      "bill_number": "Inkoopfactuurnummer",
+      "face": "Gefactureerd",
+      "settled": "Betaald",
+      "credited": "Gecrediteerd",
+      "refunded": "Terugbetaald",
+      "outstanding": "Open",
+      "carrying": "Boekwaarde",
+      "account_code": "Rekeningcode",
+      "debit": "Debet",
+      "credit": "Credit",
+      "register_id": "Kassa-id",
+      "vault_id": "Kluis-id",
+      "bank_account_id": "Bankrekening-id"
+    },
+    "mode": "Werkruimte",
+    "modes": {
+      "existing": "Heeft al voorraad (alleen waarde)",
+      "empty": "Nieuw, nog geen voorraad"
+    },
+    "statement": "Afschrift",
+    "bankAccount": "Bankrekening",
+    "chooseBankAccount": "Kies een bankrekening",
+    "header": {
+      "reference": "Kenmerk afschrift",
+      "start_date": "Van",
+      "end_date": "Tot",
+      "opening_balance": "Beginsaldo",
+      "closing_balance": "Eindsaldo"
+    },
+    "openingNote": "Openingsregels worden alleen klaargezet. Controleer ze samen op de openingscontrole.",
+    "needStatement": "Kies de bankrekening en vul alle gegevens van het afschrift in."
   },
   "purchases": {
     "title": "Inkoop",
@@ -1556,7 +1603,8 @@
       "cash": "Kas",
       "setup": "Instellingen",
       "banking": "Bank",
-      "exceptions": "Uitzonderingen"
+      "exceptions": "Uitzonderingen",
+      "opening": "Opening"
     },
     "roles": {
       "receivables": "Klantsaldi",
@@ -1621,7 +1669,8 @@
       "stale_document": "Dit is gewijzigd sinds je het opende. We hebben de nieuwste versie geladen: controleer die en probeer het opnieuw.",
       "accounting_not_configured": "De boekhouding is nog niet actief. Boeken kan zodra de boekhouding is ingericht en geactiveerd.",
       "accounting_period_closed": "Er is geen open periode voor deze datum. Voeg er eerst een toe of open er een.",
-      "unsupported_active_erp_operation": "Dit kan hier niet worden gewijzigd. Geboekte posten en actieve instellingen blijven zoals ze zijn; corrigeer met een tegenboeking."
+      "unsupported_active_erp_operation": "Dit kan hier niet worden gewijzigd. Geboekte posten en actieve instellingen blijven zoals ze zijn; corrigeer met een tegenboeking.",
+      "already_active": "Deze boekhouding is al actief."
     },
     "accounts": {
       "title": "Rekeningschema",
@@ -1964,6 +2013,60 @@
         "matched": "Bankregel gekoppeld.",
         "unmatched": "Koppeling teruggedraaid."
       }
+    },
+    "opening": {
+      "title": "Opening en activering",
+      "setupInfo": "Activering start de boekhouding met je gecontroleerde openingssaldi. Importeer eerst de openingsbestanden, controleer ze hier en activeer daarna één keer.",
+      "readOnly": "Je kunt de opening bekijken. Controleren vraagt het recht om de boekhouding in te richten.",
+      "batches": "Openingsimports",
+      "noBatches": "Nog geen afgeronde openingsimport. Importeer eerst de openingsvoorraad, saldi en proefbalans via Instellingen → Imports.",
+      "profiles": {
+        "opening_inventory": "Openingsvoorraad",
+        "opening_receivables": "Openstaande klantsaldi",
+        "opening_payables": "Openstaande leverancierssaldi",
+        "opening_trial_balance": "Openingsproefbalans"
+      },
+      "review": "Opening controleren",
+      "reviewAgain": "Opnieuw controleren",
+      "reviewTitle": "Controle",
+      "cutover": "Startdag",
+      "stock": "Voorraad",
+      "stockValue": "{quantity} stuks ter waarde van {value}",
+      "receivables": "Klanten moeten betalen",
+      "payables": "Je moet leveranciers betalen",
+      "open": "{count, plural, one {# open post} other {# open posten}}, {amount}",
+      "trialBalance": "Proefbalans",
+      "debitCredit": "Debet {debit}, credit {credit}",
+      "ready": "Alles klopt. De boekhouding kan worden geactiveerd.",
+      "notReady": "{count, plural, one {# punt op te lossen vóór activering} other {# punten op te lossen vóór activering}}",
+      "finalTitle": "Activering is definitief",
+      "final": "Vanaf {date} wordt elke verkoop, inkoop, betaling en voorraadwijziging geboekt. Activering kan niet ongedaan worden; fouten herstel je later met correcties.",
+      "confirm": "Ik heb deze cijfers gecontroleerd en wil de boekhouding activeren.",
+      "activate": "Boekhouding activeren",
+      "activated": "De boekhouding is actief.",
+      "noActivateRight": "Activeren vraagt het activeringsrecht. Vraag het een eigenaar.",
+      "activeInfo": "De boekhouding is actief sinds {at}. Dit zijn de saldi uit de opening.",
+      "balances": "Openingssaldi",
+      "noBalances": "De opening had geen openstaande klant- of leverancierssaldi.",
+      "kinds": {
+        "invoice": "Factuur {number}",
+        "supplier_bill": "Inkoopfactuur {number}"
+      },
+      "noParty": "Geen klant of leverancier",
+      "outstanding": "Open {amount}",
+      "corrected": "{count, plural, one {één keer gecorrigeerd} other {# keer gecorrigeerd}}, geopend op {from}",
+      "correct": "Dit saldo corrigeren",
+      "correctTitle": "Openingssaldo corrigeren",
+      "correctedAmount": "Juist openstaand bedrag",
+      "date": "Boekdatum",
+      "reason": "Waarom",
+      "evidence": "Bewijs (document of referentie)",
+      "reviewCorrection": "Correctie controleren",
+      "saveCorrection": "Correctie boeken",
+      "cancel": "Annuleren",
+      "correctionReview": "Controleer vóór het boeken",
+      "correctionPlan": "Het openstaande bedrag gaat van {from} naar {to} ({delta}), geboekt tegen de openingssaldi. Het oorspronkelijke openingsbedrag blijft staan.",
+      "correctionSaved": "Correctie geboekt."
     }
   },
   "taxes": {
@@ -2054,7 +2157,9 @@
       "tax_profile_verified": "Dit profiel is geverifieerd en kan niet meer worden gewijzigd. Maak een correctie.",
       "tax_profile_correction_exists": "Dit profiel heeft al een correctie.",
       "tax_profile_overlap": "Een ander geverifieerd profiel geldt al voor hetzelfde land, dezelfde regio, soort, categorie en data."
-    }
+    },
+    "customer": "Klant",
+    "chooseCustomer": "Kies een klant"
   },
   "warehouses": {
     "title": "Magazijnen",
@@ -2510,5 +2615,63 @@
       "reverseTitle": "Kostencorrectie terugdraaien",
       "reverseText": "Alleen mogelijk zolang er sindsdien niets in die voorraad is bewogen."
     }
+  },
+  "picker": {
+    "choose": "Kies…",
+    "search": "Zoeken",
+    "loading": "Laden…",
+    "error": "De lijst kon niet laden. Sluit en probeer opnieuw.",
+    "none": "Niets gevonden.",
+    "more": "Meer tonen ({shown} van {total})"
+  },
+  "valuation": {
+    "title": "Waardering",
+    "lead": "Voorraadwaarde per product en magazijn op een dag, vergeleken met de voorraadrekening.",
+    "product": "Product",
+    "warehouse": "Magazijn",
+    "quantity": "Aantal",
+    "value": "Waarde",
+    "asOf": "Op",
+    "allWarehouses": "Alle magazijnen",
+    "show": "Tonen",
+    "on": "Waarde aan het einde van {day}",
+    "cutover": "boeken gestart {day}",
+    "differs": "Voorraadwaarde en voorraadrekening verschillen {difference}",
+    "differsText": "Controleer niet-geboekte ontvangsten, tellingen en afwaarderingen. Het verschil blijft tot de boeken kloppen.",
+    "oneWarehouse": "De voorraadrekening wordt alleen voor alle magazijnen samen vergeleken.",
+    "empty": "Geen voorraadwaarde op deze dag",
+    "total": "Totale voorraadwaarde",
+    "gl": "Voorraadrekening",
+    "difference": "Verschil"
+  },
+  "opening": {
+    "title": "Openingscontrole",
+    "lead": "Controleer de geïmporteerde openingssaldi voordat de boeken starten. Hier wordt niets opgeslagen.",
+    "later": "De boeken starten (activeren) is een latere stap. Deze pagina controleert alleen de openingsimports.",
+    "batches": "Afgeronde openingsimports",
+    "none": "Niet meenemen",
+    "nothing": "Nog geen afgeronde openingsimport. Importeer eerst een openingsbestand.",
+    "review": "Opening controleren",
+    "reviewing": "Controleren…",
+    "result": "Resultaat",
+    "ready": "Klaar",
+    "notReady": "Moet worden opgelost",
+    "issues": "Wat op te lossen",
+    "allGood": "De openingsimports kloppen met elkaar.",
+    "fingerprint": "Controlecode {value}",
+    "inventory": "Openingsvoorraad",
+    "mode": "Modus",
+    "quantity": "Aantal",
+    "value": "Waarde",
+    "trialBalance": "Openingsbalans",
+    "debit": "Debet",
+    "credit": "Credit",
+    "receivables": "Klanten moeten betalen",
+    "payables": "Te betalen aan leveranciers",
+    "count": "Facturen",
+    "face": "Gefactureerd",
+    "settled": "Betaald",
+    "outstanding": "Open",
+    "carrying": "Boekwaarde"
   }
 }

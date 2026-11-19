@@ -12,18 +12,17 @@ import {
   test,
   urls,
 } from "../../src/stack"
-import { expectNoRawValues } from "../../src/test"
+import { expectNoRawValues, pick } from "../../src/test"
 
 const today = () => new Date().toISOString().slice(0, 10)
 const missing = "01900000-0000-7000-8000-00000000abcd"
 const pad = (n: number) => String(n).padStart(2, "0")
-/** The page's default range: this month in browser time (accounting/shared.tsx thisMonth). */
-const month = () => {
-  const d = new Date()
-  const n = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+/** The month of `day` (YYYY-MM-DD) as the pages default to it (accounting/shared.tsx monthOf). */
+const monthOf = (day: string) => {
+  const [y = 0, m = 1] = day.split("-").map(Number)
   return {
-    from: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`,
-    to: `${n.getFullYear()}-${pad(n.getMonth() + 1)}-01`,
+    from: `${y}-${pad(m)}-01`,
+    to: m === 12 ? `${y + 1}-01-01` : `${y}-${pad(m + 1)}-01`,
   }
 }
 
@@ -41,7 +40,7 @@ test.describe("account history", () => {
         responses: [
           ...stackAllow.responses,
           {
-            url: `${urls.office}/v1/workspace/${w.api.workspace}/accounting/reports/general-ledger?account_id=${missing}&from=${month().from}&to=${month().to}`,
+            url: `${urls.office}/v1/workspace/${w.api.workspace}/accounting/accounts/${missing}`,
             status: 404,
           },
         ],
@@ -101,6 +100,13 @@ test.describe("account history", () => {
       50
     )
     await expectNoRawValues(page)
+    // The default range is the book's month (business_date from the API, not the browser).
+    const setup = await api.get<{ business_date: string }>(
+      api.ws("/accounting/setup")
+    )
+    await expect(page.getByLabel("From")).toHaveValue(
+      monthOf(setup.business_date).from
+    )
 
     await page.getByRole("button", { name: /next/i }).click()
     await expect(page.getByRole("cell", { name: /Daily takings/ })).toHaveCount(
@@ -125,11 +131,35 @@ test.describe("account history", () => {
   test("an unknown account shows a readable error", async ({ page }) => {
     await loginOffice(page, w.login)
     await page.goto(`${urls.office}/accounting/accounts/${missing}`)
+    await expect(page.getByText("Not found")).toBeVisible()
     await expect(
-      page.getByRole("heading", { name: "Account history" })
+      page.getByRole("link", { name: "Back to the list" })
     ).toBeVisible()
-    // One readable error; the other role=alert is Next's empty #__next-route-announcer__.
-    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toBeVisible()
+    await expectNoRawValues(page)
+  })
+
+  test("the ledger report finds an account by search, beyond the first page", async ({
+    page,
+    request,
+  }) => {
+    const own = await freshWorkspace(request, "acc-search")
+    const api = await apiAs(request, own.login)
+    // 27 accounts (26 roles + this one): more than one picker page of 20.
+    await activeBook(request, api, { activate: false })
+    await addAccount(request, api, "Z900", "Zebra suspense", "expense")
+    await loginOffice(page, own.login)
+    await page.goto(`${urls.office}/accounting/reports?report=general-ledger`)
+    const picker = page.getByLabel("Account", { exact: true })
+    await expect(picker).toHaveText("Choose an account")
+    await pick(picker, "Z900 Zebra suspense", "zebra")
+    await expect(picker).toHaveText("Z900 Zebra suspense")
+    await page.getByRole("button", { name: "Show" }).click()
+    await expect(page).toHaveURL(/account=/)
+    await picker.click()
+    await page
+      .getByRole("searchbox", { name: "Search", exact: true })
+      .fill("no-such-account")
+    await expect(page.getByText("Nothing matches.")).toBeVisible()
     await expectNoRawValues(page)
   })
 })

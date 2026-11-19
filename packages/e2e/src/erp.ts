@@ -124,7 +124,7 @@ export async function draftCredit(request: APIRequestContext, api: Api) {
     reason: "Opening",
   })
   await activeBook(request, api)
-  // shortcut: the opening value activation will seed (M8 route), as tests/api/inventory_valuation.rs `seed_pool`.
+  // fixture: the opening value activation would seed, planted as tests/api/inventory_valuation.rs `seed_pool`.
   psql(`INSERT INTO inventory_cost_pools (workspace_id, product_id, warehouse_id, quantity, value)
         VALUES ('${api.workspace}'::uuid, '${product}'::uuid, '${store.id}'::uuid, 10, 10000)`)
   await saleTaxProfile(request, api)

@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from "axios"
+import axios, { type AxiosError, type AxiosInstance } from "axios"
 
 /** Settings for one app's connection to the Genesy backend. */
 export type ApiClientOptions = {
@@ -6,8 +6,11 @@ export type ApiClientOptions = {
   baseURL: string
   /** Returns the current login token, or `null` when logged out. Read on every request. */
   getToken?: () => string | null
-  /** Called when the backend answers 401 (token expired or revoked), e.g. to log out. */
-  onUnauthorized?: () => void
+  /**
+   * Called when the backend answers 401 (token expired or revoked), e.g. to log out. Gets the
+   * error, so an app can tell whose credential the refused call carried.
+   */
+  onUnauthorized?: (error: AxiosError) => void
 }
 
 /** Axios instance for the Genesy backend: JSON in and out, bearer token when logged in. */
@@ -31,7 +34,7 @@ export function createApiClient({
 
   api.interceptors.response.use(undefined, (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401)
-      onUnauthorized?.()
+      onUnauthorized?.(error)
     return Promise.reject(error)
   })
 

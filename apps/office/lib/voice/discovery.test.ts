@@ -12,8 +12,8 @@ describe("voice tool discovery", () => {
     const found = replay.filter(({ query, want }) =>
       want.some((id) => top(query).includes(id))
     )
-    // 155 of 225 before short words and punctuation stopped matching, 180 before the Office parity words, 184 before word-start matching; raise, never lower.
-    expect(found.length).toBeGreaterThanOrEqual(186)
+    // 155 of 225 before short words and punctuation stopped matching, 180 before the Office parity words, 184 before word-start matching, 186 before the M7-E ERP read words; raise, never lower.
+    expect(found.length).toBeGreaterThanOrEqual(195)
   })
 
   it.each([

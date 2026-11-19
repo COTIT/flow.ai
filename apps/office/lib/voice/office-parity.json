@@ -2,17 +2,31 @@
   "accounting_accounts_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
-  "accounting_accounts_list": {
+  "accounting_accounts_get": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_accounts_list": {
+    "ask": {
+      "en": ["show the chart of accounts"],
+      "nl": ["toon het rekeningschema"],
+      "sw": ["onyesha akaunti za leja"]
+    }
   },
   "accounting_accounts_update": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_activate": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
   },
   "accounting_balance_sheet": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_bank_accounts_list": {
-    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["which bank accounts are in the books"],
+      "nl": ["welke bankrekeningen staan in de boekhouding"],
+      "sw": ["akaunti za benki"]
+    }
   },
   "accounting_cash_adjustments_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
@@ -21,13 +35,25 @@
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_cash_places_list": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show the cash places"],
+      "nl": ["toon de kasplaatsen"],
+      "sw": ["onyesha mahali pa fedha taslimu"]
+    }
   },
   "accounting_exceptions_get": {
-    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["details of accounting exception"],
+      "nl": ["details van uitzondering in boekhouding"],
+      "sw": ["hitilafu ya uhasibu"]
+    }
   },
   "accounting_exceptions_list": {
-    "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["accounting exceptions to fix"],
+      "nl": ["uitzonderingen in de boekhouding"],
+      "sw": ["hitilafu za uhasibu"]
+    }
   },
   "accounting_exceptions_resolve": {
     "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -41,14 +67,25 @@
   "accounting_general_ledger": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_inventory_valuation": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_journals_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_journals_get": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["journal entry debit and credit lines"],
+      "nl": ["journaalpost debet en credit regels"],
+      "sw": ["ingizo la jarida debiti krediti"]
+    }
   },
   "accounting_journals_list": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show journal entries"],
+      "nl": ["toon journaalposten"],
+      "sw": ["onyesha majarida"]
+    }
   },
   "accounting_journals_post": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
@@ -65,29 +102,61 @@
   "accounting_journals_update": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_opening_baselines_list": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
+  "accounting_opening_corrections_create": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
+  "accounting_opening_corrections_review": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
+  "accounting_opening_validate": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_periods_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_periods_list": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["which accounting periods are there"],
+      "nl": ["welke boekperiodes zijn er"],
+      "sw": ["vipindi vya uhasibu"]
+    }
   },
   "accounting_profit_and_loss": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["profit and loss this month"],
+      "nl": ["winst en verlies deze maand"],
+      "sw": ["faida na hasara mwezi huu"]
+    }
   },
   "accounting_setup_get": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["accounting setup and book currency"],
+      "nl": ["boekhouding instellingen"],
+      "sw": ["mipangilio ya uhasibu"]
+    }
   },
   "accounting_setup_update": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_trial_balance": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show the trial balance"],
+      "nl": ["toon de proefbalans"],
+      "sw": ["onyesha mizani ya majaribio"]
+    }
   },
   "accounting_years_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_years_list": {
-    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["which fiscal years exist"],
+      "nl": ["welke boekjaren zijn er"],
+      "sw": ["miaka ya fedha"]
+    }
   },
   "app_keys_create": {
     "ask": {
@@ -138,16 +207,35 @@
     "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "bank_statements_get": {
-    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["bank statement balance"],
+      "nl": ["saldo van het bankafschrift"],
+      "sw": ["salio la taarifa ya benki"]
+    }
   },
   "bank_statements_line_candidates": {
     "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "bank_statements_lines": {
-    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["bank statement lines"],
+      "nl": ["afschriftregels van de bank"],
+      "sw": ["mistari ya taarifa ya benki"]
+    }
   },
   "bank_statements_list": {
-    "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show imported bank statements"],
+      "nl": ["toon bankafschriften"],
+      "sw": ["onyesha taarifa za benki"]
+    }
+  },
+  "currencies_get": {
+    "ask": {
+      "en": ["open currency TZS"],
+      "nl": ["open valuta TZS"],
+      "sw": ["fungua sarafu TZS"]
+    }
   },
   "currencies_list": {
     "ask": {
@@ -669,7 +757,11 @@
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "purchase_cost_adjustments_list": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["landed cost adjustments for freight"],
+      "nl": ["kostenaanpassingen voor vracht"],
+      "sw": ["marekebisho ya gharama za usafirishaji"]
+    }
   },
   "purchase_cost_adjustments_post": {
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -699,13 +791,25 @@
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "purchase_orders_events": {
-    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["purchase order events"],
+      "nl": ["geschiedenis van de inkooporder"],
+      "sw": ["historia ya oda ya ununuzi"]
+    }
   },
   "purchase_orders_get": {
-    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["purchase order lines"],
+      "nl": ["regels van de inkooporder"],
+      "sw": ["oda ya ununuzi maelezo"]
+    }
   },
   "purchase_orders_list": {
-    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show purchase orders"],
+      "nl": ["toon inkooporders"],
+      "sw": ["onyesha oda za ununuzi"]
+    }
   },
   "purchase_orders_update": {
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
@@ -720,10 +824,18 @@
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "purchase_receipts_get": {
-    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["goods receipt of purchase order"],
+      "nl": ["ontvangst van de inkooporder"],
+      "sw": ["pokezi la bidhaa"]
+    }
   },
   "purchase_receipts_list": {
-    "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["goods receipts of purchase order"],
+      "nl": ["goederenontvangsten van de inkooporder"],
+      "sw": ["mapokezi ya bidhaa"]
+    }
   },
   "purchase_returns_candidates": {
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -732,10 +844,18 @@
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "purchase_returns_get": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["purchase return details"],
+      "nl": ["inkoopretour details"],
+      "sw": ["rejesho la ununuzi"]
+    }
   },
   "purchase_returns_list": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show purchase returns"],
+      "nl": ["toon inkoopretouren"],
+      "sw": ["onyesha marejesho ya ununuzi"]
+    }
   },
   "purchase_returns_post": {
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -750,7 +870,18 @@
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "purchase_units_list": {
-    "officeOnlyBecause": "Picking a purchase unit is part of the Office purchase order form; the assistant keeps purchasing internal until its milestone."
+    "ask": {
+      "en": ["purchase units of this product"],
+      "nl": ["inkoopeenheden van dit product"],
+      "sw": ["vipimo vya ununuzi"]
+    }
+  },
+  "relations_get": {
+    "ask": {
+      "en": ["open customer Bees BV"],
+      "nl": ["open klant Bees BV"],
+      "sw": ["fungua mteja Bees BV"]
+    }
   },
   "relations_list": {
     "ask": {
@@ -769,10 +900,18 @@
     "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "sales_returns_get": {
-    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["sales return restock"],
+      "nl": ["verkoopretour details"],
+      "sw": ["rejesho la mauzo"]
+    }
   },
   "sales_returns_list": {
-    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show sales returns"],
+      "nl": ["toon verkoopretouren"],
+      "sw": ["onyesha marejesho ya mauzo"]
+    }
   },
   "sales_returns_post": {
     "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -885,10 +1024,18 @@
     "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "stocktakes_get": {
-    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["stocktake counted and expected"],
+      "nl": ["telling geteld en verwacht"],
+      "sw": ["hesabu ya hifadhi"]
+    }
   },
   "stocktakes_list": {
-    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show stocktake counts"],
+      "nl": ["toon voorraadtellingen"],
+      "sw": ["onyesha kuhesabu hifadhi"]
+    }
   },
   "stocktakes_post": {
     "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -940,10 +1087,18 @@
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "supplier_bills_get": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["supplier bill details"],
+      "nl": ["inkoopfactuur details"],
+      "sw": ["bili ya msambazaji"]
+    }
   },
   "supplier_bills_list": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show supplier bills"],
+      "nl": ["toon inkoopfacturen"],
+      "sw": ["bili na ankara za wasambazaji"]
+    }
   },
   "supplier_bills_match": {
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -979,10 +1134,18 @@
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "supplier_payments_get": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["supplier payment details"],
+      "nl": ["leveranciersbetaling details"],
+      "sw": ["malipo ya msambazaji"]
+    }
   },
   "supplier_payments_list": {
-    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show supplier payments"],
+      "nl": ["toon leveranciersbetalingen"],
+      "sw": ["onyesha malipo kwa msambazaji"]
+    }
   },
   "supplier_payments_reverse": {
     "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -1039,10 +1202,18 @@
     "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "tax_profiles_get": {
-    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["tax profile vat details"],
+      "nl": ["btw profiel details"],
+      "sw": ["wasifu wa kodi"]
+    }
   },
   "tax_profiles_list": {
-    "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+    "ask": {
+      "en": ["show tax profiles"],
+      "nl": ["toon btw profielen"],
+      "sw": ["onyesha wasifu wa kodi"]
+    }
   },
   "tax_profiles_update": {
     "officeOnlyBecause": "Tax rules are entered and verified with their evidence on the Office tax settings screens; the assistant keeps them internal until its milestone (masterplan section 17)."
@@ -1176,6 +1347,13 @@
       "en": ["delete the warehouse North Depot"],
       "nl": ["verwijder het magazijn Noord"],
       "sw": ["futa ghala la Kaskazini"]
+    }
+  },
+  "warehouses_get": {
+    "ask": {
+      "en": ["open warehouse Main store"],
+      "nl": ["open magazijn Main store"],
+      "sw": ["fungua ghala Main store"]
     }
   },
   "warehouses_list": {

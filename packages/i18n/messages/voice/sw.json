@@ -840,6 +840,38 @@
       "search": {
         "name": "Tafuta",
         "purpose": "Tafuta katika eneo lote la kazi"
+      },
+      "accounting": {
+        "name": "Uhasibu",
+        "purpose": "Muhtasari wa vitabu, majarida, vipindi na kufunga"
+      },
+      "accounting_reports": {
+        "name": "Ripoti za uhasibu",
+        "purpose": "Mizani ya majaribio, faida na hasara, mizania, umri wa madeni na leja"
+      },
+      "purchases": {
+        "name": "Ununuzi",
+        "purpose": "Oda za ununuzi na mapokezi ya bidhaa"
+      },
+      "supplier_bills": {
+        "name": "Bili za wasambazaji",
+        "purpose": "Bili kutoka kwa wasambazaji, kulinganisha na kuingiza"
+      },
+      "supplier_payments": {
+        "name": "Malipo kwa wasambazaji",
+        "purpose": "Malipo kwa wasambazaji na yanacholipa"
+      },
+      "purchase_returns": {
+        "name": "Marejesho ya ununuzi",
+        "purpose": "Bidhaa zilizorudishwa kwa wasambazaji"
+      },
+      "sales_returns": {
+        "name": "Marejesho ya mauzo",
+        "purpose": "Marejesho ya wateja, mikopo na kurudisha hifadhini"
+      },
+      "stock_counts": {
+        "name": "Kuhesabu hifadhi",
+        "purpose": "Hesabu ghala na uingize tofauti"
       }
     },
     "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",

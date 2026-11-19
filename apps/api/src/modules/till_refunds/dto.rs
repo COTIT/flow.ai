@@ -296,3 +296,63 @@ pub struct TillRefundResource {
     pub journal_entry_id: Uuid,
     pub created_at: DateTime<Utc>,
 }
+
+/// GET /till/sales/lookup query.
+#[derive(Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct LookupQuery {
+    /// The order number printed on the receipt.
+    pub number: Option<String>,
+}
+
+/// One sold line with what is left to return (the same capacity the return checks).
+#[derive(Serialize, ToSchema, sqlx::FromRow)]
+pub struct TillSaleLookupLine {
+    /// `original_line_id` of a return.
+    pub id: Uuid,
+    #[schema(example = "Honey 500 g")]
+    pub title: String,
+    #[schema(example = "3.00")]
+    pub quantity: String,
+    /// Minor units incl VAT.
+    pub line_total: i64,
+    /// min(delivered − returned, credit capacity left), decimal string.
+    #[schema(example = "2.00")]
+    pub returnable: String,
+}
+
+/// A customer credit of the sale and the money still refundable on it.
+#[derive(Serialize, ToSchema, sqlx::FromRow)]
+pub struct TillSaleLookupCredit {
+    pub credit_open_item_id: Uuid,
+    /// Credit open residual, minor units.
+    pub residual: i64,
+    /// Residual − pending refund holds of other routes, minor units.
+    pub refundable: i64,
+    pub created_at: DateTime<Utc>,
+}
+
+/// A till sale found by receipt number, for a privileged return or refund.
+#[derive(Serialize, ToSchema)]
+pub struct TillSaleLookup {
+    pub order_id: Uuid,
+    pub number: String,
+    pub sold_at: DateTime<Utc>,
+    /// The register that took the money; cash refunds go out of its drawer only.
+    pub register_id: Uuid,
+    pub register_name: String,
+    #[schema(example = "cash")]
+    pub method: String,
+    /// Minor units incl VAT.
+    pub total: i64,
+    /// What was paid (cash rounded), minor units.
+    pub due: i64,
+    #[schema(example = "EUR")]
+    pub currency: String,
+    pub decimals: i16,
+    /// Cash refunds must be a multiple of this (minor units; 1 = no rounding).
+    pub cash_step: i64,
+    pub lines: Vec<TillSaleLookupLine>,
+    /// Oldest first.
+    pub credits: Vec<TillSaleLookupCredit>,
+}

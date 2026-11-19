@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT count(*) AS \"n!\" FROM accounts WHERE workspace_id = $1",
+  "query": "SELECT count(*) AS \"n!\" FROM accounts\n           WHERE workspace_id = $1 AND ($2::text IS NULL OR code ILIKE $2 OR name ILIKE $2)",
   "describe": {
     "columns": [
       {
@@ -12,12 +12,13 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "6103ff7db29f2bdfa9fc016116444c9d2bf2d51dea50912c1a4e603219cac74a"
+  "hash": "efdc580fe4d3cd74547217d803ae6e02b9e27a0796652c19b41077bfe8f53676"
 }

@@ -304,7 +304,7 @@ async fn activate(w: &W) -> std::collections::HashMap<&'static str, String> {
         json!({"fiscal_year_id": year["id"], "start_date": "2027-01-01", "end_date": "2027-02-01"}),
     )
     .await;
-    // shortcut: activation by SQL until M8 activate route.
+    // fixture: disposable SQL activation without an opening; `POST /accounting/activate` is proven in activation.rs.
     sqlx::query(
         "UPDATE accounting_settings SET state = 'active', cutover_at = now(), activated_at = now(),
                 activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = $1::uuid)

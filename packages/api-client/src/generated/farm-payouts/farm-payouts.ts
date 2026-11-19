@@ -34,6 +34,7 @@ import type {
   FarmPayoutsReconciliationParams,
   MessageBody,
   PaginatedPayoutResource,
+  UnprocessableBody,
   ValidationErrorBody,
   VoidPayoutRequest
 } from '../model';
@@ -85,7 +86,7 @@ export const farmPayoutsCashMovement = (
 
 export const getFarmPayoutsCashMovementMutationKey = () => ['farmPayoutsCashMovement'] as const;
 
-export const getFarmPayoutsCashMovementMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getFarmPayoutsCashMovementMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCashMovement>>, TError,FarmPayoutsCashMovementMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCashMovement>>, TError,FarmPayoutsCashMovementMutationVariables, TContext> => {
 
@@ -114,13 +115,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type FarmPayoutsCashMovementMutationResult = NonNullable<Awaited<ReturnType<typeof farmPayoutsCashMovement>>>
     export type FarmPayoutsCashMovementMutationBody = BodyType<CashMovementRequest>
-    export type FarmPayoutsCashMovementMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmPayoutsCashMovementMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type FarmPayoutsCashMovementMutationVariables = {workspace: string;data: BodyType<CashMovementRequest>}
 
     /**
  * @summary Record cash handed out, back, or counted
  */
-export const useFarmPayoutsCashMovement = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useFarmPayoutsCashMovement = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCashMovement>>, TError,FarmPayoutsCashMovementMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof farmPayoutsCashMovement>>,
@@ -356,7 +357,7 @@ export const farmPayoutsCreate = (
 
 export const getFarmPayoutsCreateMutationKey = () => ['farmPayoutsCreate'] as const;
 
-export const getFarmPayoutsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getFarmPayoutsCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCreate>>, TError,FarmPayoutsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCreate>>, TError,FarmPayoutsCreateMutationVariables, TContext> => {
 
@@ -385,13 +386,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type FarmPayoutsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof farmPayoutsCreate>>>
     export type FarmPayoutsCreateMutationBody = BodyType<CreatePayoutRequest>
-    export type FarmPayoutsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmPayoutsCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type FarmPayoutsCreateMutationVariables = {workspace: string;data: BodyType<CreatePayoutRequest>}
 
     /**
  * @summary Pay a farmer
  */
-export const useFarmPayoutsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useFarmPayoutsCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsCreate>>, TError,FarmPayoutsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof farmPayoutsCreate>>,
@@ -526,7 +527,7 @@ export const farmPayoutsVoid = (
 
 export const getFarmPayoutsVoidMutationKey = () => ['farmPayoutsVoid'] as const;
 
-export const getFarmPayoutsVoidMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const getFarmPayoutsVoidMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsVoid>>, TError,FarmPayoutsVoidMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
 ): UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsVoid>>, TError,FarmPayoutsVoidMutationVariables, TContext> => {
 
@@ -555,13 +556,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type FarmPayoutsVoidMutationResult = NonNullable<Awaited<ReturnType<typeof farmPayoutsVoid>>>
     export type FarmPayoutsVoidMutationBody = BodyType<VoidPayoutRequest>
-    export type FarmPayoutsVoidMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmPayoutsVoidMutationError = ErrorType<MessageBody | UnprocessableBody>
     export type FarmPayoutsVoidMutationVariables = {workspace: string;payout: string;data: BodyType<VoidPayoutRequest>}
 
     /**
  * @summary Void a payout
  */
-export const useFarmPayoutsVoid = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+export const useFarmPayoutsVoid = <TError = ErrorType<MessageBody | UnprocessableBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPayoutsVoid>>, TError,FarmPayoutsVoidMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof farmPayoutsVoid>>,

@@ -14,6 +14,8 @@ import { tillStore, useTill } from "@/lib/till-store"
 const nav = [
   { href: "/sale", label: "nav.sale" },
   { href: "/drawer", label: "nav.drawer" },
+  // Phones reach it from the Drawer screen: three tabs don't fit beside Lock at 375 px.
+  { href: "/returns", label: "nav.returns", phone: false },
 ] as const
 
 /** Lock: ends the till user's session (the device stays paired), back to the PIN screen. */
@@ -42,10 +44,10 @@ export function TillTop() {
           <Link
             key={item.href}
             href={item.href}
-            // No prefetch: a till runs on flaky networks and has two screens.
+            // No prefetch: a till runs on flaky networks and has few screens.
             prefetch={false}
             aria-current={pathname.startsWith(item.href) ? "page" : undefined}
-            className="till-tab"
+            className={"phone" in item ? "till-tab no-phone" : "till-tab"}
           >
             {t(item.label)}
           </Link>

@@ -17,6 +17,8 @@ export interface SetupResource {
   /** @nullable */
   activated_at?: string | null;
   allowed_actions: string[];
+  /** Today in the book timezone (workspace timezone, else UTC); reports default to it. */
+  business_date: string;
   /** Currency, timezone and every role mapped. */
   configured: boolean;
   /** @nullable */

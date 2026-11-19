@@ -1,6 +1,7 @@
 // Accounting stack helpers: a fresh workspace of the spec's own (the seeded books stay untouched)
 // and, for flows that need an active book, the same SQL activation the API tests use
-// (apps/api/tests/api/accounting.rs `activate`) until the activation route exists (M8).
+// (apps/api/tests/api/accounting.rs `activate`): a disposable fixture without an opening. The
+// activation route itself runs in tests-stack/office/accounting-activation.spec.ts.
 import { execFileSync } from "node:child_process"
 
 import type { APIRequestContext } from "@playwright/test"
@@ -109,7 +110,43 @@ const ymd = (d: Date) => d.toISOString().slice(0, 10)
  * Configures the book (currency, UTC, one account per role, this year and month open) through
  * the API, then flips it to active by SQL in this stack's own database, for this workspace only.
  */
-export async function activeBook(request: APIRequestContext, api: Api) {
+/** A configured book with this month's period; `activate: false` leaves it in setup (openings). */
+export async function activeBook(
+  request: APIRequestContext,
+  api: Api,
+  { activate = true }: { activate?: boolean } = {}
+) {
+  const book = await readyBook(request, api)
+  if (!activate) return book
+  expect(api.workspace).toMatch(/^[0-9a-f-]{36}$/)
+  // fixture: disposable SQL activation without an opening (mirrors tests/api/accounting.rs); the route has its own spec.
+  execFileSync(
+    "docker",
+    [
+      "exec",
+      container,
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "genesy",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-Atc",
+      `UPDATE accounting_settings SET state = 'active', cutover_at = now(), activated_at = now(),
+         activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = '${api.workspace}'::uuid)
+       WHERE workspace_id = '${api.workspace}'::uuid`,
+    ],
+    { encoding: "utf8" }
+  )
+  return book
+}
+
+/**
+ * Configures the book (currency, UTC, one account per role, this year and month open) through
+ * the API and leaves it in setup, ready for an opening and `POST /accounting/activate`.
+ */
+export async function readyBook(request: APIRequestContext, api: Api) {
   const currency = await mainCurrency(api)
   const mappings: Record<string, string> = {}
   for (const [i, role] of ROLES.entries())
@@ -131,26 +168,5 @@ export async function activeBook(request: APIRequestContext, api: Api) {
   await command(request, api, "POST", "/accounting/periods", {
     payload: { fiscal_year_id: year.id, start_date: ymd(first), end_date: ymd(next) },
   })
-  expect(api.workspace).toMatch(/^[0-9a-f-]{36}$/)
-  // shortcut: activation by SQL until the M8 activate route (mirrors tests/api/accounting.rs).
-  execFileSync(
-    "docker",
-    [
-      "exec",
-      container,
-      "psql",
-      "-U",
-      "postgres",
-      "-d",
-      "genesy",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-Atc",
-      `UPDATE accounting_settings SET state = 'active', cutover_at = now(), activated_at = now(),
-         activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = '${api.workspace}'::uuid)
-       WHERE workspace_id = '${api.workspace}'::uuid`,
-    ],
-    { encoding: "utf8" }
-  )
   return { currency, mappings }
 }

@@ -118,4 +118,30 @@ describe("createApiClient", () => {
     })
     expect(calls).toBe(1)
   })
+
+  it("hands the refused call to onUnauthorized", async () => {
+    let seen: string | null | undefined
+    const api = createApiClient({
+      baseURL: "http://api.test",
+      onUnauthorized: (e) => {
+        seen = e.config?.headers.get("X-Till-Session") as string | null
+      },
+    })
+    api.defaults.adapter = async (config) => {
+      throw new AxiosError("Unauthorized", "ERR_BAD_REQUEST", config, null, {
+        data: {},
+        status: 401,
+        statusText: "",
+        headers: {},
+        config,
+      })
+    }
+
+    await expect(
+      api.get("/till/privileged-session", {
+        headers: { "X-Till-Session": "till-token" },
+      })
+    ).rejects.toMatchObject({ response: { status: 401 } })
+    expect(seen).toBe("till-token")
+  })
 })

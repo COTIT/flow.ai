@@ -666,6 +666,10 @@ async fn an_active_book_values_differences_at_average_and_posts_once(pool: PgPoo
     };
     assert_eq!(value(&r1, &honey), "-2.00");
     assert_eq!(value(&r1, &wax), "4.50");
+    assert_eq!(
+        r1["data"]["functional_currency"]["code"], "EUR",
+        "values are in the book currency: {r1}"
+    );
 
     // Stale fingerprint, then the real post, then its replay.
     let id = st["id"].as_str().unwrap();
@@ -1020,4 +1024,88 @@ async fn allowed_actions_follow_the_state(pool: PgPool) {
     let (s, b) = w.post(&b["data"]).await;
     assert_eq!(s, StatusCode::OK, "{b}");
     assert_eq!(actions(&b["data"]), json!([]));
+}
+
+// --- protected cost facts (M7) ---------------------------------------------------------------------
+
+#[sqlx::test]
+async fn found_stock_value_shows_only_with_accounting_read(pool: PgPool) {
+    let w = world(pool).await;
+    activate(w.pool(), &w.api.ws).await;
+    let st = w.start(&w.main).await;
+    let honey = W::line(&st, &w.honey, None).clone();
+    let wax = W::line(&st, &w.wax, None).clone();
+    let (s, b) = w
+        .count(&st, &[(&honey, "0", None), (&wax, "3", Some("4.50"))])
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let id = st["id"].as_str().unwrap();
+    let date = w.today().await;
+    let found = |st: &Value| W::line(st, &w.wax, None)["positive_adjustment_value"].clone();
+    for (email, perms, shown) in [
+        (
+            "plain@example.com",
+            &["stocktake.get", "stocktake.post"][..],
+            Value::Null,
+        ),
+        (
+            "books@example.com",
+            &["stocktake.get", "stocktake.post", "accounting.read"][..],
+            json!("4.50"),
+        ),
+    ] {
+        let token = member_with(&w.api.app, w.pool(), &w.api.ws, email, perms).await;
+        let (s, b) = w
+            .req_as(&token, Method::GET, &format!("/stocktakes/{id}"), None)
+            .await;
+        assert_eq!(s, StatusCode::OK, "{b}");
+        assert_eq!(found(&b["data"]), shown, "{email} get");
+        let (s, r) = w
+            .req_as(
+                &token,
+                Method::POST,
+                &format!("/stocktakes/{id}/post/review"),
+                Some(json!({ "accounting_date": date })),
+            )
+            .await;
+        assert_eq!(s, StatusCode::OK, "{r}");
+        let line = r["data"]["lines"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["stock_identity"] == wax["stock_identity"])
+            .unwrap()
+            .clone();
+        assert_eq!(line["value"], shown, "{email} review");
+        assert_eq!(line["delta"], "3", "quantities stay visible");
+    }
+    // A counter who can't see the value recounts the line without clearing it.
+    let counter = member_with(
+        &w.api.app,
+        w.pool(),
+        &w.api.ws,
+        "counter@example.com",
+        &["stocktake.get", "stocktake.count"],
+    )
+    .await;
+    let current = w.get(&st).await;
+    let (s, b) = w
+        .req_as(
+            &counter,
+            Method::PUT,
+            &format!("/stocktakes/{id}/counts"),
+            Some(
+                json!({ "client_ref": uuid(), "expected_version": current["version"],
+                         "payload": { "lines": [{ "stock_identity": wax["stock_identity"],
+                                                  "counted_quantity": "4",
+                                                  "positive_adjustment_value": null }] } }),
+            ),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(found(&b["data"]), Value::Null, "answer hides it too");
+    // Owner (full access) still sees it, unchanged.
+    let after = w.get(&st).await;
+    assert_eq!(W::line(&after, &w.wax, None)["counted_quantity"], "4");
+    assert_eq!(found(&after), json!("4.50"));
 }

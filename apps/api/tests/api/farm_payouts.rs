@@ -517,3 +517,58 @@ async fn payouts_are_listed_to_staff_of_the_village_and_to_the_farmer_paid(pool:
         assert_eq!(res["balances"].as_array().unwrap().len(), 1);
     }
 }
+
+/// §16: an active farm book refuses payouts, their voids and staff cash floats before any write.
+#[sqlx::test]
+async fn an_active_farm_book_refuses_payouts_voids_and_floats(pool: PgPool) {
+    let d = desk(pool).await;
+    let (status, paid) = pay(&d, &payout(&d, 100_000), &d.juma).await;
+    assert_eq!(status, StatusCode::CREATED, "{paid}");
+    let id = paid["data"]["id"].as_str().unwrap().to_owned();
+    let rows = |table: &'static str| {
+        let (pool, ws) = (d.f.pool.clone(), d.f.ws.clone());
+        async move {
+            sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(format!(
+                "SELECT count(*) FROM {table} WHERE workspace_id = $1::uuid"
+            )))
+            .bind(ws)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let before = (
+        rows("farm_payout_voids").await,
+        rows("farm_cash_ledger").await,
+    );
+    common::farm::activate_book(&d.f.pool, &d.f.ws).await;
+
+    let (status, res) = pay(&d, &payout(&d, 1_000), &d.juma).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["code"], "unsupported_active_erp_operation");
+    let (status, res) =
+        d.f.call(
+            Method::POST,
+            &format!("/payouts/{id}/void"),
+            Some(json!({ "reason": "duplicate" })),
+            &d.f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) =
+        d.f.call(
+            Method::POST,
+            "/cash/movements",
+            Some(json!({ "kind": "float_out", "staff_user_id": d.juma_id,
+                         "village_id": d.f.ilundo, "currency_id": d.tzs, "amount": 1_000 })),
+            &d.f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(balance(&d).await, 900_000, "nothing moved after activation");
+    let after = (
+        rows("farm_payout_voids").await,
+        rows("farm_cash_ledger").await,
+    );
+    assert_eq!(after, before, "no void or cash row");
+}

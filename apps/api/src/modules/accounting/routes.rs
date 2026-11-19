@@ -9,7 +9,7 @@ pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::setup_get, handlers::setup_update))
         .routes(routes!(handlers::accounts_list, handlers::accounts_create))
-        .routes(routes!(handlers::accounts_update))
+        .routes(routes!(handlers::accounts_get, handlers::accounts_update))
         .routes(routes!(
             handlers::bank_accounts_list,
             handlers::bank_accounts_create
@@ -43,6 +43,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::party_ledger))
         .routes(routes!(handlers::inventory_valuation))
         .routes(routes!(handlers::opening_validate))
+        .routes(routes!(handlers::activate))
+        .routes(routes!(handlers::opening_baselines_list))
         .routes(routes!(handlers::opening_corrections_review))
         .routes(routes!(handlers::opening_corrections_create))
 }

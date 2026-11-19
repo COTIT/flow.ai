@@ -55,18 +55,15 @@ pub async fn order_returns(
     (lines, restock, reason): (&[(Uuid, Decimal, bool)], bool, &str),
     by: Uuid,
 ) -> Result<Vec<Uuid>, AppError> {
-    let open: Vec<Open> = sqlx::query_as(
-        "SELECT l.recognition_id, l.id, l.order_line_id,
-                l.quantity - coalesce((SELECT sum(x.quantity) FROM sales_return_lines x
-                                       JOIN sales_returns s ON s.id = x.return_id
-                                       WHERE x.workspace_id = l.workspace_id
-                                         AND x.recognition_line_id = l.id
-                                         AND s.state IN ('draft', 'posted')), 0) AS left
+    let open: Vec<Open> = sqlx::query_as(concat!(
+        "SELECT l.recognition_id, l.id, l.order_line_id, ",
+        repo::credit_left!(),
+        " AS left
          FROM sales_recognition_lines l
          JOIN sales_recognitions r ON r.workspace_id = l.workspace_id AND r.id = l.recognition_id
          WHERE l.workspace_id = $1 AND r.order_id = $2
-         ORDER BY r.created_at, r.id, l.id",
-    )
+         ORDER BY r.created_at, r.id, l.id"
+    ))
     .bind(ws)
     .bind(o.id)
     .fetch_all(&mut *conn)

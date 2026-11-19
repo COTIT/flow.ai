@@ -628,3 +628,20 @@ impl Farm {
         assert!(status.is_success(), "{status} {res}");
     }
 }
+
+/// Disposable fixture: flip workspace `ws`'s book to active by SQL (no opening; farm books
+/// never activate through `POST /accounting/activate` in these tests).
+pub async fn activate_book(pool: &PgPool, ws: &str) {
+    sqlx::query(
+        "UPDATE accounting_settings SET state = 'active', timezone = 'UTC', cutover_at = now(),
+                activated_at = now(),
+                functional_currency_id = (SELECT id FROM currencies WHERE workspace_id = $1::uuid
+                                          ORDER BY id LIMIT 1),
+                activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = $1::uuid)
+         WHERE workspace_id = $1::uuid",
+    )
+    .bind(ws)
+    .execute(pool)
+    .await
+    .unwrap();
+}

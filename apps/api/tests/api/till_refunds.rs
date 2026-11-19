@@ -653,3 +653,129 @@ async fn setup_books_refuse_till_returns_and_refunds(pool: PgPool) {
     assert_eq!(b["code"], "unsupported_active_erp_operation", "{b}");
     assert_eq!(n(&r, "SELECT count(*) FROM sales_returns").await, 0);
 }
+
+/// GET /till/sales/lookup?number= as `member` on till `till`.
+async fn lookup_as(
+    r: &R,
+    number: &str,
+    member: Option<&str>,
+    till: Option<&str>,
+) -> (StatusCode, Value) {
+    let path = format!("/till/sales/lookup?number={number}");
+    req(r, Method::GET, &path, None, member, till).await
+}
+
+async fn sale_register(r: &R) -> String {
+    sqlx::query_scalar("SELECT register_id::text FROM till_sales")
+        .fetch_one(&r.w.api.pool)
+        .await
+        .unwrap()
+}
+
+async fn lookup(r: &R) -> Value {
+    let number: String = sqlx::query_scalar("SELECT number FROM orders WHERE id = $1::uuid")
+        .bind(&r.order)
+        .fetch_one(&r.w.api.pool)
+        .await
+        .unwrap();
+    let (s, b) = lookup_as(r, &number, Some(&r.w.api.owner), Some(&r.w.t1)).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    b["data"].clone()
+}
+
+#[sqlx::test]
+async fn lookup_finds_the_sale_by_receipt_number_with_what_is_left(pool: PgPool) {
+    let r = world(pool).await;
+    let d = lookup(&r).await;
+    assert_eq!(d["order_id"], json!(r.order));
+    assert_eq!(d["register_id"], json!(sale_register(&r).await));
+    assert_eq!(d["currency"], "EUR");
+    assert_eq!(d["decimals"], 2);
+    assert_eq!(d["cash_step"], 5);
+    assert_eq!(d["due"], 3275);
+    assert_eq!(d["lines"][0]["id"], json!(r.line));
+    assert_eq!(d["lines"][0]["quantity"], "3.00");
+    assert_eq!(d["lines"][0]["returnable"], "3.00");
+    assert_eq!(d["credits"], json!([]));
+
+    // What the lookup says is exactly what the return accepts: one more is refused.
+    let (s, b) = till_return(&r, "3.01", false).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    let (s, b) = till_return(&r, "1", false).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let d = lookup(&r).await;
+    assert_eq!(d["lines"][0]["returnable"], "2.00");
+    let item = b["data"][0]["credit_open_item_id"].as_str().unwrap();
+    assert_eq!(d["credits"][0]["credit_open_item_id"], item);
+    let refundable = d["credits"][0]["refundable"].as_i64().unwrap();
+    assert_eq!(refundable, residual(&r, item).await);
+    assert!(refundable > 0);
+
+    // And the refundable is exactly what a refund accepts.
+    let (s, b) = refund(&r, item, refundable + 1, "card_recorded", Some("T-1")).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+    let (s, b) = refund(&r, item, refundable, "card_recorded", Some("T-1")).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let d = lookup(&r).await;
+    assert_eq!(d["credits"][0]["refundable"], 0);
+
+    let (s, b) = till_return(&r, "2", false).await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let d = lookup(&r).await;
+    assert_eq!(d["lines"][0]["returnable"], "0.00");
+    assert_eq!(d["credits"].as_array().unwrap().len(), 2);
+}
+
+#[sqlx::test]
+async fn lookup_needs_both_logins_the_refund_right_and_this_workspace(pool: PgPool) {
+    let r = world(pool).await;
+    let number: String = sqlx::query_scalar("SELECT number FROM orders WHERE id = $1::uuid")
+        .bind(&r.order)
+        .fetch_one(&r.w.api.pool)
+        .await
+        .unwrap();
+    let owner = Some(r.w.api.owner.as_str());
+    let till = Some(r.w.t1.as_str());
+    assert_eq!(
+        lookup_as(&r, &number, None, till).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        lookup_as(&r, &number, owner, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        lookup_as(&r, &number, till, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    let clerk = member_with(
+        &r.w.api.app,
+        &r.w.api.pool,
+        &r.w.api.ws,
+        "clerk@example.com",
+        &["cashregister.list", "cashregister.adjust"],
+    )
+    .await;
+    let (s, b) = lookup_as(&r, &number, Some(&clerk), till).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "{b}");
+    let (s, _) = lookup_as(&r, "no-such-number", owner, till).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (s, _) = lookup_as(&r, "", owner, till).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    // Another workspace's member, on its own path, with this till: 404.
+    let (other, other_ws) = signup(&r.w.api.app, "other@example.com", "other-co").await;
+    let (s, _, _) = send_full(
+        &r.w.api.app,
+        Method::GET,
+        &format!("/v1/workspace/{other_ws}/till/sales/lookup?number={number}"),
+        None,
+        Some(&other),
+        &[("x-till-session", r.w.t1.as_str())],
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    // A sale of another register of this workspace is found (cash refund there stays refused).
+    let (s, b) = lookup_as(&r, &number, owner, Some(&r.w.t2)).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(b["data"]["register_id"], json!(sale_register(&r).await));
+}

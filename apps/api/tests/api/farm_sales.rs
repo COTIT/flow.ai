@@ -736,3 +736,26 @@ async fn lots_show_their_lineage(pool: PgPool) {
     // The sender's lot id stays on the farm side.
     assert!(!got.to_string().contains(&jars), "{got}");
 }
+
+/// §16: the shop's book stays dormant, the farm's is active: a return that would debit the
+/// farmers' attribution is refused before any stock or passbook write.
+#[sqlx::test]
+async fn an_active_farm_book_refuses_attribution_changes(pool: PgPool) {
+    let s = sold(pool, true).await;
+    common::farm::activate_book(&s.f.pool, &s.f.ws).await;
+    let line = order_lines(&s.f, &s.shop_ws, &s.shop, &s.order)
+        .await
+        .remove(0);
+    let (status, res) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::POST,
+        &format!("/orders/{}/returns", s.order),
+        Some(json!({ "lines": [{ "line_id": line, "quantity": "1" }] })),
+        &s.shop,
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["code"], "unsupported_active_erp_operation");
+    assert_eq!(balances(&s).await, SALE, "passbooks unchanged");
+}

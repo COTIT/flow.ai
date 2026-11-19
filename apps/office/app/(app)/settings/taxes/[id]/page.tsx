@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
+import { useRelationsGet } from "@genesy/api-client/endpoints/relations"
 import {
   getTaxProfilesGetQueryKey,
   getTaxProfilesListQueryKey,
@@ -34,6 +35,7 @@ import { formatDateTime, formatDay } from "@genesy/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { PageHead } from "@/components/list"
+import { relationLabel } from "@/components/pickers"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
@@ -288,9 +290,11 @@ export default function TaxProfilePage({
               {p.exemptions.map((x, i) => (
                 <li key={i}>
                   <span className="block font-semibold">
-                    {x.product_category_id
-                      ? category(x.product_category_id)
-                      : t("taxes.oneCustomer")}
+                    {x.product_category_id ? (
+                      category(x.product_category_id)
+                    ) : x.relation_id ? (
+                      <CustomerName id={x.relation_id} />
+                    ) : null}
                   </span>
                   <span className="block text-muted-foreground">
                     {x.reason} · {x.evidence_ref}
@@ -448,5 +452,18 @@ function SideCard({
       </h2>
       {children}
     </Card>
+  )
+}
+
+/** One exempt customer's name (shortcut: one read per exempt customer, at most 100 per profile;
+ * name them in the profile resource if profiles grow many customer exemptions). */
+function CustomerName({ id }: { id: string }) {
+  const t = useTranslations()
+  const workspaceId = useSession((s) => s.workspaceId) ?? ""
+  const r = useRelationsGet(workspaceId, id, undefined, {
+    query: { enabled: Boolean(workspaceId) },
+  })
+  return (
+    <>{r.data?.data ? relationLabel(r.data.data) : t("taxes.oneCustomer")}</>
   )
 }

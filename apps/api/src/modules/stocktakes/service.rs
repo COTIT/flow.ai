@@ -62,6 +62,11 @@ fn reason(code: &'static str, message: &str) -> AppError {
     }
 }
 
+/// Cost facts (values) are shown only with `accounting.read`, as in payables and purchasing.
+fn costs(access: &WorkspaceAccess) -> bool {
+    access.allows("accounting.read")
+}
+
 fn resource(h: Head, lines: Option<(Vec<Line>, i32)>) -> StocktakeResource {
     let allowed_actions = match h.state.as_str() {
         "draft" => vec!["start", "cancel"],
@@ -102,16 +107,20 @@ fn resource(h: Head, lines: Option<(Vec<Line>, i32)>) -> StocktakeResource {
     }
 }
 
-/// One stocktake with its lines.
+/// One stocktake with its lines; found-stock values only when `costs` (`accounting.read`).
 pub async fn get(
     conn: &mut PgConnection,
     ws: Uuid,
     id: Uuid,
+    costs: bool,
 ) -> Result<StocktakeResource, AppError> {
     let h = repo::head(conn, ws, id, false)
         .await?
         .ok_or(AppError::NotFound)?;
-    let lines = repo::lines(&mut *conn, ws, id).await?;
+    let mut lines = repo::lines(&mut *conn, ws, id).await?;
+    if !costs {
+        lines.iter_mut().for_each(|l| l.value = None);
+    }
     let dp = repo::functional_dp(&mut *conn, ws).await?;
     Ok(resource(h, Some((lines, dp))))
 }
@@ -159,7 +168,7 @@ pub async fn create(
         access.user_id,
     )
     .await?;
-    let answer = created(&get(&mut tx, ws, id).await?);
+    let answer = created(&get(&mut tx, ws, id, costs(access)).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -227,7 +236,7 @@ pub async fn start(
     }
     repo::snapshot(&mut *tx, ws, id, h.warehouse_id).await?;
     repo::set_state(&mut *tx, ws, id, "counting", access.user_id, (None, None)).await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&get(&mut tx, ws, id, costs(access)).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -274,10 +283,23 @@ pub async fn count(
         );
     }
     r.into_result()?;
-    let minors: Vec<Option<i64>> = checked.into_iter().map(|c| c.1).collect();
+    let mut minors: Vec<Option<i64>> = checked.into_iter().map(|c| c.1).collect();
+    if !costs(access) {
+        // Value is write-only here: a member who can't see it never clears it by omission.
+        let stored: HashMap<Uuid, Option<i64>> = repo::lines(&mut *tx, ws, id)
+            .await?
+            .into_iter()
+            .map(|l| (l.stock_id, l.value))
+            .collect();
+        for (minor, stock) in minors.iter_mut().zip(&ids) {
+            if minor.is_none() {
+                *minor = stored.get(stock).copied().flatten();
+            }
+        }
+    }
     repo::set_counts(&mut *tx, ws, id, &ids, &counted, &minors, access.user_id).await?;
     repo::bump(&mut *tx, ws, id).await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&get(&mut tx, ws, id, costs(access)).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -435,9 +457,21 @@ pub async fn post_review(
         .ok_or(AppError::NotFound)?;
     let lines = book(&mut tx, ws, &h, date, access.user_id).await?;
     tx.rollback().await?;
+    let review_fingerprint = fingerprint(&h, date, &lines);
+    let mut lines = lines;
+    if !costs(access) {
+        lines.iter_mut().for_each(|l| l.value = None);
+    }
+    let mut conn = state.db.acquire().await?;
+    let setup = crate::modules::accounting::repo::settings(&mut conn, ws, false).await?;
+    let functional_currency = match setup.functional_currency_id {
+        Some(c) => crate::modules::accounting::repo::currency(&mut *conn, ws, c).await?,
+        None => None,
+    };
     Ok(PostReview {
         accounting_date: date,
-        review_fingerprint: fingerprint(&h, date, &lines),
+        functional_currency,
+        review_fingerprint,
         lines,
     })
 }
@@ -465,7 +499,7 @@ pub async fn post(
     if &fingerprint(&h, *date, &lines) != sent {
         return Err(stale());
     }
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&get(&mut tx, ws, id, costs(access)).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -510,7 +544,7 @@ pub async fn cancel(
     if counting {
         reallocate(&mut tx, ws, h.warehouse_id).await?;
     }
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&get(&mut tx, ws, id, costs(access)).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)

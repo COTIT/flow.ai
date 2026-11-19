@@ -7,6 +7,8 @@
 #[path = "common/mod.rs"]
 mod common;
 
+#[path = "api/acceptance.rs"]
+mod acceptance;
 #[path = "api/accounting.rs"]
 mod accounting;
 #[path = "api/accounting_aging.rs"]
@@ -15,6 +17,8 @@ mod accounting_aging;
 mod accounting_reports;
 #[path = "api/accounting_schema.rs"]
 mod accounting_schema;
+#[path = "api/activation.rs"]
+mod activation;
 #[path = "api/analytics.rs"]
 mod analytics;
 #[path = "api/app_keys.rs"]

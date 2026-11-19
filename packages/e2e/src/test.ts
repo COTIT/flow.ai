@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from "@playwright/test"
+import { test as base, expect, type Locator, type Page } from "@playwright/test"
 
 /**
  * What a test expects to go wrong. Exact matches only, no patterns:
@@ -48,12 +48,14 @@ export function watchProblems(page: Page, allow: Allow, baseURL?: string) {
   const problems: string[] = []
 
   page.on("response", (r) => {
-    if (r.status() >= 400 && !isAllowed(r.url(), r.status()) && !isInjected(page, r.url()))
+    if (
+      r.status() >= 400 &&
+      !isAllowed(r.url(), r.status()) &&
+      !isInjected(page, r.url())
+    )
       problems.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
   })
-  const failures = (allow.failures ?? []).map(
-    (u) => new URL(u, baseURL).href
-  )
+  const failures = (allow.failures ?? []).map((u) => new URL(u, baseURL).href)
   page.on("requestfailed", (r) => {
     if (failures.includes(r.url()) || isInjected(page, r.url())) return
     // Navigating away cancels Next's prefetches; that is not a failure.
@@ -173,26 +175,43 @@ export async function expectTapTargets(
         .map((a) => a.finished.catch(() => undefined))
     )
   )
-  const small = await page.locator(within).first().evaluate((root, min) => {
-    const controls = root.querySelectorAll<HTMLElement>(
-      'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="tab"], [role="checkbox"], [role="switch"], [role="menuitem"]'
-    )
-    return [...controls].flatMap((el) => {
-      const box = el.getBoundingClientRect()
-      // Hidden from users (e.g. a Select's form input behind its trigger): not a target.
-      if (el.closest('[aria-hidden="true"], [inert]')) return []
-      const shown = box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden"
-      // A control may widen its hit area with an absolutely placed ::after (switch, checkbox).
-      const after = getComputedStyle(el, "::after")
-      const grow = (a: string, b: string) =>
-        after.content !== "none" && after.position === "absolute" ? -(parseFloat(a) || 0) - (parseFloat(b) || 0) : 0
-      const width = Math.max(box.width, box.width + grow(after.left, after.right))
-      const height = Math.max(box.height, box.height + grow(after.top, after.bottom))
-      if (!shown || (width >= min && height >= min)) return []
-      const name = el.getAttribute("aria-label") || el.textContent?.trim() || el.tagName.toLowerCase()
-      return [`${name} (${Math.round(width)}×${Math.round(height)})`]
-    })
-  }, min)
+  const small = await page
+    .locator(within)
+    .first()
+    .evaluate((root, min) => {
+      const controls = root.querySelectorAll<HTMLElement>(
+        'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="tab"], [role="checkbox"], [role="switch"], [role="menuitem"]'
+      )
+      return [...controls].flatMap((el) => {
+        const box = el.getBoundingClientRect()
+        // Hidden from users (e.g. a Select's form input behind its trigger): not a target.
+        if (el.closest('[aria-hidden="true"], [inert]')) return []
+        const shown =
+          box.width > 0 &&
+          box.height > 0 &&
+          getComputedStyle(el).visibility !== "hidden"
+        // A control may widen its hit area with an absolutely placed ::after (switch, checkbox).
+        const after = getComputedStyle(el, "::after")
+        const grow = (a: string, b: string) =>
+          after.content !== "none" && after.position === "absolute"
+            ? -(parseFloat(a) || 0) - (parseFloat(b) || 0)
+            : 0
+        const width = Math.max(
+          box.width,
+          box.width + grow(after.left, after.right)
+        )
+        const height = Math.max(
+          box.height,
+          box.height + grow(after.top, after.bottom)
+        )
+        if (!shown || (width >= min && height >= min)) return []
+        const name =
+          el.getAttribute("aria-label") ||
+          el.textContent?.trim() ||
+          el.tagName.toLowerCase()
+        return [`${name} (${Math.round(width)}×${Math.round(height)})`]
+      })
+    }, min)
   expect(small, `tap targets under ${min}px`).toEqual([])
 }
 
@@ -260,28 +279,64 @@ const NOT_RAW = [
  */
 export async function expectNoRawValues(
   page: Page,
-  { allow = [], within = "body" }: { allow?: (string | RegExp)[]; within?: string } = {}
+  {
+    allow = [],
+    within = "body",
+  }: { allow?: (string | RegExp)[]; within?: string } = {}
 ) {
-  const texts = await page.locator(within).first().evaluate((root) => {
-    const skip = 'input, textarea, select, option, code, pre, kbd, script, style, template, [data-raw], [aria-hidden="true"]'
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-    const out: string[] = []
-    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      const el = n.parentElement
-      const text = n.textContent?.trim()
-      if (!el || !text || el.closest(skip) || !el.checkVisibility()) continue
-      out.push(text)
-    }
-    return out
-  })
+  const texts = await page
+    .locator(within)
+    .first()
+    .evaluate((root) => {
+      const skip =
+        'input, textarea, select, option, code, pre, kbd, script, style, template, [data-raw], [aria-hidden="true"]'
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+      const out: string[] = []
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const el = n.parentElement
+        const text = n.textContent?.trim()
+        if (!el || !text || el.closest(skip) || !el.checkVisibility()) continue
+        out.push(text)
+      }
+      return out
+    })
   const cleared = [...NOT_RAW, ...allow]
   const raw = texts.flatMap((text) => {
-    const left = cleared.reduce<string>(
-      (t, a) => (typeof a === "string" ? t.split(a).join(" ") : t.replace(new RegExp(a.source, "g" + a.flags.replace("g", "")), " ")),
-      text
-    ).trim()
+    const left = cleared
+      .reduce<string>(
+        (t, a) =>
+          typeof a === "string"
+            ? t.split(a).join(" ")
+            : t.replace(
+                new RegExp(a.source, "g" + a.flags.replace("g", "")),
+                " "
+              ),
+        text
+      )
+      .trim()
     const hit = RAW_PATTERNS.find(([, re]) => re.test(left))
     return hit ? [`${hit[0]}: "${text}"`] : []
   })
   expect(raw, "raw values on screen").toEqual([])
+}
+
+/**
+ * Choose `option` in an Office search picker (components/search-picker.tsx) opened by
+ * `trigger`; `search` types first when the option is beyond the first page.
+ */
+export async function pick(
+  trigger: Locator,
+  option: string | RegExp,
+  search?: string
+) {
+  const page = trigger.page()
+  await trigger.click()
+  if (search)
+    await page
+      .getByRole("searchbox", { name: "Search", exact: true })
+      .fill(search)
+  await page
+    .getByRole("listbox")
+    .getByRole("option", { name: option, exact: typeof option === "string" })
+    .click()
 }

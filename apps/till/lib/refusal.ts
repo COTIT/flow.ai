@@ -9,11 +9,24 @@ const KNOWN: Record<string, string> = {
   "No shift is open on this register: open the drawer first.": "noShift",
   "No shift is open on this register.": "noShift",
   "A shift is already open on this register.": "alreadyOpen",
+  "Open the drawer before paying a cash refund.": "noShift",
+  "Cash refunds must be a multiple of the cash rounding step.": "notStep",
+  "A card refund needs the terminal's refund reference.": "needsReference",
+  "Record a card refund only after the terminal confirmed it.":
+    "needsConfirmed",
+  "This sale was recorded before the accounting book became active; return it from the Office.":
+    "beforeBook",
 }
 
 const CODES: Record<string, string> = {
   insufficient_stock: "insufficientStock",
+  stale_document: "stale",
+  unsupported_active_erp_operation: "notActive",
 }
+
+/** One API sentence (e.g. a field error) in the cashier's language when the till knows it. */
+export const inWords = (said: string, t: (key: string) => string) =>
+  KNOWN[said] ? t(KNOWN[said]) : said
 
 /** The API's machine code for a refused call, if it sent one. */
 export const apiCode = (e: unknown): string | undefined =>

@@ -29,7 +29,45 @@ export const FIELDS = {
     "state",
     "country",
   ],
+  bank_statement: ["booking_date", "amount", "description"],
+  opening_inventory: ["warehouse_id", "product_id", "quantity", "value"],
+  opening_receivables: [
+    "invoice_number",
+    "face",
+    "settled",
+    "credited",
+    "refunded",
+    "outstanding",
+    "carrying",
+  ],
+  opening_payables: [
+    "bill_number",
+    "face",
+    "settled",
+    "credited",
+    "refunded",
+    "outstanding",
+    "carrying",
+  ],
+  opening_trial_balance: [
+    "account_code",
+    "debit",
+    "credit",
+    "register_id",
+    "vault_id",
+    "bank_account_id",
+  ],
 } as const
+
+/** Opening profiles: staged only; the opening review checks them together. */
+export const OPENING = [
+  "opening_inventory",
+  "opening_receivables",
+  "opening_payables",
+  "opening_trial_balance",
+] as const satisfies readonly Profile[]
+export const isOpening = (p: string) =>
+  (OPENING as readonly string[]).includes(p)
 
 export type Profile = keyof typeof FIELDS
 export type Mapping = Partial<Record<string, number>>
@@ -100,7 +138,13 @@ export type Batch = {
   profile: Profile
   filename: string
   expected_rows: number
-  mapping: { operation?: "create" | "update"; match_key?: string }
+  mapping: {
+    operation?: "create" | "update"
+    match_key?: string
+    mode?: "existing" | "empty"
+    bank_account_id?: string
+    reference?: string
+  }
   state: "uploading" | "validated" | "applying" | "completed" | "failed"
   version: number
   validation_fingerprint: string | null
@@ -139,6 +183,10 @@ export const TONES = {
 export const nativeRight = (b: Pick<Batch, "profile" | "mapping">) =>
   b.profile === "relations"
     ? "relation.create"
-    : b.mapping.operation === "update"
-      ? "product.update"
-      : "product.create"
+    : b.profile === "bank_statement"
+      ? "accounting.reconcile"
+      : isOpening(b.profile)
+        ? "accounting.configure"
+        : b.mapping.operation === "update"
+          ? "product.update"
+          : "product.create"

@@ -8,7 +8,7 @@ use axum::{
 
 use crate::{
     AppState,
-    error::{AppError, ValidationErrorBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         farm::FarmAccess,
         json::{Rules, ValidatedJson},
@@ -37,7 +37,7 @@ use crate::{
         (status = 403, body = MessageBody, description = "Not staff, four-eyes conflict, or above the officer limit"),
         (status = 404, body = MessageBody, description = "Unknown farmer, or outside the caller's villages or workspace"),
         (status = 409, body = MessageBody, description = "client_ref used with another body or by another member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input, or more than the balance"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, more than the balance, or `unsupported_active_erp_operation` (active book)"),
     ),
     security(("bearer" = []))
 )]
@@ -70,7 +70,7 @@ pub async fn pay(
         (status = 403, body = MessageBody, description = "Not ops or admin"),
         (status = 404, body = MessageBody, description = "Unknown payout"),
         (status = 409, body = MessageBody, description = "Already void"),
-        (status = 422, body = ValidationErrorBody, description = "Reason missing or too long"),
+        (status = 422, body = UnprocessableBody, description = "Reason missing or too long, or `unsupported_active_erp_operation` (active book)"),
     ),
     security(("bearer" = []))
 )]
@@ -96,7 +96,7 @@ pub async fn void(
         (status = 201, body = Envelope<CashMovementResource>, description = "Recorded"),
         (status = 403, body = MessageBody, description = "Not allowed for this kind"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or no farm role"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, or `unsupported_active_erp_operation` (active book)"),
     ),
     security(("bearer" = []))
 )]
