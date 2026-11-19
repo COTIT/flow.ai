@@ -308,8 +308,9 @@ function keyboardSteps(
       run: () => persona.history("back"),
     },
   ]
-  // The person scrolled focus out of view on purpose (Home/End, arrows, Page keys) and has not
-  // moved focus since: a step that leaves focus where it was (Escape, Space on a non-control)
+  // Deliberate keyboard scrolling can move the focused control out of view. Space can scroll
+  // natively on a link, so treat it as scrolling only when focus stays and the scroll position moves.
+  // If the person has not moved focus since, a step that leaves it where it was (Escape)
   // cannot bring it back, and must not be blamed for it (seed 1373302409: End, then Escape).
   let away = false
   return steps.map((step) => ({
@@ -333,6 +334,10 @@ function keyboardSteps(
           () => ((window as unknown as { p9?: Element | null }).p9 = null)
         )
         .catch(() => {})
+      const space = step.name === "Space on what has focus"
+      const scrollTop = () =>
+        page.evaluate(() => document.querySelector("[data-flow-scroll]")?.scrollTop ?? window.scrollY)
+      const previousScroll = space ? await scrollTop() : null
       await step.run()
       await page.waitForTimeout(120) // let React settle focus moves
       const gone = await page
@@ -351,7 +356,9 @@ function keyboardSteps(
             document.activeElement
         )
         .catch(() => false)
-      const scrolled = /^(Home \/ End|arrows|Page ?(Up|Down))/.test(step.name)
+      const scrolled =
+        /^(Home \/ End|arrows|Page ?(Up|Down))/.test(step.name) ||
+        (space && stayed && previousScroll !== (await scrollTop()))
       away = scrolled || (away && stayed)
       await expectKeyboardSane(page, before, persona.trail, {
         bodyOk: gone || tabbing || wasBody,
