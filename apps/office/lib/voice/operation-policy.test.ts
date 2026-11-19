@@ -484,21 +484,68 @@ describe("reviewed operation coverage", () => {
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
     expect(operationManifest).toHaveLength(750)
-    expect(tools).toHaveLength(415)
+    expect(tools).toHaveLength(459)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(265)
+    ).toHaveLength(221)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
     ).toBe(true)
   })
 
-  it("keeps ERP accounting, purchasing, payables, returns, tax and privileged Till routes internal until M7 review", () => {
-    const erp = operationManifest.filter(
+  // M7-E: ERP reads are model tools; ERP writes wait for an assistant capture of the native review.
+  const erpReads: Record<string, string[]> = {
+    accounting_setup_get: ["accounting.read"],
+    accounting_accounts_list: ["accounting.read"],
+    accounting_years_list: ["accounting.read"],
+    accounting_periods_list: ["accounting.read"],
+    accounting_journals_list: ["accounting.read"],
+    accounting_journals_get: ["accounting.read"],
+    accounting_close_checks: ["accounting.read"],
+    accounting_trial_balance: ["accounting.read"],
+    accounting_general_ledger: ["accounting.read"],
+    accounting_profit_and_loss: ["accounting.read"],
+    accounting_balance_sheet: ["accounting.read"],
+    accounting_receivables_aging: ["accounting.read"],
+    accounting_payables_aging: ["accounting.read"],
+    accounting_party_ledger: ["accounting.read"],
+    accounting_inventory_valuation: ["accounting.read"],
+    accounting_bank_accounts_list: ["accounting.read"],
+    bank_statements_list: ["accounting.read"],
+    bank_statements_get: ["accounting.read"],
+    bank_statements_lines: ["accounting.read"],
+    accounting_cash_places_list: ["accounting.read"],
+    accounting_exceptions_list: ["accounting.read"],
+    accounting_exceptions_get: ["accounting.read"],
+    purchase_cost_adjustments_list: ["accounting.read"],
+    purchase_cost_adjustments_get: ["accounting.read"],
+    purchase_orders_list: ["purchaseorder.list"],
+    purchase_orders_get: ["purchaseorder.get"],
+    purchase_orders_events: ["purchaseorder.get"],
+    purchase_receipts_list: ["purchaseorder.get"],
+    purchase_receipts_get: ["purchaseorder.get"],
+    supplier_bills_list: ["supplierbill.list"],
+    supplier_bills_get: ["supplierbill.get"],
+    supplier_payments_list: ["supplierpayment.list"],
+    supplier_payments_get: ["supplierpayment.get"],
+    purchase_returns_list: ["purchasereturn.list"],
+    purchase_returns_get: ["purchasereturn.get"],
+    tax_profiles_list: ["taxprofile.read"],
+    tax_profiles_get: ["taxprofile.read"],
+    shipments_list: ["shipment.list"],
+    shipments_get: ["shipment.get"],
+    stocktakes_list: ["stocktake.list"],
+    stocktakes_get: ["stocktake.get"],
+    sales_returns_list: ["salesreturn.list"],
+    sales_returns_get: ["salesreturn.get"],
+    purchase_units_list: ["product.view"],
+  }
+  const erp = () =>
+    operationManifest.filter(
       (op) =>
         [
           "accounting_",
@@ -529,10 +576,67 @@ describe("reviewed operation coverage", () => {
         ].some((prefix) => op.id.startsWith(prefix)) ||
         op.id === "till_privileged_session"
     )
-    expect(erp).toHaveLength(189)
-    for (const op of erp) {
+
+  it("exposes the 44 workspace ERP reads as read tools with the handler's permission", () => {
+    expect(Object.keys(erpReads)).toHaveLength(44)
+    for (const [id, allOf] of Object.entries(erpReads)) {
+      const tool = tools.find((op) => op.id === id)
+      expect(tool, id).toBeDefined()
+      expect(tool!.method, id).toBe("GET")
+      expect(tool!.write, id).toBe(false)
+      expect(tool!.risk, id).toBe("read")
+      expect(tool!.authorization.boundary, id).toBe("workspace")
+      expect(tool!.authorization.schemes, id).toEqual(["bearer"])
+      expect(tool!.authorization.allOf, id).toEqual(allOf)
+      // A member without the permission never sees the tool.
+      expect(isToolAllowed(tool!, ["order.list"]), id).toBe(false)
+      expect(isToolAllowed(tool!, allOf), id).toBe(true)
+    }
+  })
+
+  it("keeps every other ERP route internal: writes, reviews, imports, write-form lookups and privileged Till", () => {
+    const rest = erp().filter((op) => !(op.id in erpReads))
+    expect(erp()).toHaveLength(189)
+    expect(rest).toHaveLength(145)
+    for (const op of rest) {
       expect(op.disposition, op.id).toBe("internal")
-      expect(tools.some((tool) => tool.id === op.id), op.id).toBe(false)
+      expect(
+        tools.some((tool) => tool.id === op.id),
+        op.id
+      ).toBe(false)
+    }
+    // Every ERP write or native review stays out until an assistant capture binds the native fingerprint.
+    for (const op of erp().filter((op) => op.method !== "GET"))
+      expect(op.disposition, op.id).toBe("internal")
+  })
+
+  it("never reaches a privileged Till route from an assistant tool, even for an owner", () => {
+    const till = operationManifest.filter((op) =>
+      op.authorization.schemes.includes("till_privileged")
+    )
+    expect(till.map((op) => op.id).sort()).toEqual(
+      expect.arrayContaining([
+        "till_cash_adjustments_create",
+        "till_cash_adjustments_create_review",
+        "till_privileged_session",
+        "till_refunds_create",
+        "till_refunds_create_review",
+        "till_refunds_get",
+        "till_refunds_list",
+        "till_sales_return",
+        "till_sales_return_review",
+      ])
+    )
+    for (const op of till) {
+      expect(op.disposition, op.id).not.toBe("execute")
+      expect(
+        tools.some((tool) => tool.id === op.id),
+        op.id
+      ).toBe(false)
+      expect(
+        discoverTools(op.id, ["workspace_owner"]).map((tool) => tool.id),
+        op.id
+      ).not.toContain(op.id)
     }
   })
 

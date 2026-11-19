@@ -131,7 +131,8 @@ describe("checkProposal", () => {
 
   it("refuses words that lose probe replay hits", () => {
     const greedy =
-      "order orders invoice invoices product products stock customer list create".split(
+      // M7-E ERP read words made the replay sturdier: greed now needs more common words to cost a hit.
+      "order orders invoice invoices product products stock customer list create newest status draft sales report account farmer delivery".split(
         " "
       )
     expect(
@@ -147,7 +148,7 @@ describe("checkProposal", () => {
 
 describe("replayHits", () => {
   it("matches the replay regression floor with today's keywords", () => {
-    expect(replayHits({})).toBeGreaterThanOrEqual(186)
+    expect(replayHits({})).toBeGreaterThanOrEqual(195)
   })
 })
 
