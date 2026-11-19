@@ -62,7 +62,15 @@ async function sentInvoice(api: Api) {
     relation_id,
     items: [{ title: "Opening fee", quantity: "1", price: "10", vat: "21" }],
   })
-  await api.post(api.ws(`/invoices/${invoice_id}/send`), { send_method: "manual" })
+  const contact = psql(`SELECT id FROM contacts WHERE relation_id = '${relation_id}'::uuid LIMIT 1`)
+  await api.post(api.ws(`/invoices/${invoice_id}/send`), {
+    addressed_contact_id: contact,
+    address: { address: "Mill Lane", house_number: "4", zipcode: "1234AB", city: "Utrecht", country: "NL" },
+    to: [`ada-${tag}@example.test`],
+    subject: "Invoice {invoice.invoice_nr}",
+    body: "<p>Total {invoice.total}</p>",
+    send_method: "manual",
+  })
   return psql(`SELECT invoice_number FROM invoices WHERE id = '${invoice_id}'::uuid`)
 }
 

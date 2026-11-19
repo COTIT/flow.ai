@@ -1638,7 +1638,7 @@ pub async fn baselines(state: &AppState, ws: Uuid) -> Result<Value, AppError> {
              'id', b.id, 'source_kind', b.source_kind, 'source_id', b.source_id,
              'number', coalesce(i.invoice_number::text, sb.supplier_invoice_number),
              'party', coalesce(r.company_name, r.alias, ''),
-             'currency', c.asset_type,
+             'currency', upper(c.asset_type),
              'face', round(b.face / 10::numeric ^ c.decimals, c.decimals)::text,
              'settled', round(b.settled / 10::numeric ^ c.decimals, c.decimals)::text,
              'outstanding', round(b.outstanding / 10::numeric ^ c.decimals, c.decimals)::text,

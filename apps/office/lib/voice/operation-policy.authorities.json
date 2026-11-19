@@ -288,5 +288,5 @@
   "apps/api/src/modules/accounting/banking.rs": "f24fd369baef7a06f97276465b43cbc25cc11f73f0353855eefe91765d3c5127",
   "apps/api/src/modules/till_refunds/handlers.rs": "fa2ad8b0b0161747ec6f40c3d9e1a9c7d9e412273616cdbe5653aefcb404aeca",
   "apps/api/src/modules/accounting/close.rs": "bbcf0a46342f530bbf2d2a2492699304c2ed63a22a8abbad25eb6ce495e9b023",
-  "apps/api/src/modules/accounting/opening.rs": "9421ee79cba21ceca8c5c9b4420122b580101747be72b4b0661527761bd19946"
+  "apps/api/src/modules/accounting/opening.rs": "ddeb1534f83589fe968fff0c120e4f74d62b41398d7d8fd7d15b1ebc15f44e85"
 }
