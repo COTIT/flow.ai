@@ -181,8 +181,11 @@ test("approve end to end: decision recorded, NetSuite order queued apart from th
     page.getByText("Approved. The NetSuite order is queued.")
   ).toBeVisible()
   await expect(card.getByText("Approved", { exact: true })).toBeVisible()
+  // The worker may have run `wf01_execute` already (fake providers stop it): any of these, in words.
   await expect(
-    card.getByTestId("execution-status").getByText("Queued")
+    card
+      .getByTestId("execution-status")
+      .getByText(/^(Queued|Creating order|Stopped)$/)
   ).toBeVisible()
   await expectNoRawValues(page)
   // The API recorded one decision and one execution. The stack's worker may already have run
