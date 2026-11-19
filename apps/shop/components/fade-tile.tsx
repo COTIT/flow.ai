@@ -1,12 +1,14 @@
 "use client"
 
 import { useLayoutEffect, useRef, type ReactNode } from "react"
-import { animate, inView } from "motion"
+
+import { useMotionAllowed } from "@genesy/ui/components/island"
 
 /**
  * A tile that fades in when scrolled to. Tiles already on screen when it mounts are left
  * alone, so nothing the reader sees blinks and the largest paint never waits. Opacity only:
- * no layout shift. Loaded through `island` (see motion.tsx), never on the server.
+ * no layout shift. The same element from the server render on, so its contents (photos) are
+ * never torn down and rebuilt; it only animates once the client allows motion (`data-motion`).
  */
 export default function FadeTile({
   as: Tag,
@@ -20,26 +22,39 @@ export default function FadeTile({
   children: ReactNode
   duration?: number
 }) {
+  const motion = useMotionAllowed()
   // Div-typed so JSX accepts it on either tag; only HTMLElement members are used.
   const ref = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const el = ref.current
-    if (!el || el.getBoundingClientRect().top < window.innerHeight) return
-    el.style.opacity = "0"
-    const stop = inView(
-      el,
-      () => {
-        animate(el, { opacity: 1 }, { duration, ease: "easeOut" })
-      },
-      { amount: 0.15 }
+    if (
+      !motion ||
+      !el ||
+      typeof IntersectionObserver === "undefined" ||
+      el.getBoundingClientRect().top < window.innerHeight
     )
+      return
+    el.style.opacity = "0"
+    const seen = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+        seen.disconnect()
+        el.style.opacity = ""
+        el.animate?.(
+          { opacity: [0, 1] },
+          { duration: duration * 1000, easing: "ease-out" }
+        )
+      },
+      { threshold: 0.15 }
+    )
+    seen.observe(el)
     return () => {
-      stop()
+      seen.disconnect()
       el.style.opacity = ""
     }
-  }, [duration])
+  }, [motion, duration])
   return (
-    <Tag ref={ref} {...props}>
+    <Tag ref={ref} data-motion={motion ? "" : undefined} {...props}>
       {children}
     </Tag>
   )

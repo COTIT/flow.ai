@@ -1,13 +1,14 @@
 "use client"
 
-import { createElement, useSyncExternalStore, type ReactNode } from "react"
+import { useSyncExternalStore, type ReactNode } from "react"
 
 import { island } from "@genesy/ui/components/island"
 
-// Animated pieces (React Bits copies, our tile fade), each in its own chunk; nothing on the
+import FadeTile from "./fade-tile"
+
+// Animated pieces (React Bits copies), each in its own chunk; nothing on the
 // server or under reduced motion.
 const GlareHover = island(() => import("./rb/GlareHover"))
-const FadeTile = island(() => import("./fade-tile"))
 
 const FINE = "(pointer: fine)"
 
@@ -65,12 +66,7 @@ export function FadeIn({
   duration?: number
 }) {
   return (
-    <FadeTile
-      plain={createElement(as, props, children)}
-      as={as}
-      duration={duration}
-      {...props}
-    >
+    <FadeTile as={as} duration={duration} {...props}>
       {children}
     </FadeTile>
   )
