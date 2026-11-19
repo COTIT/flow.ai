@@ -120,6 +120,22 @@ fn store(ns: &Shared, body: &str) -> String {
                 * Decimal::from_str(&l["rate"].to_string()).unwrap()
         })
         .sum();
+    // facts l.131, l.156: a reference reads back as `{id, refName}`; the item collection adds
+    // read-only `count`, `hasMore`, `links`. Names are placeholders (the fake knows none).
+    for f in ["entity", "subsidiary", "currency"] {
+        po[f]["refName"] = json!(format!("{f} {}", po[f]["id"].as_str().unwrap_or_default()));
+    }
+    let lines = po["item"]["items"].as_array_mut().unwrap();
+    for l in lines.iter_mut() {
+        l["item"]["refName"] = json!(format!(
+            "item {}",
+            l["item"]["id"].as_str().unwrap_or_default()
+        ));
+    }
+    let count = lines.len();
+    po["item"]["count"] = json!(count);
+    po["item"]["hasMore"] = json!(false);
+    po["item"]["links"] = json!([]);
     po["id"] = json!(id);
     po["subtotal"] = num(&subtotal.to_string());
     po["taxTotal"] = num(&s.tax_total);

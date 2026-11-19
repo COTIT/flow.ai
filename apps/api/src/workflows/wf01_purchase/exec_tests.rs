@@ -821,6 +821,47 @@ async fn t32_rate_mismatch_is_target_conflict(pool: PgPool) {
     assert_eq!(fake_netsuite::writes_other_than_post(&x.ns), 0);
 }
 
+// C6-F6: NetSuite's `subtotal` is a double (facts l.146); its rounding is UNVERIFIED (L3).
+// A subtotal read back rounded to 2 places, as a JSON float, still verifies.
+async fn rounded_subtotal_verifies(x: &X, tamper: fn(&mut Value)) {
+    let e = x.w.approve(17, "queued", "prechecking").await;
+    x.ns.lock().unwrap().tamper = Some(tamper);
+    assert_eq!(x.exec(e).await, Step::Done);
+    assert_eq!(x.row(e).await.status, "succeeded");
+    assert!(x.kinds(e).await.contains(&"verify_match".to_string()));
+    assert!(x.incidents().await.is_empty());
+    assert_eq!(x.posts(), 1);
+}
+
+#[sqlx::test]
+async fn rounded_float_subtotal_still_verifies(pool: PgPool) {
+    let x = x(pool).await;
+    rounded_subtotal_verifies(&x, |po| po["subtotal"] = json!(300.0)).await;
+}
+
+// 12.33 has no exact double; the read-back is the shortest float text.
+#[sqlx::test]
+async fn rounded_inexact_float_subtotal_still_verifies(pool: PgPool) {
+    let w = world(pool).await;
+    let mut o = Order::draft(T0, 55);
+    o.lines[0].qty = "1.0";
+    o.lines[0].price = "12.33";
+    o.lines[0].subtotal = "12.33";
+    o.untaxed = "12.33";
+    o.tax = "2.59";
+    o.total = "14.92";
+    w.put(17, o);
+    w.poll().await.unwrap();
+    let (sink, ns) = fake_netsuite::start().await;
+    ns.lock().unwrap().tax_total = "2.59".into();
+    let x = X {
+        w,
+        sink: Arc::new(sink),
+        ns,
+    };
+    rounded_subtotal_verifies(&x, |po| po["subtotal"] = json!(12.33_f64)).await;
+}
+
 // Pre-checks block before any write intent.
 #[sqlx::test]
 async fn prechecks_block_before_write_intent(pool: PgPool) {

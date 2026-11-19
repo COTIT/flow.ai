@@ -256,6 +256,7 @@ Field names checked to exist in 19.0:
   - Every happy-path execute or reconcile test verifies against the exact values it sent.
   - Only the `tamper` cases (`exec_tests.rs:550`, `:677`) and `tax_total = "63.01"` (`exec_tests.rs:653`) prove that a mismatch is caught.
 - **Smallest fix:** as for C6-F1. Have the default read-back add `refName` to each reference and `count`/`hasMore` to `item`. No default rounding change is needed until L3 measures it.
+- **Fixed:** `store()` now reads back `refName` on `entity`, `subsidiary`, `currency` and line `item`, and `count`/`hasMore`/`links` on `item`. Rounding is unchanged.
 
 ### C6-F6: risk. The fake's `subtotal` is the exact, unrounded sum of quantity × rate
 
@@ -268,6 +269,7 @@ Field names checked to exist in 19.0:
   - How NetSuite rounds line `amount` and `subtotal` is UNVERIFIED (facts N1, item 5, and UNVERIFIED list item 5).
 - **Effect:** the fake treats "subtotal = exact Σ qty×rate" as settled. Any WF-01 untaxed-total comparison that passes against this fake has not been tested against a rounded, or float-shaped, NetSuite `subtotal`.
 - **Smallest fix:** add one test that scripts a NetSuite-style rounded `subtotal` (for example, round to 2 places) and asserts the comparison outcome. Leave the default unchanged until L3 shows the real rule.
+- **Fixed:** `exec_tests.rs` `rounded_float_subtotal_still_verifies` (300.0) and `rounded_inexact_float_subtotal_still_verifies` (12.33) read back a 2-place float `subtotal`; both verify as `succeeded`. The default subtotal is unchanged.
 
 ### C6-F7: note. A lookup miss is only ever an empty list
 
