@@ -7,6 +7,7 @@ const routeRights: [prefix: string, right: string][] = [
   ["/orders", "order.list"],
   ["/invoices", "invoice.list"],
   ["/payments", "payment.read"],
+  ["/sales-returns", "salesreturn.list"],
   ["/purchases", "purchaseorder.list"],
   ["/supply/links", "workspace_admin"],
   ["/till", "cashregister.list"],

@@ -84,7 +84,8 @@
     "accounting": "Boekhouding",
     "taxes": "Belastingen",
     "purchaseApprovals": "Inkoopgoedkeuringen",
-    "integrations": "Koppelingen met systemen"
+    "integrations": "Koppelingen met systemen",
+    "salesReturns": "Retouren"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -1550,7 +1551,9 @@
       "accounts": "Rekeningen",
       "periods": "Perioden",
       "cash": "Kas",
-      "setup": "Instellingen"
+      "setup": "Instellingen",
+      "banking": "Bank",
+      "exceptions": "Uitzonderingen"
     },
     "roles": {
       "receivables": "Klantsaldi",
@@ -1804,6 +1807,160 @@
       "rolesHint": "Genesy boekt elk soort bedrijfsgebeurtenis op de rekening die je hier kiest.",
       "unmapped": "Nog geen rekening",
       "save": "Instellingen opslaan"
+    },
+    "exceptions": {
+      "title": "Uitzonderingen",
+      "intro": "Geld van betaalproviders dat niet geboekt kon worden of niet klopte. Elk vraagt één stap van jou.",
+      "what": "Wat",
+      "state": "Status",
+      "occurred": "Gebeurd",
+      "amount": "Bedrag",
+      "why": {
+        "label": "Waarom",
+        "closed_period": "Geen open periode dekt de datum van deze betaling.",
+        "missing_mapping": "De boekhouding is nog niet volledig ingericht voor deze betaling.",
+        "foreign_currency": "Deze betaling is in een andere valuta dan de boekhouding.",
+        "no_receivable": "Er stond geen openstaand bedrag om deze betaling mee te verrekenen.",
+        "posting_failed": "De betaling kon niet geboekt worden.",
+        "excess_refund": "De terugbetaling was hoger dan wat de klant had betaald.",
+        "chargeback": "De bank van de klant heeft de betaling teruggehaald."
+      },
+      "filter": "Toon",
+      "pending": "Te doen",
+      "all": "Alles",
+      "pages": "Pagina's",
+      "newest": "Nieuwste",
+      "older": "Ouder",
+      "empty": "Niets wacht. Al het providergeld is geboekt.",
+      "emptyAll": "Nog geen uitzonderingen",
+      "headline": "{kind} via {provider}",
+      "economic": {
+        "collection": "Betaling",
+        "refund": "Terugbetaling",
+        "chargeback": "Terugboeking"
+      },
+      "states": {
+        "pending": "Te doen",
+        "resolved": "Klaar"
+      },
+      "nextStep": "Volgende stap",
+      "unposted": "Dit geld is ontvangen maar staat nog niet in de boeken.",
+      "next": {
+        "retry": "Los de oorzaak op en probeer opnieuw te boeken.",
+        "resolve": "Bepaal wie het verschil draagt."
+      },
+      "resolvedInfo": "Klaar: {how}.",
+      "resolutions": {
+        "posted": "geboekt",
+        "assign_receivable": "Aan de klant doorberekenen",
+        "write_off": "Afboeken als verlies"
+      },
+      "nothingToDo": "Hier is niets voor jou te doen.",
+      "lastAttempt": "{attempts, plural, one {Eén keer} other {# keer}} geprobeerd. Laatste antwoord: {message}",
+      "details": "Gegevens",
+      "discrepancy": "Verschil",
+      "recoveryLeft": "Nog terug te halen",
+      "provider": "Provider",
+      "reference": "Providerreferentie",
+      "book": "In de boeken",
+      "dispositions": {
+        "posted": "Geboekt",
+        "pending_observation": "Wacht",
+        "none": "Niet gekoppeld"
+      },
+      "resolvedAt": "Afgerond op",
+      "sources": "Gekoppelde documenten",
+      "openInvoice": "Factuur openen",
+      "openCreditNote": "Creditnota openen",
+      "openOrder": "Order openen",
+      "retry": {
+        "action": "Opnieuw boeken",
+        "title": "Deze betaling opnieuw boeken?",
+        "text": "Gebruikt de opgeslagen providergegevens. De provider wordt niet opnieuw aangeroepen."
+      },
+      "resolve": {
+        "action": "Afhandelen",
+        "title": "Het verschil afhandelen",
+        "text": "De boekhouding toont eerst de boeking. Er wordt niets geboekt tot je bevestigt.",
+        "how": "Hoe",
+        "customer": "Klant",
+        "defaultCustomer": "De klant van deze betaling",
+        "reason": "Reden",
+        "evidence": "Bewijsreferentie",
+        "date": "Datum",
+        "debit": "Debet",
+        "credit": "Credit"
+      },
+      "reviewing": "Controle ophalen",
+      "review": "Controleren",
+      "done": {
+        "retried": "Betaling geboekt.",
+        "resolved": "Verschil afgehandeld."
+      },
+      "reasons": {
+        "exception_state": "Deze uitzondering kan die stap niet meer zetten. We hebben de nieuwste versie geladen."
+      }
+    },
+    "banking": {
+      "title": "Bank",
+      "import": "Afschrift importeren",
+      "importNote": "Bankafschriften komen binnen als import. De importwizard krijgt binnenkort een optie voor bankafschriften.",
+      "count": "{total, plural, one {# afschrift} other {# afschriften}}",
+      "empty": "Nog geen bankafschriften",
+      "statement": "Afschrift",
+      "bank": "Bankrekening",
+      "state": "Status",
+      "period": "Periode",
+      "unmatched": "Nog niet gekoppeld",
+      "range": "{from} – {to}",
+      "states": {
+        "open": "Open",
+        "reconciled": "Gekoppeld",
+        "unreconciled": "Te koppelen"
+      },
+      "reasons": {
+        "already_reconciled": "Deze regel is al gekoppeld. Draai die koppeling eerst terug.",
+        "not_this_bank_account": "Kies alleen geboekte journaalregels van deze bankrekening.",
+        "currency_mismatch": "Die journaalregel is in een andere valuta dan deze bankrekening.",
+        "journal_line_reversed": "Die journaalregel is teruggedraaid en kan niet gekoppeld worden.",
+        "amount_mismatch": "De bedragen moeten precies optellen tot de bankregel.",
+        "capacity_exceeded": "Een journaalregel heeft minder over om te koppelen dan dit bedrag.",
+        "already_reversed": "Deze koppeling is al teruggedraaid."
+      },
+      "of": "{bank}, {from} – {to}",
+      "details": "Saldi",
+      "opening": "Beginsaldo",
+      "closing": "Eindsaldo",
+      "matchedLines": "Gekoppelde regels",
+      "ofLines": "{done} van {total}",
+      "lines": "Bankregels",
+      "noLines": "Dit afschrift heeft geen regels.",
+      "line": "Bankregel",
+      "match": "Gekoppeld aan",
+      "amount": "Bedrag",
+      "row": "Regel {n}",
+      "journal": "Journaal {number} · {amount}",
+      "journalReversed": "Journaal sindsdien teruggedraaid: draai deze koppeling terug",
+      "loading": "Journaalregels laden",
+      "candidate": "Journaal {number} · {date} · {left} over",
+      "reconcile": {
+        "action": "Koppelen",
+        "title": "Deze bankregel koppelen",
+        "text": "{amount} op {date}. Kies de journaalregels die erbij horen; de bedragen moeten precies optellen.",
+        "none": "Er is geen geboekte journaalregel van deze bankrekening meer over om te koppelen.",
+        "pick": "Journaalregels",
+        "amount": "Te koppelen bedrag"
+      },
+      "unmatch": {
+        "action": "Koppeling terugdraaien",
+        "title": "Deze koppeling terugdraaien?",
+        "text": "De koppeling blijft bewaard. De bankregel en journaalregels zijn weer vrij om te koppelen.",
+        "reason": "Reden"
+      },
+      "done": {
+        "matched": "Bankregel gekoppeld.",
+        "unmatched": "Koppeling teruggedraaid."
+      }
     }
   },
   "taxes": {
@@ -1997,5 +2154,124 @@
       "backdated_valuation": "Deze datum ligt voor de laatste waardering van het artikel. Kies een latere datum."
     },
     "linesAfterStart": "De te tellen artikelen verschijnen zodra de telling start."
+  },
+  "salesReturns": {
+    "title": "Klantretouren",
+    "intro": "Creditering van goederen die klanten terugbrachten. Nieuwe beginnen bij een creditnota, een orderretour of de kassa.",
+    "count": "{total, plural, one {# retour} other {# retouren}}",
+    "empty": "Nog geen klantretouren",
+    "return": "Retour",
+    "customer": "Klant",
+    "state": "Status",
+    "date": "Datum",
+    "credit": "Tegoed",
+    "ofOrder": "Retour van order {number}",
+    "anonymous": "Losse klant",
+    "notPosted": "Nog niet geboekt",
+    "kinds": {
+      "invoice_credit": "Factuurcredit",
+      "receipt_credit": "Bonnetjescredit"
+    },
+    "states": {
+      "draft": "Concept",
+      "posted": "Geboekt",
+      "reversed": "Teruggedraaid",
+      "cancelled": "Geannuleerd"
+    },
+    "reasons": {
+      "dependent_effects_exist": "Iets gebruikt dit al, zoals een terugbetaling of een latere voorraadbeweging. Maak dat eerst ongedaan.",
+      "insufficient_stock": "Die goederen zijn niet meer vrij op voorraad, dus dit kan niet ongedaan.",
+      "legacy_return_cost_required": "Deze verkoop heeft geen geboekte kostprijs. Leg eerst een gecontroleerde kostprijs vast voor de regel en zet dan terug op voorraad."
+    },
+    "line": "Regel",
+    "item": "Artikel",
+    "quantity": "Aantal",
+    "quantityOf": "Aantal van {item}",
+    "restocked": "Terug op voorraad",
+    "reviewing": "Controle ophalen",
+    "review": "Controleren",
+    "net": "Netto",
+    "tax": "Btw",
+    "rounding": "Kasafronding",
+    "applied": "Verrekend met wat de klant schuldig is",
+    "reason": "Reden",
+    "lines": "Regels",
+    "restocks": "Terug op voorraad",
+    "nextStep": "Volgende stap",
+    "creditInfo": "Tegoed van {credit} geboekt voor de klant.",
+    "next": {
+      "post": "Controleer de bedragen en boek dan het tegoed.",
+      "restock": "Zet de teruggebrachte goederen terug op voorraad zodra ze binnen zijn."
+    },
+    "reversedInfo": "Dit tegoed is teruggedraaid. Teruggezette goederen blijven op voorraad.",
+    "cancelledInfo": "Dit concept is geannuleerd. Er is niets geboekt.",
+    "postedInfo": "Geboekt en volledig terug op voorraad. Niets meer te doen.",
+    "nothingToDo": "Hier is niets voor jou te doen.",
+    "details": "Gegevens",
+    "kind": "Soort",
+    "created": "Gemaakt",
+    "postedAt": "Geboekt",
+    "reversedAt": "Teruggedraaid",
+    "cancelledAt": "Geannuleerd",
+    "sources": "Gekoppelde documenten",
+    "openOrder": "Order openen",
+    "openCreditNote": "Creditnota openen",
+    "noStockLines": "Sommige regels bewogen geen voorraad, daar valt niets terug te zetten.",
+    "noRestocks": "Nog niets terug op voorraad.",
+    "restockInto": "Terug in {warehouse}",
+    "edit": {
+      "action": "Concept bewerken",
+      "title": "Concept bewerken",
+      "text": "Wijzig datum, reden of aantallen. Het tegoed wordt berekend bij het boeken.",
+      "save": "Opslaan"
+    },
+    "cancel": {
+      "action": "Concept annuleren",
+      "title": "Dit concept annuleren?",
+      "text": "Er wordt niets geboekt. De aantallen zijn weer vrij om te crediteren.",
+      "keep": "Concept houden"
+    },
+    "post": {
+      "action": "Tegoed boeken",
+      "title": "Tegoed boeken",
+      "text": "Deze bedragen komen uit de oorspronkelijke verkoop. Boeken zet ze op naam van de klant."
+    },
+    "restock": {
+      "action": "Terugzetten",
+      "title": "Goederen terug op voorraad",
+      "text": "Goederen gaan terug naar het magazijn waar de verkoop uit kwam, tegen de oorspronkelijke kostprijs.",
+      "lineLabel": "{item} naar {warehouse} ({restocked} van {quantity} terug)",
+      "value": "Teruggezette kostprijs",
+      "valueIs": "Teruggezette kostprijs: {value}",
+      "valueAtPost": "De oorspronkelijke kostprijs wordt teruggezet bij het terugzetten."
+    },
+    "reverse": {
+      "action": "Tegoed terugdraaien",
+      "title": "Dit tegoed terugdraaien",
+      "text": "Boekt precies het omgekeerde van het tegoed. Teruggezette goederen blijven op voorraad.",
+      "keepsRestocks": "Teruggezette goederen blijven op voorraad."
+    },
+    "unrestock": {
+      "action": "Terugzetten ongedaan maken",
+      "title": "Dit terugzetten ongedaan maken",
+      "text": "Haalt de goederen weer uit {warehouse} tegen dezelfde kostprijs. Het tegoed blijft."
+    },
+    "legacy": {
+      "action": "Gecontroleerde kostprijs vastleggen",
+      "title": "Gecontroleerde kostprijs voor {item}",
+      "text": "Voor goederen verkocht voordat de boekhouding hun kostprijs had. Gebruik de waarde die je hebt gecontroleerd.",
+      "amount": "Totale kostprijs",
+      "evidence": "Bewijsreferentie",
+      "save": "Kostprijs vastleggen"
+    },
+    "done": {
+      "updated": "Concept opgeslagen.",
+      "cancelled": "Concept geannuleerd.",
+      "posted": "Tegoed geboekt.",
+      "restocked": "Goederen terug op voorraad.",
+      "reversed": "Tegoed teruggedraaid.",
+      "unrestocked": "Terugzetten ongedaan gemaakt.",
+      "legacyCost": "Gecontroleerde kostprijs vastgelegd. Terugzetten gebruikt die nu."
+    }
   }
 }

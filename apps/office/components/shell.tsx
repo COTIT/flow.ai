@@ -33,6 +33,7 @@ import {
   type LucideIcon,
   BookOpen,
   Percent,
+  Undo2,
 } from "lucide-react"
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
@@ -115,6 +116,12 @@ const items: Item[] = [
     match: "/payments",
     label: "nav.payments",
     icon: CreditCard,
+  },
+  {
+    href: "/sales-returns",
+    match: "/sales-returns",
+    label: "nav.salesReturns",
+    icon: Undo2,
   },
   {
     href: "/purchases",
