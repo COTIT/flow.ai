@@ -484,13 +484,13 @@ describe("reviewed operation coverage", () => {
     )
     expect(operationManifest.map((op) => op.id).sort()).toEqual(ids.sort())
     expect(operationManifest).toHaveLength(754)
-    expect(tools).toHaveLength(459)
+    expect(tools).toHaveLength(452)
     expect(
       operationManifest.filter((op) => op.disposition === "secure_ui")
     ).toHaveLength(15)
     expect(
       operationManifest.filter((op) => op.disposition === "internal")
-    ).toHaveLength(225)
+    ).toHaveLength(232)
     expect(new Set(operationManifest.map((op) => op.id)).size).toBe(ids.length)
     expect(
       operationManifest.every((op) => op.authorization.authority.length > 0)
@@ -504,16 +504,9 @@ describe("reviewed operation coverage", () => {
     accounting_years_list: ["accounting.read"],
     accounting_periods_list: ["accounting.read"],
     accounting_journals_list: ["accounting.read"],
-    accounting_journals_get: ["accounting.read"],
-    accounting_close_checks: ["accounting.read"],
-    accounting_trial_balance: ["accounting.read"],
-    accounting_general_ledger: ["accounting.read"],
-    accounting_profit_and_loss: ["accounting.read"],
-    accounting_balance_sheet: ["accounting.read"],
-    accounting_receivables_aging: ["accounting.read"],
-    accounting_payables_aging: ["accounting.read"],
-    accounting_party_ledger: ["accounting.read"],
-    accounting_inventory_valuation: ["accounting.read"],
+    accounting_journals_get: ["accounting.read"], 
+    accounting_trial_balance: ["accounting.read"], 
+    accounting_profit_and_loss: ["accounting.read"],     
     accounting_bank_accounts_list: ["accounting.read"],
     bank_statements_list: ["accounting.read"],
     bank_statements_get: ["accounting.read"],
@@ -577,8 +570,8 @@ describe("reviewed operation coverage", () => {
         op.id === "till_privileged_session"
     )
 
-  it("exposes the 44 workspace ERP reads as read tools with the handler's permission", () => {
-    expect(Object.keys(erpReads)).toHaveLength(44)
+  it("exposes the 37 workspace ERP reads as read tools with the handler's permission", () => {
+    expect(Object.keys(erpReads)).toHaveLength(37)
     for (const [id, allOf] of Object.entries(erpReads)) {
       const tool = tools.find((op) => op.id === id)
       expect(tool, id).toBeDefined()
@@ -597,7 +590,7 @@ describe("reviewed operation coverage", () => {
   it("keeps every other ERP route internal: writes, reviews, imports, write-form lookups and privileged Till", () => {
     const rest = erp().filter((op) => !(op.id in erpReads))
     expect(erp()).toHaveLength(192)
-    expect(rest).toHaveLength(148)
+    expect(rest).toHaveLength(155)
     for (const op of rest) {
       expect(op.disposition, op.id).toBe("internal")
       expect(

@@ -19536,8 +19536,8 @@
   "accounting_balance_sheet": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/balance-sheet",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -19548,7 +19548,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -19571,8 +19571,8 @@
   "accounting_general_ledger": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/general-ledger",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -19583,7 +19583,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -23285,8 +23285,8 @@
   "accounting_inventory_valuation": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/inventory-valuation",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -23297,7 +23297,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -23320,8 +23320,8 @@
   "accounting_party_ledger": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/party-ledger",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -23332,7 +23332,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -23355,8 +23355,8 @@
   "accounting_payables_aging": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/payables-aging",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -23367,7 +23367,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -23460,8 +23460,8 @@
   "accounting_receivables_aging": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/receivables-aging",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -23472,7 +23472,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [
@@ -23892,8 +23892,8 @@
   "accounting_close_checks": {
     "method": "GET",
     "path": "/workspace/{workspace}/accounting/reports/close-checks",
-    "disposition": "execute",
-    "reason": "Workspace staff ERP read (M7-E); backend rechecks the permission and is workspace-scoped",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
     "authorization": {
       "schemes": [
         "bearer"
@@ -23904,7 +23904,7 @@
         }
       ],
       "boundary": "workspace",
-      "allOf": ["accounting.read"],
+      "allOf": [],
       "anyOf": [],
       "roleAnyOf": [],
       "predicates": [

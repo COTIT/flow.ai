@@ -19,11 +19,7 @@
     "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
   },
   "accounting_balance_sheet": {
-    "ask": {
-      "en": ["show the balance sheet"],
-      "nl": ["toon de balans"],
-      "sw": ["onyesha mizania"]
-    }
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_bank_accounts_list": {
     "ask": {
@@ -69,18 +65,10 @@
     "officeOnlyBecause": "Provider exceptions post or write off money after a reviewed check on the Office exception screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "accounting_general_ledger": {
-    "ask": {
-      "en": ["show the general ledger"],
-      "nl": ["toon het grootboek"],
-      "sw": ["onyesha leja kuu"]
-    }
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_inventory_valuation": {
-    "ask": {
-      "en": ["show the stock valuation"],
-      "nl": ["toon de kostprijs van de voorraad"],
-      "sw": ["onyesha thamani ya hifadhi"]
-    }
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_journals_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."

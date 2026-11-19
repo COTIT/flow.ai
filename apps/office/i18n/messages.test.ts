@@ -71,6 +71,17 @@ const DESIGN_FIELDS = [
   "text",
 ]
 
+const ERP_PAGES = [
+  "accounting",
+  "accounting_reports",
+  "purchases",
+  "supplier_bills",
+  "supplier_payments",
+  "purchase_returns",
+  "sales_returns",
+  "stock_counts",
+]
+
 describe("Office messages", () => {
   it.each(locales)(
     "%s keeps the voice texts it had before the move",
@@ -88,8 +99,14 @@ describe("Office messages", () => {
         }
       }
       // Added since (2C): the read-only storefront page of the assistant's page tool.
-      const { storefront, ...pages } = voice.pages
+      const { storefront, ...pagesAfter2C } = voice.pages
       expect(storefront).toBeDefined()
+      // Added since (M7-E): the ERP pages the assistant's page tool can open.
+      const pages = { ...pagesAfter2C }
+      for (const key of ERP_PAGES) {
+        expect(pages[key], key).toBeDefined()
+        delete pages[key]
+      }
       // Added since (Phase 3): storefront design review labels.
       const { storefront_design, ...resources } = voice.resources
       expect(storefront_design).toBeDefined()
