@@ -418,9 +418,9 @@ pub struct RestockLineResource {
     #[schema(example = "1")]
     pub quantity: String,
     pub lot_id: Option<Uuid>,
-    /// Booked cost restored, book currency.
+    /// Booked cost restored, book currency; null without `accounting.read`.
     #[schema(example = "1.00")]
-    pub value: String,
+    pub value: Option<String>,
     pub legacy_return_cost_id: Option<Uuid>,
 }
 
@@ -516,7 +516,8 @@ pub struct PostReview {
 pub struct ActionReview {
     pub return_id: Uuid,
     pub version: i64,
-    /// Book value moved (reversals), book currency; a restock's value is set as it posts.
+    /// Book value moved (reversals), book currency; a restock's value is set as it posts. A
+    /// restock undo hides it without `accounting.read`.
     #[schema(example = "1.00")]
     pub value: Option<String>,
     pub review_fingerprint: String,

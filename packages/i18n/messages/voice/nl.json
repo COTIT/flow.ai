@@ -840,6 +840,38 @@
       "search": {
         "name": "Zoeken",
         "purpose": "Zoeken in de hele werkruimte"
+      },
+      "accounting": {
+        "name": "Boekhouding",
+        "purpose": "Overzicht van de administratie, journaalposten, perioden en afsluiten"
+      },
+      "accounting_reports": {
+        "name": "Financiële rapporten",
+        "purpose": "Proefbalans, winst en verlies, balans, ouderdom en grootboeken"
+      },
+      "purchases": {
+        "name": "Inkoop",
+        "purpose": "Inkooporders en goederenontvangsten"
+      },
+      "supplier_bills": {
+        "name": "Inkoopfacturen",
+        "purpose": "Facturen van leveranciers, koppelen en boeken"
+      },
+      "supplier_payments": {
+        "name": "Leveranciersbetalingen",
+        "purpose": "Betalingen aan leveranciers en wat ze voldoen"
+      },
+      "purchase_returns": {
+        "name": "Inkoopretouren",
+        "purpose": "Goederen terug naar leveranciers"
+      },
+      "sales_returns": {
+        "name": "Verkoopretouren",
+        "purpose": "Retouren van klanten, creditering en terug op voorraad"
+      },
+      "stock_counts": {
+        "name": "Voorraadtellingen",
+        "purpose": "Inventarisatie: tel een magazijn en boek de verschillen"
       }
     },
     "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",

@@ -196,7 +196,9 @@ async fn do_return(
     }
     let mut out: Vec<SalesReturnResource> = Vec::with_capacity(ids.len());
     for id in ids {
-        out.push(returns::get(&mut *conn, ws, id).await?);
+        let mut r = returns::get(&mut *conn, ws, id).await?;
+        returns::hide_costs(&mut r, &p.member);
+        out.push(r);
     }
     // Ids and timestamps are new on every run; the money and quantities are the facts.
     let facts: Vec<Value> = out

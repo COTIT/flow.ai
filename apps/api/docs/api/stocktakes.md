@@ -33,6 +33,8 @@ The pause does not expire on its own.
 
 In a setup book no value is booked. `positive_adjustment_value` is ignored and not stored.
 
+Values are cost facts: `positive_adjustment_value` on lines and `value` on post-review lines are null for members without `accounting.read`. Their counts still store a sent value; a null value keeps the stored one.
+
 ## Review and post
 
 `POST /stocktakes/{id}/post/review` with `{accounting_date}` runs the real post in a transaction and rolls it back. It returns each changed line's `delta` and `value` (null in setup books) and a `review_fingerprint`. Nothing is written: no journal number, command row or outbox event survives a review. Post sends the fingerprint back. If anything changed meanwhile, post answers 409 `stale_document`.

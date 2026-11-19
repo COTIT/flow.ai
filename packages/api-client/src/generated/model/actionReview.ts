@@ -13,7 +13,8 @@ export interface ActionReview {
   return_id: string;
   review_fingerprint: string;
   /**
-     * Book value moved (reversals), book currency; a restock's value is set as it posts.
+     * Book value moved (reversals), book currency; a restock's value is set as it posts. A
+     * restock undo hides it without `accounting.read`.
      * @nullable
      */
   value?: string | null;
