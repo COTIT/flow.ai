@@ -375,7 +375,8 @@ export default function SalesReturnPage({
                           const line = r.lines.find(
                             (l) => l.id === x.return_line_id
                           )
-                          return `${line ? label(line) : ""} ${formatQty(x.quantity, locale)} (${bookAmount(x.value, locale)})`
+                          // Cost is null without accounting.read: quantity only.
+                          return `${line ? label(line) : ""} ${formatQty(x.quantity, locale)}${x.value ? ` (${bookAmount(x.value, locale)})` : ""}`
                         })
                         .join(", ")}
                     </span>

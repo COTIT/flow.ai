@@ -16,6 +16,9 @@ export interface RestockLineResource {
   lot_id?: string | null;
   quantity: string;
   return_line_id: string;
-  /** Booked cost restored, book currency. */
-  value: string;
+  /**
+     * Booked cost restored, book currency; null without `accounting.read`.
+     * @nullable
+     */
+  value?: string | null;
 }

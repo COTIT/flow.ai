@@ -50,6 +50,7 @@ Known limits: the destination must be the warehouse the sale left (other → 422
 
 - Financial reverse: posted only, the book's day; refused 422 `dependent_effects_exist` while any allocation other than the post's own application uses the credit (refund, other application) or a pending refund hold sits on it. Reverses that application, posts the exact inverse journal (`sales_return/<id>/reversed`) and closes the credit item against a `sales_return_reversal` receivable item. State `reversed`; restocks stay.
 - Restock reverse: exact inverse (`customer_return_reversal`, DR `cogs` or `inventory_adjustment` / CR `inventory`) only when no valued movement came after the restock in its pools and the goods are available and unreserved in their lots (else 422 `dependent_effects_exist` / `insufficient_stock`). The credit stays.
+- Restock line `value` (booked cost restored) and the restock-undo review `value` are null for members without `accounting.read`, on reads, write answers and the Till return answer.
 - The generic journal reverse stays manual-only.
 
 ## Legacy return costs

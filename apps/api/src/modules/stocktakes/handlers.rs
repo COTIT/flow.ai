@@ -110,7 +110,13 @@ pub async fn get(
 ) -> Result<Data<StocktakeResource>, AppError> {
     let mut conn = state.db.acquire().await?;
     Ok(Data(
-        service::get(&mut conn, access.workspace_id, id(&raw)?).await?,
+        service::get(
+            &mut conn,
+            access.workspace_id,
+            id(&raw)?,
+            access.allows("accounting.read"),
+        )
+        .await?,
     ))
 }
 

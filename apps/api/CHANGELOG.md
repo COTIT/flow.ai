@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Flow ERP M7, cost facts stay with `accounting.read` (no migration, same rule as payables/purchasing): stocktake `positive_adjustment_value` and post-review line `value`, sales-return restock line `value` (now nullable) and the restock-undo review `value` are null for members without `accounting.read`, on reads, write answers and the Till return answer. Without it a count's null value keeps the stored one, so a counter can't clear a value they can't see (`docs/api/stocktakes.md`, `docs/api/sales-returns.md`).
 - Flow ERP M7-B, Office reads for returns, exceptions and banking (no migration):
   - accounting exceptions carry `allowed_actions` from kind and state (pending posting: `retry`; pending discrepancy: `resolve`; resolved: none) (`docs/api/accounting.md` "Provider observations");
   - bank statement lines carry `allowed_actions` (`reconcile` unmatched, `reverse` matched); new `GET /accounting/bank-statements/{id}/lines/{line}/candidates` (`bank_statements_line_candidates`, `accounting.reconcile`) lists the journal lines a match would accept with their capacity left, from the same SQL capacity expression the match check uses (`docs/api/accounting.md` "Bank statements and reconciliation");

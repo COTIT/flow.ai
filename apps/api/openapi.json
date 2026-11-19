@@ -161,7 +161,7 @@
             "type": "string"
           },
           "value": {
-            "description": "Book value moved (reversals), book currency; a restock's value is set as it posts.",
+            "description": "Book value moved (reversals), book currency; a restock's value is set as it posts. A\nrestock undo hides it without `accounting.read`.",
             "example": "1.00",
             "type": [
               "string",
@@ -34277,15 +34277,17 @@
             "type": "string"
           },
           "value": {
-            "description": "Booked cost restored, book currency.",
+            "description": "Booked cost restored, book currency; null without `accounting.read`.",
             "example": "1.00",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
           "return_line_id",
-          "quantity",
-          "value"
+          "quantity"
         ],
         "type": "object"
       },

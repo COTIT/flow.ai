@@ -1204,3 +1204,74 @@ async fn members_without_post_or_reverse_are_refused(pool: PgPool) {
         1
     );
 }
+
+// --- protected cost facts (M7) ---------------------------------------------------------------------
+
+#[sqlx::test]
+async fn restock_cost_shows_only_with_accounting_read(pool: PgPool) {
+    let (s, _, _, rec, line) = shipped(pool).await;
+    let p = credit(&s, rec, &[(line, "1")]).await;
+    let l = p["lines"][0]["id"].clone();
+    let (st, r) = restock(&s, &p, restock_lines(&[(&l, "1")], &s.main, None)).await;
+    assert_eq!(st, StatusCode::OK, "{r}");
+    let id = p["id"].as_str().unwrap();
+    let restock_id = r["data"]["restocks"][0]["id"].as_str().unwrap();
+    let base = ["salesreturn.get", "salesreturn.list", "salesreturn.reverse"];
+    let with_books = [base.as_slice(), &["accounting.read"]].concat();
+    for (email, perms, shown) in [
+        ("plain@example.com", base.to_vec(), Value::Null),
+        ("books@example.com", with_books, json!("1.00")),
+    ] {
+        let token = crate::common::member_with(&s.api.app, s.pool(), s.ws(), email, &perms).await;
+        let ws = s.ws().to_owned();
+        let (st, b) = s
+            .req_as(
+                Method::GET,
+                &format!("/sales-returns/{id}"),
+                None,
+                None,
+                &token,
+                &ws,
+            )
+            .await;
+        assert_eq!(st, StatusCode::OK, "{b}");
+        assert_eq!(
+            b["data"]["restocks"][0]["lines"][0]["value"], shown,
+            "{email} get"
+        );
+        assert_eq!(b["data"]["restocks"][0]["lines"][0]["quantity"], "1");
+        let (st, b) = s
+            .req_as(Method::GET, "/sales-returns", None, None, &token, &ws)
+            .await;
+        assert_eq!(st, StatusCode::OK, "{b}");
+        let row = b["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["id"] == id)
+            .unwrap()
+            .clone();
+        assert_eq!(
+            row["restocks"][0]["lines"][0]["value"], shown,
+            "{email} list"
+        );
+        let key = Uuid::now_v7().to_string();
+        let (st, b) = s
+            .req_as(
+                Method::POST,
+                &format!("/sales-returns/{id}/restocks/{restock_id}/reverse/review"),
+                Some(json!({})),
+                Some(&key),
+                &token,
+                &ws,
+            )
+            .await;
+        assert_eq!(st, StatusCode::OK, "{b}");
+        assert_eq!(b["data"]["value"], shown, "{email} undo review");
+    }
+    assert_eq!(
+        get(&s, id).await["restocks"][0]["lines"][0]["value"],
+        "1.00",
+        "owner"
+    );
+}

@@ -68,7 +68,7 @@ pub async fn sales_returns_list(
     access: Can<List>,
     Query(q): Query<PageQuery>,
 ) -> Result<Json<Paginated<SalesReturnResource>>, AppError> {
-    Ok(Json(service::list(&state, access.workspace_id, &q).await?))
+    Ok(Json(service::list(&state, &access, &q).await?))
 }
 
 /// sales_returns_create: Draft a credit of a recognised sale (reserves capacity only).
@@ -114,9 +114,9 @@ pub async fn sales_returns_get(
     Path((_, ret)): Path<(String, String)>,
 ) -> Result<Data<SalesReturnResource>, AppError> {
     let mut conn = state.db.acquire().await?;
-    Ok(Data(
-        service::get(&mut conn, access.workspace_id, id(&ret)?).await?,
-    ))
+    let mut r = service::get(&mut conn, access.workspace_id, id(&ret)?).await?;
+    service::hide_costs(&mut r, &access);
+    Ok(Data(r))
 }
 
 /// sales_returns_update: Replace a draft's date, reason and lines.
@@ -340,8 +340,7 @@ pub async fn sales_return_restocks_reverse_review(
     Path((_, ret, restock)): Path<(String, String, String)>,
 ) -> Result<Data<ActionReview>, AppError> {
     Ok(Data(
-        service::restock_reverse_review(&state, access.workspace_id, (id(&ret)?, id(&restock)?))
-            .await?,
+        service::restock_reverse_review(&state, &access, (id(&ret)?, id(&restock)?)).await?,
     ))
 }
 

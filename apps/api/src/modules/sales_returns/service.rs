@@ -173,7 +173,7 @@ fn restock_resources(rows: Vec<RestockRow>, dp: i16) -> Vec<RestockResource> {
             return_line_id: r.return_line_id,
             quantity: qty(r.quantity),
             lot_id: r.lot_id,
-            value: amount(r.value, dp),
+            value: Some(amount(r.value, dp)),
             legacy_return_cost_id: r.legacy_return_cost_id,
         };
         match out.last_mut() {
@@ -277,6 +277,26 @@ async fn resources(
         .collect())
 }
 
+/// Restored booked cost only for members with `accounting.read` (rule of payables/purchasing).
+pub fn hide_costs(r: &mut SalesReturnResource, access: &WorkspaceAccess) {
+    if !access.allows("accounting.read") {
+        for line in r.restocks.iter_mut().flat_map(|s| s.lines.iter_mut()) {
+            line.value = None;
+        }
+    }
+}
+
+/// `get` as a member sees it.
+async fn shown(
+    conn: &mut PgConnection,
+    access: &WorkspaceAccess,
+    id: Uuid,
+) -> Result<SalesReturnResource, AppError> {
+    let mut r = get(conn, access.workspace_id, id).await?;
+    hide_costs(&mut r, access);
+    Ok(r)
+}
+
 /// One return; 404 outside the workspace.
 pub async fn get(
     conn: &mut PgConnection,
@@ -293,13 +313,15 @@ pub async fn get(
 /// GET /sales-returns: newest first.
 pub async fn list(
     state: &AppState,
-    ws: Uuid,
+    access: &WorkspaceAccess,
     q: &PageQuery,
 ) -> Result<Paginated<SalesReturnResource>, AppError> {
+    let ws = access.workspace_id;
     let mut conn = state.db.acquire().await?;
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let (rows, total) = repo::returns(&mut conn, ws, None, (page.size, page.offset())).await?;
-    let data = resources(&mut conn, ws, rows).await?;
+    let mut data = resources(&mut conn, ws, rows).await?;
+    data.iter_mut().for_each(|r| hide_costs(r, access));
     Ok(Paginated::new(data, total, page))
 }
 
@@ -327,7 +349,7 @@ pub async fn create(
         access.user_id,
     )
     .await?;
-    let answer = created(&get(&mut tx, ws, id).await?);
+    let answer = created(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -377,7 +399,7 @@ pub async fn update(
     .await?;
     repo::update_draft(&mut tx, ws, id, (input.accounting_date, &input.reason)).await?;
     repo::replace_lines(&mut tx, ws, (id, sale.id), &input.lines).await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -401,7 +423,7 @@ pub async fn cancel(
         return Err(not_draft());
     }
     repo::cancel(&mut tx, ws, id, (&cmd.input.payload, access.user_id)).await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -733,7 +755,7 @@ pub async fn post(
         (review.accounting_date, access.user_id),
     )
     .await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -953,7 +975,7 @@ pub async fn restock(
         access.user_id,
     )
     .await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id, restock]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -1153,7 +1175,7 @@ pub async fn reverse(
         (*date, reason, access.user_id),
     )
     .await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
@@ -1245,13 +1267,18 @@ async fn restock_reverse_locked(
 /// POST /sales-returns/{id}/restocks/{restock}/reverse/review: no writes.
 pub async fn restock_reverse_review(
     state: &AppState,
-    ws: Uuid,
+    access: &WorkspaceAccess,
     (id, restock): (Uuid, Uuid),
 ) -> Result<ActionReview, AppError> {
+    let ws = access.workspace_id;
     let mut tx = state.db.begin().await?;
     let (sale, _) = lock_return(&mut tx, ws, id, None).await?;
-    let (_, review) = prepare_restock_reverse(&mut tx, ws, (id, restock), sale.decimals).await?;
+    let (_, mut review) =
+        prepare_restock_reverse(&mut tx, ws, (id, restock), sale.decimals).await?;
     tx.rollback().await?;
+    if !access.allows("accounting.read") {
+        review.value = None;
+    }
     Ok(review)
 }
 
@@ -1283,7 +1310,7 @@ pub async fn restock_reverse(
         (reason, access.user_id),
     )
     .await?;
-    let answer = ok(&get(&mut tx, ws, id).await?);
+    let answer = ok(&shown(&mut tx, access, id).await?);
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id, restock]).await?;
     tx.commit().await?;
     Ok(answer)
