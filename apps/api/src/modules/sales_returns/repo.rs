@@ -247,6 +247,8 @@ pub struct ReturnRow {
     pub reversal_reason: Option<String>,
     pub cancelled_at: Option<DateTime<Utc>>,
     pub cancel_reason: Option<String>,
+    pub relation_name: Option<String>,
+    pub order_number: Option<String>,
 }
 
 /// Returns of the workspace, newest first (`id` = one); (page rows, total).
@@ -260,10 +262,13 @@ pub async fn returns(
         "SELECT r.id, r.kind, r.recognition_id, r.order_id, r.relation_id, r.credit_invoice_id,
                 r.state, r.version, r.reason, r.accounting_date, r.net, r.tax, r.rounding,
                 r.credit_item_id, c.decimals, r.created_by, r.created_at, r.updated_at,
-                r.posted_at, r.reversed_at, r.reversal_reason, r.cancelled_at, r.cancel_reason
+                r.posted_at, r.reversed_at, r.reversal_reason, r.cancelled_at, r.cancel_reason,
+                coalesce(rel.company_name, rel.alias) AS relation_name, o.number AS order_number
          FROM sales_returns r
          JOIN sales_recognitions g ON g.workspace_id = r.workspace_id AND g.id = r.recognition_id
          JOIN currencies c ON c.workspace_id = g.workspace_id AND c.id = g.currency_id
+         LEFT JOIN relations rel ON rel.workspace_id = r.workspace_id AND rel.id = r.relation_id
+         LEFT JOIN orders o ON o.workspace_id = r.workspace_id AND o.id = r.order_id
          WHERE r.workspace_id = $1 AND ($2::uuid IS NULL OR r.id = $2)
          ORDER BY r.created_at DESC, r.id DESC LIMIT $3 OFFSET $4",
     )
@@ -283,6 +288,17 @@ pub async fn returns(
     Ok((rows, total))
 }
 
+/// Warehouse sale line `l` (recognition line, with `ol` order line and `o` order joined)
+/// took its stock from; NULL when it moved none. Restock must go back there.
+macro_rules! origin {
+    () => {
+        "CASE WHEN ol.id IS NOT NULL THEN CASE WHEN ol.tracked THEN o.warehouse_id END
+              ELSE (SELECT i.mutate_from_warehouse_id FROM items i
+                    WHERE i.workspace_id = l.workspace_id AND i.id = l.invoice_item_id
+                      AND i.mutated_from_stock <> 0) END"
+    };
+}
+
 /// A return line with its product and restocked quantity.
 #[derive(FromRow)]
 pub struct LineRow {
@@ -294,6 +310,10 @@ pub struct LineRow {
     pub net: Option<i64>,
     pub tax: Option<i64>,
     pub restocked: Decimal,
+    pub product_name: Option<String>,
+    pub order_line_id: Option<Uuid>,
+    pub origin_warehouse_id: Option<Uuid>,
+    pub origin_warehouse_name: Option<String>,
 }
 
 /// Lines of `ids`, recognition line order.
@@ -302,18 +322,26 @@ pub async fn lines(
     ws: Uuid,
     ids: &[Uuid],
 ) -> Result<Vec<LineRow>, AppError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "SELECT x.id, x.return_id, x.recognition_line_id, l.product_id, x.quantity, x.net, x.tax,
                 coalesce((SELECT sum(k.quantity) FROM sales_return_restock_lines k
                           JOIN sales_return_restocks s ON s.id = k.restock_id
                           WHERE k.workspace_id = x.workspace_id AND k.return_line_id = x.id
-                            AND s.state = 'posted'), 0) AS restocked
+                            AND s.state = 'posted'), 0) AS restocked,
+                p.name AS product_name, l.order_line_id, wh.id AS origin_warehouse_id,
+                wh.name AS origin_warehouse_name
          FROM sales_return_lines x
          JOIN sales_recognition_lines l ON l.workspace_id = x.workspace_id
                                         AND l.id = x.recognition_line_id
+         LEFT JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+         LEFT JOIN order_lines ol ON ol.workspace_id = l.workspace_id AND ol.id = l.order_line_id
+         LEFT JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id
+         LEFT JOIN warehouses wh ON wh.workspace_id = x.workspace_id AND wh.id = (",
+        origin!(),
+        ")
          WHERE x.workspace_id = $1 AND x.return_id = ANY($2)
-         ORDER BY x.return_id, l.id",
-    )
+         ORDER BY x.return_id, l.id"
+    ))
     .bind(ws)
     .bind(ids)
     .fetch_all(conn)
@@ -338,6 +366,7 @@ pub struct RestockRow {
     pub lot_id: Option<Uuid>,
     pub value: i64,
     pub legacy_return_cost_id: Option<Uuid>,
+    pub warehouse_name: String,
 }
 
 /// Restock lines of returns `ids`, oldest restock first.
@@ -349,9 +378,10 @@ pub async fn restocks(
     Ok(sqlx::query_as(
         "SELECT s.id, s.return_id, s.warehouse_id, s.state, s.version, s.accounting_date,
                 s.created_by, s.created_at, s.reversed_at, s.reversal_reason, k.return_line_id,
-                k.quantity, k.lot_id, k.value, k.legacy_return_cost_id
+                k.quantity, k.lot_id, k.value, k.legacy_return_cost_id, wh.name AS warehouse_name
          FROM sales_return_restocks s
          JOIN sales_return_restock_lines k ON k.restock_id = s.id
+         JOIN warehouses wh ON wh.workspace_id = s.workspace_id AND wh.id = s.warehouse_id
          WHERE s.workspace_id = $1 AND s.return_id = ANY($2)
          ORDER BY s.created_at, s.id, k.id",
     )
@@ -449,16 +479,14 @@ pub async fn physical(
     id: Uuid,
     ids: &[Uuid],
 ) -> Result<Vec<Physical>, AppError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "WITH k AS (
              SELECT k.return_line_id, sum(k.quantity) AS q FROM sales_return_restock_lines k
              JOIN sales_return_restocks s ON s.id = k.restock_id
              WHERE k.workspace_id = $1 AND s.state = 'posted' GROUP BY k.return_line_id)
-         SELECT x.id, x.quantity, l.product_id, l.order_line_id,
-                CASE WHEN ol.id IS NOT NULL THEN CASE WHEN ol.tracked THEN o.warehouse_id END
-                     ELSE (SELECT i.mutate_from_warehouse_id FROM items i
-                           WHERE i.workspace_id = l.workspace_id AND i.id = l.invoice_item_id
-                             AND i.mutated_from_stock <> 0) END AS origin,
+         SELECT x.id, x.quantity, l.product_id, l.order_line_id, ",
+        origin!(),
+        " AS origin,
                 least(x.quantity - coalesce((SELECT q FROM k WHERE k.return_line_id = x.id), 0),
                       coalesce((SELECT sum(y.quantity) FROM sales_return_lines y
                                 JOIN sales_returns r ON r.id = y.return_id
@@ -474,8 +502,8 @@ pub async fn physical(
                                         AND l.id = x.recognition_line_id
          LEFT JOIN order_lines ol ON ol.workspace_id = l.workspace_id AND ol.id = l.order_line_id
          LEFT JOIN orders o ON o.workspace_id = ol.workspace_id AND o.id = ol.order_id
-         WHERE x.workspace_id = $1 AND x.return_id = $2 AND x.id = ANY($3)",
-    )
+         WHERE x.workspace_id = $1 AND x.return_id = $2 AND x.id = ANY($3)"
+    ))
     .bind(ws)
     .bind(id)
     .bind(ids)

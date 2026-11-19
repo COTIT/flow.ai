@@ -195,6 +195,16 @@ async fn setup_books_and_other_workspaces_are_refused(pool: PgPool) {
         .await;
     assert_eq!(st, StatusCode::OK);
     assert_eq!(b["data"], json!([]));
+    // Names come only from the owning workspace: the other one renames nothing it can see,
+    // and its own rows never show up in this return.
+    sqlx::query("UPDATE warehouses SET name = 'Eve stash' WHERE workspace_id = $1::uuid")
+        .bind(&other.ws)
+        .execute(s.pool())
+        .await
+        .unwrap();
+    let mine = get(&s, id).await;
+    assert_eq!(mine["lines"][0]["product_name"], "Honey");
+    assert_eq!(mine["lines"][0]["origin_warehouse_name"], "Main");
     // A setup book refuses before looking anything up.
     let setup = crate::shipments::S {
         api: s.api.as_new_owner("sam@example.com", "setup").await,
@@ -546,6 +556,27 @@ async fn restock_is_separate_and_restores_the_booked_cost_exactly(pool: PgPool) 
     assert_eq!(r2["lines"][0]["restocked"], "2");
     assert_eq!(r2["allowed_actions"], json!(["reverse"]));
     assert_eq!(r2["restocks"][1]["lines"][0]["value"], "1.00");
+    // Display facts from the same workspace's rows, no extra reads.
+    assert_eq!(r2["lines"][0]["product_name"], "Honey");
+    assert!(r2["lines"][0]["order_line_id"].is_string(), "{r2}");
+    assert_eq!(r2["lines"][0]["origin_warehouse_id"], s.main.as_str());
+    assert_eq!(r2["lines"][0]["origin_warehouse_name"], "Main");
+    assert_eq!(r2["restocks"][0]["warehouse_name"], "Main");
+    let number: String = sqlx::query_scalar("SELECT number FROM orders WHERE id = $1")
+        .bind(r2["order_id"].as_str().unwrap().parse::<Uuid>().unwrap())
+        .fetch_one(s.pool())
+        .await
+        .unwrap();
+    assert_eq!(r2["order_number"], number.as_str());
+    let name: Option<String> = sqlx::query_scalar(
+        "SELECT coalesce(company_name, alias) FROM relations WHERE id = $1::uuid",
+    )
+    .bind(r2["relation_id"].as_str())
+    .fetch_optional(s.pool())
+    .await
+    .unwrap()
+    .flatten();
+    assert_eq!(r2["relation_name"].as_str(), name.as_deref());
     // Nothing left to put back.
     let (st, b) = restock(&s, &p, restock_lines(&[(&l, "1")], &s.main, None)).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
@@ -556,6 +587,11 @@ async fn restock_is_separate_and_restores_the_booked_cost_exactly(pool: PgPool) 
     assert_eq!(st, StatusCode::OK, "{u}");
     assert_eq!(pool_qv(&s).await, ("9".into(), 900));
     assert_eq!(u["data"]["restocks"][1]["state"], "reversed");
+    assert_eq!(u["data"]["restocks"][1]["allowed_actions"], json!([]));
+    assert_eq!(
+        u["data"]["restocks"][0]["allowed_actions"],
+        json!(["reverse"])
+    );
     assert_eq!(u["data"]["state"], "posted", "the credit stays");
     let (st, b) = unrestock(&s, &p, last).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY, "{b}");

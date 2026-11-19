@@ -207,6 +207,7 @@ async fn pending_observation_commits_and_retry_posts_it_once(pool: PgPool) {
     assert_eq!(e["reason_code"], "no_receivable");
     assert_eq!(e["disposition"], "pending_observation");
     assert_eq!(e["observed_amount"], 10_000);
+    assert_eq!(e["allowed_actions"], json!(["retry"]));
     let attention: bool = sqlx::query_scalar("SELECT attention FROM order_payments WHERE id=$1")
         .bind(op.id)
         .fetch_one(&p.w.pool)
@@ -240,6 +241,7 @@ async fn pending_observation_commits_and_retry_posts_it_once(pool: PgPool) {
     assert_eq!(b["data"]["state"], "resolved");
     assert_eq!(b["data"]["resolution"], "posted");
     assert_eq!(b["data"]["disposition"], "posted");
+    assert_eq!(b["data"]["allowed_actions"], json!([]));
     assert_eq!(paid(&p).await, (10_000, "paid".into()));
     assert_eq!(p.gl("provider_clearing").await, 10_000);
     let attention: bool = sqlx::query_scalar("SELECT attention FROM order_payments WHERE id=$1")
@@ -358,6 +360,7 @@ async fn excess_refund_goes_to_recovery_and_writes_off_once(pool: PgPool) {
         (Some("discrepancy"), Some("excess_refund"))
     );
     assert_eq!(e["recovery_residual"], 2_000);
+    assert_eq!(e["allowed_actions"], json!(["resolve"]));
     let id = e["id"].as_str().unwrap();
     // A discrepancy is resolved, not retried; a pending posting is retried, not resolved.
     let (s, _) =
@@ -424,6 +427,7 @@ async fn excess_refund_goes_to_recovery_and_writes_off_once(pool: PgPool) {
         (Some("resolved"), Some("write_off"))
     );
     assert_eq!(e["recovery_residual"], 0);
+    assert_eq!(e["allowed_actions"], json!([]));
 }
 
 /// Chargeback with no open credit: full outflow to recovery, assigned to the customer as a

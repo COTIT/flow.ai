@@ -403,6 +403,12 @@ pub struct ReturnLineResource {
     /// Units put back on stock (posted restocks).
     #[schema(example = "0")]
     pub restocked: String,
+    pub product_name: Option<String>,
+    /// Sale's order line (legacy return cost `line_id`); None for a standalone invoice sale.
+    pub order_line_id: Option<Uuid>,
+    /// Warehouse the sale took this line from: the only restock destination. None: no stock moved.
+    pub origin_warehouse_id: Option<Uuid>,
+    pub origin_warehouse_name: Option<String>,
 }
 
 /// A restock line.
@@ -423,6 +429,7 @@ pub struct RestockLineResource {
 pub struct RestockResource {
     pub id: Uuid,
     pub warehouse_id: Uuid,
+    pub warehouse_name: String,
     /// posted or reversed.
     pub state: String,
     pub version: i64,
@@ -432,6 +439,8 @@ pub struct RestockResource {
     pub created_at: DateTime<Utc>,
     pub reversed_at: Option<DateTime<Utc>>,
     pub reversal_reason: Option<String>,
+    /// `reverse` while posted, else none.
+    pub allowed_actions: Vec<&'static str>,
 }
 
 /// A customer return / credit of one sale.
@@ -445,6 +454,9 @@ pub struct SalesReturnResource {
     pub order_id: Option<Uuid>,
     /// None for an anonymous retail sale.
     pub relation_id: Option<Uuid>,
+    /// Customer display name (company name, else alias).
+    pub relation_name: Option<String>,
+    pub order_number: Option<String>,
     /// The legacy credit note document of this credit.
     pub credit_invoice_id: Option<Uuid>,
     /// draft, posted, reversed or cancelled.

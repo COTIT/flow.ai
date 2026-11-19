@@ -5,7 +5,13 @@ import { useTranslations } from "next-intl"
 
 import { PillLinks } from "@/components/list"
 
-export { isStale, showMoney, showRate, today } from "../purchases/shared"
+export {
+  bookAmount,
+  isStale,
+  showMoney,
+  showRate,
+  today,
+} from "../purchases/shared"
 export { Shell, useAction, type Outcome } from "../purchases/[id]/dialogs"
 
 /** The book's 26 roles, in the order the setup page lists them (accounting.md "Setup"). */
@@ -72,6 +78,8 @@ const sections = [
   "accounts",
   "periods",
   "cash",
+  "banking",
+  "exceptions",
   "setup",
 ] as const
 

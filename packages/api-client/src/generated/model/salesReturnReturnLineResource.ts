@@ -16,8 +16,22 @@ export interface SalesReturnReturnLineResource {
      * @nullable
      */
   net?: string | null;
+  /**
+     * Sale's order line (legacy return cost `line_id`); None for a standalone invoice sale.
+     * @nullable
+     */
+  order_line_id?: string | null;
+  /**
+     * Warehouse the sale took this line from: the only restock destination. None: no stock moved.
+     * @nullable
+     */
+  origin_warehouse_id?: string | null;
+  /** @nullable */
+  origin_warehouse_name?: string | null;
   /** @nullable */
   product_id?: string | null;
+  /** @nullable */
+  product_name?: string | null;
   quantity: string;
   recognition_line_id: string;
   /** Units put back on stock (posted restocks). */

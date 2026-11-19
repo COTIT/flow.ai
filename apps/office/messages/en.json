@@ -84,7 +84,8 @@
     "accounting": "Accounting",
     "taxes": "Taxes",
     "purchaseApprovals": "Purchase approvals",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "salesReturns": "Returns"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -1550,7 +1551,9 @@
       "accounts": "Accounts",
       "periods": "Periods",
       "cash": "Cash",
-      "setup": "Setup"
+      "setup": "Setup",
+      "banking": "Banking",
+      "exceptions": "Exceptions"
     },
     "roles": {
       "receivables": "Customer balances",
@@ -1804,6 +1807,160 @@
       "rolesHint": "Genesy books each kind of business event to the account you pick here.",
       "unmapped": "No account yet",
       "save": "Save setup"
+    },
+    "exceptions": {
+      "title": "Exceptions",
+      "intro": "Provider money the book could not post, or that did not match. Each needs one step from you.",
+      "what": "What",
+      "state": "State",
+      "occurred": "Happened",
+      "amount": "Amount",
+      "why": {
+        "label": "Why",
+        "closed_period": "No open period covers the date of this payment.",
+        "missing_mapping": "Accounting is not fully set up for this payment yet.",
+        "foreign_currency": "This payment is in another currency than the book.",
+        "no_receivable": "There was no open amount to apply this payment to.",
+        "posting_failed": "The payment could not be posted.",
+        "excess_refund": "The refund was more than the customer had paid.",
+        "chargeback": "The customer's bank took the payment back."
+      },
+      "filter": "Show",
+      "pending": "To do",
+      "all": "All",
+      "pages": "Pages",
+      "newest": "Newest",
+      "older": "Older",
+      "empty": "Nothing waiting. All provider money is booked.",
+      "emptyAll": "No exceptions yet",
+      "headline": "{kind} from {provider}",
+      "economic": {
+        "collection": "Payment",
+        "refund": "Refund",
+        "chargeback": "Chargeback"
+      },
+      "states": {
+        "pending": "To do",
+        "resolved": "Done"
+      },
+      "nextStep": "Next step",
+      "unposted": "This money is received but not in the books yet.",
+      "next": {
+        "retry": "Fix the cause, then try posting again.",
+        "resolve": "Decide who carries the difference."
+      },
+      "resolvedInfo": "Done: {how}.",
+      "resolutions": {
+        "posted": "posted",
+        "assign_receivable": "Charge the customer",
+        "write_off": "Write off as a loss"
+      },
+      "nothingToDo": "Nothing to do for you here.",
+      "lastAttempt": "Tried {attempts, plural, one {once} other {# times}}. Last answer: {message}",
+      "details": "Details",
+      "discrepancy": "Difference",
+      "recoveryLeft": "Still to recover",
+      "provider": "Provider",
+      "reference": "Provider reference",
+      "book": "In the books",
+      "dispositions": {
+        "posted": "Posted",
+        "pending_observation": "Waiting",
+        "none": "Not linked"
+      },
+      "resolvedAt": "Done on",
+      "sources": "Linked documents",
+      "openInvoice": "Open the invoice",
+      "openCreditNote": "Open the credit note",
+      "openOrder": "Open the order",
+      "retry": {
+        "action": "Try posting again",
+        "title": "Post this payment again?",
+        "text": "Uses the stored provider facts. The provider is not called again."
+      },
+      "resolve": {
+        "action": "Resolve",
+        "title": "Resolve the difference",
+        "text": "The book shows you the entry first. Nothing is posted until you confirm.",
+        "how": "How",
+        "customer": "Customer",
+        "defaultCustomer": "The customer of this payment",
+        "reason": "Reason",
+        "evidence": "Evidence reference",
+        "date": "Date",
+        "debit": "Debit",
+        "credit": "Credit"
+      },
+      "reviewing": "Getting the review",
+      "review": "Review",
+      "done": {
+        "retried": "Payment posted.",
+        "resolved": "Difference resolved."
+      },
+      "reasons": {
+        "exception_state": "This exception can't take that step any more. We loaded the latest version."
+      }
+    },
+    "banking": {
+      "title": "Banking",
+      "import": "Import a statement",
+      "importNote": "Bank statements arrive as imports. The import wizard gets a bank statement option soon.",
+      "count": "{total, plural, one {# statement} other {# statements}}",
+      "empty": "No bank statements yet",
+      "statement": "Statement",
+      "bank": "Bank account",
+      "state": "State",
+      "period": "Period",
+      "unmatched": "Still unmatched",
+      "range": "{from} – {to}",
+      "states": {
+        "open": "Open",
+        "reconciled": "Matched",
+        "unreconciled": "To match"
+      },
+      "reasons": {
+        "already_reconciled": "This line is already matched. Reverse that match first.",
+        "not_this_bank_account": "Pick only posted journal lines of this bank account.",
+        "currency_mismatch": "That journal line is in another currency than this bank account.",
+        "journal_line_reversed": "That journal line was reversed, so it can't be matched.",
+        "amount_mismatch": "The amounts must add up to the bank line exactly.",
+        "capacity_exceeded": "A journal line has less left to match than this amount.",
+        "already_reversed": "This match was already reversed."
+      },
+      "of": "{bank}, {from} – {to}",
+      "details": "Balances",
+      "opening": "Opening balance",
+      "closing": "Closing balance",
+      "matchedLines": "Matched lines",
+      "ofLines": "{done} of {total}",
+      "lines": "Bank lines",
+      "noLines": "This statement has no lines.",
+      "line": "Bank line",
+      "match": "Matched to",
+      "amount": "Amount",
+      "row": "Line {n}",
+      "journal": "Journal {number} · {amount}",
+      "journalReversed": "Journal reversed since: reverse this match",
+      "loading": "Loading journal lines",
+      "candidate": "Journal {number} · {date} · {left} left",
+      "reconcile": {
+        "action": "Match",
+        "title": "Match this bank line",
+        "text": "{amount} on {date}. Pick the journal lines it pays; the amounts must add up exactly.",
+        "none": "No posted journal line of this bank account is left to match.",
+        "pick": "Journal lines",
+        "amount": "Amount to match"
+      },
+      "unmatch": {
+        "action": "Reverse match",
+        "title": "Reverse this match?",
+        "text": "The match stays on record. The bank line and journal lines become free to match again.",
+        "reason": "Reason"
+      },
+      "done": {
+        "matched": "Bank line matched.",
+        "unmatched": "Match reversed."
+      }
     }
   },
   "taxes": {
@@ -1997,5 +2154,124 @@
       "backdated_valuation": "This date is before the item's last valuation. Choose a later date."
     },
     "linesAfterStart": "The items to count appear once the count starts."
+  },
+  "salesReturns": {
+    "title": "Customer returns",
+    "intro": "Credits for goods customers brought back. New ones start from an invoice credit note, an order return or the Till.",
+    "count": "{total, plural, one {# return} other {# returns}}",
+    "empty": "No customer returns yet",
+    "return": "Return",
+    "customer": "Customer",
+    "state": "State",
+    "date": "Date",
+    "credit": "Credit",
+    "ofOrder": "Return of order {number}",
+    "anonymous": "Walk-in customer",
+    "notPosted": "Not posted yet",
+    "kinds": {
+      "invoice_credit": "Invoice credit",
+      "receipt_credit": "Receipt credit"
+    },
+    "states": {
+      "draft": "Draft",
+      "posted": "Posted",
+      "reversed": "Reversed",
+      "cancelled": "Cancelled"
+    },
+    "reasons": {
+      "dependent_effects_exist": "Something already uses this, such as a refund or a later stock move. Undo that first.",
+      "insufficient_stock": "Those goods are no longer free in stock, so this can't be undone.",
+      "legacy_return_cost_required": "This sale has no booked cost. Record a reviewed cost for the line first, then restock."
+    },
+    "line": "Line",
+    "item": "Item",
+    "quantity": "Quantity",
+    "quantityOf": "Quantity of {item}",
+    "restocked": "Back in stock",
+    "reviewing": "Getting the review",
+    "review": "Review",
+    "net": "Net",
+    "tax": "Tax",
+    "rounding": "Cash rounding",
+    "applied": "Applied to what the customer owes",
+    "reason": "Reason",
+    "lines": "Lines",
+    "restocks": "Back in stock",
+    "nextStep": "Next step",
+    "creditInfo": "Credit of {credit} booked for the customer.",
+    "next": {
+      "post": "Check the amounts, then post the credit.",
+      "restock": "Put the returned goods back in stock when they arrive."
+    },
+    "reversedInfo": "This credit was reversed. Goods put back stay in stock.",
+    "cancelledInfo": "This draft was cancelled. Nothing was booked.",
+    "postedInfo": "Posted and fully back in stock. Nothing left to do.",
+    "nothingToDo": "Nothing to do for you here.",
+    "details": "Details",
+    "kind": "Kind",
+    "created": "Created",
+    "postedAt": "Posted",
+    "reversedAt": "Reversed",
+    "cancelledAt": "Cancelled",
+    "sources": "Linked documents",
+    "openOrder": "Open the order",
+    "openCreditNote": "Open the credit note",
+    "noStockLines": "Some lines moved no stock, so there is nothing to put back for them.",
+    "noRestocks": "Nothing put back in stock yet.",
+    "restockInto": "Back into {warehouse}",
+    "edit": {
+      "action": "Edit draft",
+      "title": "Edit the draft",
+      "text": "Change the date, reason or quantities. The credit is worked out when you post.",
+      "save": "Save"
+    },
+    "cancel": {
+      "action": "Cancel draft",
+      "title": "Cancel this draft?",
+      "text": "Nothing is booked. The quantities become free to credit again.",
+      "keep": "Keep draft"
+    },
+    "post": {
+      "action": "Post credit",
+      "title": "Post the credit",
+      "text": "These amounts come from the original sale. Posting books them for the customer."
+    },
+    "restock": {
+      "action": "Restock",
+      "title": "Put goods back in stock",
+      "text": "Goods go back into the warehouse the sale left, at their original cost.",
+      "lineLabel": "{item} into {warehouse} ({restocked} of {quantity} back)",
+      "value": "Cost put back",
+      "valueIs": "Cost put back: {value}",
+      "valueAtPost": "The original cost is put back when you restock."
+    },
+    "reverse": {
+      "action": "Reverse credit",
+      "title": "Reverse this credit",
+      "text": "Books the exact opposite of the credit. Goods put back stay in stock.",
+      "keepsRestocks": "Restocked goods stay in stock."
+    },
+    "unrestock": {
+      "action": "Undo restock",
+      "title": "Undo this restock",
+      "text": "Takes the goods out of {warehouse} again at the same cost. The credit stays."
+    },
+    "legacy": {
+      "action": "Record reviewed cost",
+      "title": "Reviewed cost for {item}",
+      "text": "For goods sold before the book had their cost. Use the value you checked.",
+      "amount": "Total cost",
+      "evidence": "Evidence reference",
+      "save": "Record cost"
+    },
+    "done": {
+      "updated": "Draft saved.",
+      "cancelled": "Draft cancelled.",
+      "posted": "Credit posted.",
+      "restocked": "Goods back in stock.",
+      "reversed": "Credit reversed.",
+      "unrestocked": "Restock undone.",
+      "legacyCost": "Reviewed cost recorded. Restock now uses it."
+    }
   }
 }
