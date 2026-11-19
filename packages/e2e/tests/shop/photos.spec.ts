@@ -44,6 +44,34 @@ for (const [path, count] of [
     await expectNoLayoutShift(page)
   })
 
+test("/: the photos keep their elements once the page comes alive (no re-mount)", async ({
+  page,
+}) => {
+  // Counts every AFM photo taken out of the page; a fading tile must not rebuild its contents.
+  await page.addInitScript(() => {
+    const w = window as unknown as { removedPhotos: number }
+    w.removedPhotos = 0
+    new MutationObserver((records) => {
+      for (const r of records)
+        for (const n of r.removedNodes)
+          if (
+            n instanceof Element &&
+            (n.matches('img[src^="/afm/"]') ||
+              n.querySelector('img[src^="/afm/"]'))
+          )
+            w.removedPhotos++
+    }).observe(document, { childList: true, subtree: true })
+  })
+  await page.goto("/")
+  await expect(page.locator("main [data-motion]").first()).toBeAttached()
+  await page.waitForLoadState("networkidle")
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { removedPhotos: number }).removedPhotos
+    )
+  ).toBe(0)
+})
+
 test("the stories page keeps initials for someone without a photo", async ({
   page,
 }) => {
