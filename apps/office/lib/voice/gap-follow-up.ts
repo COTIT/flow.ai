@@ -86,6 +86,7 @@ export const ROUTE_SEGMENTS = new Set([
   "negative",
   "new",
   "offline",
+  "opening",
   "orders",
   "overview",
   "passport",

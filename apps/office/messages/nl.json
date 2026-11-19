@@ -1556,7 +1556,8 @@
       "cash": "Kas",
       "setup": "Instellingen",
       "banking": "Bank",
-      "exceptions": "Uitzonderingen"
+      "exceptions": "Uitzonderingen",
+      "opening": "Opening"
     },
     "roles": {
       "receivables": "Klantsaldi",
@@ -1621,7 +1622,8 @@
       "stale_document": "Dit is gewijzigd sinds je het opende. We hebben de nieuwste versie geladen: controleer die en probeer het opnieuw.",
       "accounting_not_configured": "De boekhouding is nog niet actief. Boeken kan zodra de boekhouding is ingericht en geactiveerd.",
       "accounting_period_closed": "Er is geen open periode voor deze datum. Voeg er eerst een toe of open er een.",
-      "unsupported_active_erp_operation": "Dit kan hier niet worden gewijzigd. Geboekte posten en actieve instellingen blijven zoals ze zijn; corrigeer met een tegenboeking."
+      "unsupported_active_erp_operation": "Dit kan hier niet worden gewijzigd. Geboekte posten en actieve instellingen blijven zoals ze zijn; corrigeer met een tegenboeking.",
+      "already_active": "Deze boekhouding is al actief."
     },
     "accounts": {
       "title": "Rekeningschema",
@@ -1964,6 +1966,60 @@
         "matched": "Bankregel gekoppeld.",
         "unmatched": "Koppeling teruggedraaid."
       }
+    },
+    "opening": {
+      "title": "Opening en activering",
+      "setupInfo": "Activering start de boekhouding met je gecontroleerde openingssaldi. Importeer eerst de openingsbestanden, controleer ze hier en activeer daarna één keer.",
+      "readOnly": "Je kunt de opening bekijken. Controleren vraagt het recht om de boekhouding in te richten.",
+      "batches": "Openingsimports",
+      "noBatches": "Nog geen afgeronde openingsimport. Importeer eerst de openingsvoorraad, saldi en proefbalans via Instellingen → Imports.",
+      "profiles": {
+        "opening_inventory": "Openingsvoorraad",
+        "opening_receivables": "Openstaande klantsaldi",
+        "opening_payables": "Openstaande leverancierssaldi",
+        "opening_trial_balance": "Openingsproefbalans"
+      },
+      "review": "Opening controleren",
+      "reviewAgain": "Opnieuw controleren",
+      "reviewTitle": "Controle",
+      "cutover": "Startdag",
+      "stock": "Voorraad",
+      "stockValue": "{quantity} stuks ter waarde van {value}",
+      "receivables": "Klanten moeten betalen",
+      "payables": "Je moet leveranciers betalen",
+      "open": "{count, plural, one {# open post} other {# open posten}}, {amount}",
+      "trialBalance": "Proefbalans",
+      "debitCredit": "Debet {debit}, credit {credit}",
+      "ready": "Alles klopt. De boekhouding kan worden geactiveerd.",
+      "notReady": "{count, plural, one {# punt op te lossen vóór activering} other {# punten op te lossen vóór activering}}",
+      "finalTitle": "Activering is definitief",
+      "final": "Vanaf {date} wordt elke verkoop, inkoop, betaling en voorraadwijziging geboekt. Activering kan niet ongedaan worden; fouten herstel je later met correcties.",
+      "confirm": "Ik heb deze cijfers gecontroleerd en wil de boekhouding activeren.",
+      "activate": "Boekhouding activeren",
+      "activated": "De boekhouding is actief.",
+      "noActivateRight": "Activeren vraagt het activeringsrecht. Vraag het een eigenaar.",
+      "activeInfo": "De boekhouding is actief sinds {at}. Dit zijn de saldi uit de opening.",
+      "balances": "Openingssaldi",
+      "noBalances": "De opening had geen openstaande klant- of leverancierssaldi.",
+      "kinds": {
+        "invoice": "Factuur {number}",
+        "supplier_bill": "Inkoopfactuur {number}"
+      },
+      "noParty": "Geen klant of leverancier",
+      "outstanding": "Open {amount}",
+      "corrected": "{count, plural, one {één keer gecorrigeerd} other {# keer gecorrigeerd}}, geopend op {from}",
+      "correct": "Dit saldo corrigeren",
+      "correctTitle": "Openingssaldo corrigeren",
+      "correctedAmount": "Juist openstaand bedrag",
+      "date": "Boekdatum",
+      "reason": "Waarom",
+      "evidence": "Bewijs (document of referentie)",
+      "reviewCorrection": "Correctie controleren",
+      "saveCorrection": "Correctie boeken",
+      "cancel": "Annuleren",
+      "correctionReview": "Controleer vóór het boeken",
+      "correctionPlan": "Het openstaande bedrag gaat van {from} naar {to} ({delta}), geboekt tegen de openingssaldi. Het oorspronkelijke openingsbedrag blijft staan.",
+      "correctionSaved": "Correctie geboekt."
     }
   },
   "taxes": {

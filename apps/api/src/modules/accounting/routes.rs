@@ -43,6 +43,8 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::party_ledger))
         .routes(routes!(handlers::inventory_valuation))
         .routes(routes!(handlers::opening_validate))
+        .routes(routes!(handlers::activate))
+        .routes(routes!(handlers::opening_baselines_list))
         .routes(routes!(handlers::opening_corrections_review))
         .routes(routes!(handlers::opening_corrections_create))
 }

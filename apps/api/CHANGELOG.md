@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Flow ERP M8, activation tooling (`docs/api/accounting.md` "Opening conversion"; no migration; no book activated anywhere):
+  - `POST /accounting/opening/validate` is the activation review: new step-6 issues `unknown_money`, `receipts_unbooked`, `in_transit`, `negative_stock`, `unsupported_products`, `sku_split_required`, `tax_profile_missing`, `role_mapping_missing`, `period_missing`, and `cutover_date` (in the fingerprint);
+  - `POST /accounting/activate` (`accounting.activate`, A envelope): one transaction under the exclusive gate sets the cutover (kept, else now), runs `opening::apply`, flips the book to active with fingerprint/by/at; 409 `already_active` / `stale_document`, 422 unready; nothing written on refusal; permanent replay;
+  - `GET /accounting/opening-baselines` (`accounting.read`): the opening's receivables/payables with corrected outstanding, for the Office corrections screen;
+  - §16 guards: farmer payouts, their voids and staff cash floats (`farm_payouts`), and sale/return attribution to an active farm book (`farm_supply/sale`) → 422 `unsupported_active_erp_operation` before any write;
+  - `deploy/ops/erp-rehearsal.sh`: local populated pre-ERP migrate + restore + ERP read rehearsal on scratch DBs.
+
 - Flow ERP M7-B, Office reads for returns, exceptions and banking (no migration):
   - accounting exceptions carry `allowed_actions` from kind and state (pending posting: `retry`; pending discrepancy: `resolve`; resolved: none) (`docs/api/accounting.md` "Provider observations");
   - bank statement lines carry `allowed_actions` (`reconcile` unmatched, `reverse` matched); new `GET /accounting/bank-statements/{id}/lines/{line}/candidates` (`bank_statements_line_candidates`, `accounting.reconcile`) lists the journal lines a match would accept with their capacity left, from the same SQL capacity expression the match check uses (`docs/api/accounting.md` "Bank statements and reconciliation");

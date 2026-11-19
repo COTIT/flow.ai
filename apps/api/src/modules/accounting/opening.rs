@@ -545,6 +545,9 @@ pub async fn review_in(
     let r = sqlx::query(
         "WITH l AS (SELECT * FROM accounting_opening_lines WHERE workspace_id = $1 AND batch_id = ANY($2)),
          roles AS (SELECT role, account_id FROM account_mappings WHERE workspace_id = $1),
+         -- the cutover day activation will use: the set one, else today in the book's zone
+         c AS (SELECT (coalesce(cutover_at, now()) AT TIME ZONE coalesce(timezone, 'UTC'))::date AS day
+               FROM accounting_settings WHERE workspace_id = $1),
          tb AS (SELECT l.account_id, sum(l.debit - l.credit) AS net FROM l WHERE kind = 'balance'
                 GROUP BY l.account_id),
          net AS (SELECT r.role, coalesce(sum(tb.net), 0) AS tb FROM roles r
@@ -590,6 +593,38 @@ pub async fn review_in(
            (SELECT count(*) FROM stock) AS stocked,
            (SELECT count(*) FROM paid WHERE reviewed <> ledger) AS unpaid,
            (SELECT count(*) FROM drawer_shifts WHERE workspace_id = $1 AND closed_at IS NULL) AS shifts,
+           -- §14 ACTIVATION step 6 preflight: money, stock and catalog the active book can't carry
+           (SELECT count(*) FROM order_payments WHERE workspace_id = $1
+              AND status IN ('creating', 'open', 'unknown'))
+           + (SELECT count(*) FROM credit_refund_reservations WHERE workspace_id = $1 AND state = 'pending')
+           + (SELECT count(*) FROM accounting_exceptions WHERE workspace_id = $1 AND state = 'pending')
+             AS unknown_money,
+           (SELECT count(*) FROM purchase_receipt_lines WHERE workspace_id = $1
+              AND booked_at IS NULL AND NOT late) AS unbooked,
+           (SELECT count(*) FROM supply_transfers WHERE received_at IS NULL
+              AND (from_workspace_id = $1 OR to_workspace_id = $1)) AS in_transit,
+           (SELECT count(*) FROM (SELECT 1 FROM stocks WHERE workspace_id = $1 AND deleted_at IS NULL
+              GROUP BY product_id, warehouse_id HAVING sum(stock_lvl) < 0) x) AS negative,
+           (SELECT count(*) FROM products WHERE workspace_id = $1 AND deleted_at IS NULL AND NOT archived
+              AND type IN ('giftcard', 'multi_product_set', 'multi_product_group')) AS unsupported,
+           (SELECT count(*) FROM products p WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
+              AND p.has_stock AND p.type IN ('physical', 'physical_second_chance')
+              AND EXISTS (SELECT 1 FROM product_variants v WHERE v.workspace_id = $1
+                            AND v.product_id = p.id AND NOT v.is_default AND v.deleted_at IS NULL))
+             AS sku_split,
+           -- each live product needs exactly one verified sale tax profile on the cutover day
+           (SELECT count(*) FROM products p WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
+              AND NOT p.archived AND (SELECT count(*) FROM tax_profiles t WHERE t.workspace_id = $1
+                     AND t.state = 'verified' AND t.superseded_by_id IS NULL
+                     AND 'sale' = ANY (t.transaction_types) AND t.effective_from <= (SELECT day FROM c)
+                     AND (t.effective_to IS NULL OR (SELECT day FROM c) < t.effective_to)
+                     AND (cardinality(t.product_category_ids) = 0
+                          OR p.category_id = ANY (t.product_category_ids))) <> 1) AS untaxed,
+           (SELECT count(*) FROM unnest($4::text[]) r(role)
+              WHERE r.role NOT IN (SELECT role FROM roles)) AS unmapped,
+           (SELECT count(*) = 0 FROM accounting_periods WHERE workspace_id = $1 AND state = 'open'
+              AND start_date <= (SELECT day FROM c) AND (SELECT day FROM c) < end_date) AS no_period,
+           (SELECT day FROM c)::text AS cutover_day,
            -- coverage: the historical payments the receivables cover, as of now
            (SELECT coalesce(string_agg(p.id::text || '=' || p.amount, ',' ORDER BY p.id), '')
               FROM invoice_payments p JOIN l ON l.kind = 'receivable' AND l.invoice_id = p.invoice_id
@@ -616,6 +651,7 @@ pub async fn review_in(
     .bind(ws)
     .bind(batches)
     .bind(i32::from(fdp))
+    .bind(&super::dto::ROLES[..])
     .fetch_one(&mut *conn)
     .await?;
     let n = |k: &str| r.get::<i64, _>(k);
@@ -667,6 +703,51 @@ pub async fn review_in(
         "open_shifts",
         "Close every open till shift before the opening.",
     );
+    issue(
+        n("unknown_money") > 0,
+        "unknown_money",
+        "Settle every open or unknown online payment, pending refund and accounting exception first.",
+    );
+    issue(
+        n("unbooked") > 0,
+        "receipts_unbooked",
+        "Book or reject every accepted purchase receipt first.",
+    );
+    issue(
+        n("in_transit") > 0,
+        "in_transit",
+        "Receive every supply transfer still on its way, to or from this workspace, first.",
+    );
+    issue(
+        n("negative") > 0,
+        "negative_stock",
+        "Correct every product that has less than zero in stock first.",
+    );
+    issue(
+        n("unsupported") > 0,
+        "unsupported_products",
+        "Archive gift cards and product sets or groups: active books don't support them yet.",
+    );
+    issue(
+        n("sku_split") > 0,
+        "sku_split_required",
+        "Make each stocked size its own product first.",
+    );
+    issue(
+        n("untaxed") > 0,
+        "tax_profile_missing",
+        "Every product needs exactly one verified sales tax profile on the cutover day.",
+    );
+    issue(
+        n("unmapped") > 0,
+        "role_mapping_missing",
+        "Map every accounting role to an account in the setup first.",
+    );
+    issue(
+        r.get::<bool, _>("no_period"),
+        "period_missing",
+        "Open an accounting period that covers the cutover day.",
+    );
     let schedules = json!({
         "inventory": {"mode": mode, "quantity": r.get::<String, _>("quantity"),
                       "value": t("value")},
@@ -680,13 +761,15 @@ pub async fn review_in(
     });
     let batches: Vec<&String> = found.iter().map(|(_, b)| b).collect();
     let fingerprint = hex::encode(Sha256::digest(
-        json!({"setup_version": s.version, "batches": batches, "schedules": schedules,
+        json!({"setup_version": s.version, "cutover": r.get::<String, _>("cutover_day"),
+               "batches": batches, "schedules": schedules,
                "coverage": r.get::<String, _>("coverage"), "places": r.get::<String, _>("places"),
                "issues": issues})
         .to_string(),
     ));
     let mut out = schedules;
     out["setup_version"] = json!(s.version);
+    out["cutover_date"] = json!(r.get::<String, _>("cutover_day"));
     out["ready"] = json!(issues.is_empty());
     out["issues"] = json!(issues);
     out["opening_fingerprint"] = json!(fingerprint);
@@ -759,8 +842,8 @@ pub async fn covered_exactly(
     .await?)
 }
 
-/// Activation core (masterplan §14 ACTIVATION steps 7-9), crate-internal: M8 wraps it with the
-/// route, the setup→active flip and the audit. Under the exclusive book gate: re-review
+/// Activation core (masterplan §14 ACTIVATION steps 7-9): [`activate`] wraps it with the
+/// setup→active flip and the audit in one transaction. Under the exclusive book gate: re-review
 /// `batches`, refuse a changed `fingerprint` (409) or an unready opening (422), then once per
 /// book post the opening journal, open baselines and items, mark historical payments
 /// `opening_covered`, seed or create opening stock and record place openings. `false` when
@@ -1064,6 +1147,94 @@ pub async fn apply(
     .execute(&mut *conn)
     .await?;
     Ok(true)
+}
+
+/// POST /accounting/activate body: the reviewed opening (from `POST /accounting/opening/validate`).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ActivatePayload {
+    /// The completed opening import batches that were reviewed.
+    pub batch_ids: Option<Vec<String>>,
+    /// The review's `opening_fingerprint`.
+    pub opening_fingerprint: Option<String>,
+}
+
+/// A validated activation: batches and the reviewed fingerprint.
+pub struct Activation {
+    batches: Vec<Uuid>,
+    fingerprint: String,
+}
+
+impl Validate for ActivatePayload {
+    type Valid = Activation;
+
+    fn validate(self, r: &mut Rules) -> Option<Activation> {
+        let ids = self.batch_ids.unwrap_or_default();
+        let batches: Vec<Uuid> = ids.iter().filter_map(|s| s.parse().ok()).collect();
+        r.check(
+            "batch_ids",
+            !ids.is_empty() && ids.len() <= PROFILES.len() && batches.len() == ids.len(),
+            "Name one to four opening import batches.",
+        );
+        let fingerprint = r.required("opening_fingerprint", self.opening_fingerprint);
+        Some(Activation {
+            batches,
+            fingerprint: fingerprint?,
+        })
+    }
+}
+
+/// POST /accounting/activate (masterplan §14 ACTIVATION steps 3-10): one transaction under the
+/// exclusive book gate. Stale setup version or changed opening fingerprint → 409, an unready
+/// opening → 422, an active book → 409 `already_active`; nothing is written on any refusal.
+/// The cutover is the set one, else this transaction's time; the book's activation columns
+/// (fingerprint, by, at) and the `opening/activated` effect are the audit.
+pub async fn activate(
+    state: &AppState,
+    access: &crate::http::workspace::WorkspaceAccess,
+    cmd: crate::idempotency::Command<super::dto::Action<ActivatePayload>>,
+) -> Result<crate::idempotency::Answer, AppError> {
+    use crate::idempotency;
+    const OP: &str = "accounting_activate";
+    let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) = idempotency::command_replay(&mut tx, ws, OP, access.user_id, &cmd).await? {
+        return Ok(a);
+    }
+    super::gate::exclusive(&mut tx, ws).await?;
+    let s = repo::settings(&mut tx, ws, true).await?;
+    if s.state != "setup" {
+        return Err(AppError::Reason {
+            status: axum::http::StatusCode::CONFLICT,
+            code: "already_active",
+            message: "These books are already active.".into(),
+        });
+    }
+    if s.version != cmd.input.expected_version {
+        return Err(stale());
+    }
+    let a = &cmd.input.payload;
+    sqlx::query(
+        "UPDATE accounting_settings SET cutover_at = coalesce(cutover_at, now()) WHERE workspace_id = $1",
+    )
+    .bind(ws)
+    .execute(&mut *tx)
+    .await?;
+    apply(&mut tx, ws, &a.batches, &a.fingerprint, access.user_id).await?;
+    let fp: [u8; 32] = Sha256::digest(&a.fingerprint).into();
+    sqlx::query(
+        "UPDATE accounting_settings SET state = 'active', opening_fingerprint = $2,
+                activated_by = $3, activated_at = now(), version = version + 1, updated_at = now()
+         WHERE workspace_id = $1",
+    )
+    .bind(ws)
+    .bind(fp.as_slice())
+    .bind(access.user_id)
+    .execute(&mut *tx)
+    .await?;
+    let answer = super::service::ok(&super::service::setup(&mut tx, ws).await?);
+    idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[ws]).await?;
+    tx.commit().await?;
+    Ok(answer)
 }
 
 // --- opening correction ----------------------------------------------------------------
@@ -1455,4 +1626,42 @@ pub async fn correction_create(
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
+}
+
+/// GET /accounting/opening-baselines: every receivable/payable the opening carried, with its
+/// corrected outstanding (opening + typed corrections) and correction count; amounts as
+/// decimal text in the source currency. Reads only; an empty list in a setup book.
+// shortcut: first 500 by source number, no paging; add the list envelope when a book has more.
+pub async fn baselines(state: &AppState, ws: Uuid) -> Result<Value, AppError> {
+    let rows: Vec<Value> = sqlx::query_scalar(
+        "SELECT json_build_object(
+             'id', b.id, 'source_kind', b.source_kind, 'source_id', b.source_id,
+             'number', coalesce(i.invoice_number::text, sb.supplier_invoice_number),
+             'party', coalesce(r.company_name, r.alias, ''),
+             'currency', c.asset_type,
+             'face', round(b.face / 10::numeric ^ c.decimals, c.decimals)::text,
+             'settled', round(b.settled / 10::numeric ^ c.decimals, c.decimals)::text,
+             'outstanding', round(b.outstanding / 10::numeric ^ c.decimals, c.decimals)::text,
+             'corrected_outstanding',
+               round((b.outstanding + coalesce(k.delta, 0)) / 10::numeric ^ c.decimals, c.decimals)::text,
+             'corrections', coalesce(k.n, 0))
+         FROM accounting_opening_baselines b
+         JOIN currencies c ON c.workspace_id = b.workspace_id AND c.id = b.currency_id
+         LEFT JOIN invoices i ON i.workspace_id = b.workspace_id AND b.source_kind = 'invoice'
+                              AND i.id = b.source_id
+         LEFT JOIN supplier_bills sb ON sb.workspace_id = b.workspace_id
+                              AND b.source_kind = 'supplier_bill' AND sb.id = b.source_id
+         LEFT JOIN relations r ON r.workspace_id = b.workspace_id
+                              AND r.id = coalesce(i.relation_id, sb.supplier_id)
+         LEFT JOIN LATERAL (SELECT sum(outstanding_delta) AS delta, count(*) AS n
+                            FROM accounting_opening_corrections x
+                            WHERE x.workspace_id = b.workspace_id AND x.baseline_id = b.id) k ON true
+         WHERE b.workspace_id = $1
+         ORDER BY b.source_kind, coalesce(i.invoice_number::text, sb.supplier_invoice_number), b.id
+         LIMIT 500",
+    )
+    .bind(ws)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Value::Array(rows))
 }

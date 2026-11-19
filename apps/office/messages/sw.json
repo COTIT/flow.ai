@@ -1556,7 +1556,8 @@
       "cash": "Fedha taslimu",
       "setup": "Mipangilio",
       "banking": "Benki",
-      "exceptions": "Hitilafu"
+      "exceptions": "Hitilafu",
+      "opening": "Ufunguzi"
     },
     "roles": {
       "receivables": "Madeni ya wateja",
@@ -1621,7 +1622,8 @@
       "stale_document": "Hii imebadilika tangu ulipoifungua. Tumepakia toleo jipya: likague kisha ujaribu tena.",
       "accounting_not_configured": "Uhasibu bado haujaanza. Kuingiza kunaanza mara vitabu vikiandaliwa na kuwashwa.",
       "accounting_period_closed": "Hakuna kipindi wazi kwa tarehe hii. Ongeza au fungua kipindi kwanza.",
-      "unsupported_active_erp_operation": "Hili haliwezi kubadilishwa hapa. Maingizo yaliyoingizwa na mipangilio inayotumika hubaki yalivyo; sahihisha kwa ubatilishaji."
+      "unsupported_active_erp_operation": "Hili haliwezi kubadilishwa hapa. Maingizo yaliyoingizwa na mipangilio inayotumika hubaki yalivyo; sahihisha kwa ubatilishaji.",
+      "already_active": "Vitabu hivi tayari vimeanzishwa."
     },
     "accounts": {
       "title": "Orodha ya akaunti",
@@ -1964,6 +1966,60 @@
         "matched": "Mstari wa benki umeoanishwa.",
         "unmatched": "Uoanishaji umerudishwa."
       }
+    },
+    "opening": {
+      "title": "Ufunguzi na uanzishaji",
+      "setupInfo": "Uanzishaji unaanza vitabu kwa salio la ufunguzi ulilokagua. Leta faili za ufunguzi kwanza, zikague hapa, kisha anzisha mara moja.",
+      "readOnly": "Unaweza kuona ufunguzi. Kuukagua kunahitaji ruhusa ya kuweka mipangilio ya hesabu.",
+      "batches": "Faili za ufunguzi",
+      "noBatches": "Bado hakuna faili ya ufunguzi iliyokamilika. Leta hisa, salio na mizania ya ufunguzi kupitia Mipangilio → Uletaji kwanza.",
+      "profiles": {
+        "opening_inventory": "Hisa ya ufunguzi",
+        "opening_receivables": "Madeni ya wateja",
+        "opening_payables": "Madeni kwa wasambazaji",
+        "opening_trial_balance": "Mizania ya ufunguzi"
+      },
+      "review": "Kagua ufunguzi",
+      "reviewAgain": "Kagua tena",
+      "reviewTitle": "Ukaguzi",
+      "cutover": "Siku ya kuanza",
+      "stock": "Hisa",
+      "stockValue": "Vipande {quantity} vya thamani {value}",
+      "receivables": "Wateja wanadaiwa",
+      "payables": "Unadaiwa na wasambazaji",
+      "open": "{count, plural, one {deni # } other {madeni #}}, {amount}",
+      "trialBalance": "Mizania",
+      "debitCredit": "Debiti {debit}, krediti {credit}",
+      "ready": "Kila kitu kiko sawa. Vitabu vinaweza kuanzishwa.",
+      "notReady": "{count, plural, one {Jambo # la kurekebisha kabla ya kuanzisha} other {Mambo # ya kurekebisha kabla ya kuanzisha}}",
+      "finalTitle": "Uanzishaji ni wa mwisho",
+      "final": "Kuanzia {date} kila mauzo, ununuzi, malipo na mabadiliko ya hisa yanaandikwa. Uanzishaji hauwezi kutenduliwa; makosa yanarekebishwa baadaye kwa marekebisho.",
+      "confirm": "Nimekagua takwimu hizi na nataka kuanzisha vitabu.",
+      "activate": "Anzisha vitabu",
+      "activated": "Vitabu vimeanzishwa.",
+      "noActivateRight": "Kuanzisha kunahitaji ruhusa ya uanzishaji. Muulize mmiliki.",
+      "activeInfo": "Vitabu vimekuwa hai tangu {at}. Haya ni salio lililoletwa na ufunguzi.",
+      "balances": "Salio la ufunguzi",
+      "noBalances": "Ufunguzi haukuwa na madeni ya wateja au wasambazaji.",
+      "kinds": {
+        "invoice": "Ankara {number}",
+        "supplier_bill": "Ankara ya msambazaji {number}"
+      },
+      "noParty": "Hakuna mteja wala msambazaji",
+      "outstanding": "Deni {amount}",
+      "corrected": "{count, plural, one {imerekebishwa mara moja} other {imerekebishwa mara #}}, ilianza {from}",
+      "correct": "Rekebisha salio hili",
+      "correctTitle": "Rekebisha salio la ufunguzi",
+      "correctedAmount": "Deni sahihi",
+      "date": "Tarehe ya kuandika",
+      "reason": "Sababu",
+      "evidence": "Ushahidi (hati au rejea)",
+      "reviewCorrection": "Kagua marekebisho",
+      "saveCorrection": "Andika marekebisho",
+      "cancel": "Ghairi",
+      "correctionReview": "Kagua kabla ya kuandika",
+      "correctionPlan": "Deni linatoka {from} kwenda {to} ({delta}), dhidi ya salio la ufunguzi. Kiasi cha awali cha ufunguzi kinabaki kama kilivyo.",
+      "correctionSaved": "Marekebisho yameandikwa."
     }
   },
   "taxes": {

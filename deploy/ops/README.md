@@ -156,3 +156,26 @@ An env with no checkout is skipped. By hand: `sudo /usr/local/lib/genesy-ops/wat
 
 - Docker's daemon-wide log defaults (`/etc/docker/daemon.json`). Changing them restarts Docker, and that bounces every project on the box (control360 too). Genesy's containers already cap and compress their own logs.
 - Where CI and staging should live: `decisions.md`.
+
+## ERP release rehearsal (local only)
+
+`erp-rehearsal.sh` proves, on your machine, that a populated database from before the Flow ERP migrations moves forward cleanly and that a dump of it restores. It never runs on the VPS, never reads `deploy/<env>/secrets`, and never activates a book.
+
+```bash
+cd apps/api && cargo build                     # the debug API binary (or pass --api-bin)
+bash deploy/ops/erp-rehearsal.sh --database-url postgres://USER:PASS@127.0.0.1:54320/postgres \
+  --pg-container genesy-dev-pg                 # when local pg_dump is older than the server
+bash deploy/ops/erp-rehearsal.test.sh          # its refusals, no database needed
+```
+
+What it does, on two scratch databases (`erp_rehearsal_<pid>_src` / `_dst`) of that local server:
+
+1. `src`: every migration, then `seed-demo` (AFM and RUAHA demo data).
+2. Reverts `src` to the last migration before the ERP (`20261114020000`): populated, pre-ERP.
+3. `pg_dump` of `src`, `pg_restore` into `dst` (the restore rehearsal).
+4. `genesy-360-api migrate` on `dst`, twice: forward to the newest migration, then a no-op.
+5. Pre-ERP row counts (workspaces, products, invoices, orders, stocks) are unchanged; every workspace has its book row in `setup`.
+6. Starts the API on `127.0.0.1:18490` against `dst`, logs in as a seeded owner, and checks that the ERP read routes answer 200.
+7. Drops both scratch databases (`--keep` leaves them).
+
+It refuses a host other than `127.0.0.1`/`localhost`/`[::1]` and any maintenance database other than `postgres`, so it can't touch `genesy360` or a real server. Limits: the data is demo data, not a production dump; it checks reads, not a real activation.

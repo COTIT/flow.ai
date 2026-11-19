@@ -19,11 +19,14 @@ use crate::{
         },
         farm_vouchers::rules::{Conflict, household_conflict},
         settings::service as settings,
+        stock::value,
     },
 };
 
 const REF_TAKEN: &str = "This client_ref belongs to another payout.";
 const ALREADY_VOID: &str = "This payout is already void.";
+const FARM_MONEY: &str =
+    "Farmer payouts and cash floats aren't supported while the accounting book is active.";
 const OVER_LIMIT: &str = "this payout is above the officer limit: ops or admin must pay it";
 const REGISTERED: &str =
     "you registered this household, so another staff member must pay this farmer";
@@ -60,6 +63,8 @@ pub async fn pay(
         return replay(p, access, &hash).map(|p| (p, false));
     }
     let mut tx = access.begin(&state.db).await?;
+    // §16: farmer payouts have no native accounting yet.
+    value::refuse_active(&mut tx, ws, FARM_MONEY).await?;
     let village = repo::lock_person(&mut tx, ws, input.person_id)
         .await?
         .filter(|v| access.staff_in(*v))
@@ -156,6 +161,7 @@ pub async fn void(
         .await?
         .ok_or(AppError::NotFound)?;
     let mut tx = access.begin(&state.db).await?;
+    value::refuse_active(&mut tx, ws, FARM_MONEY).await?;
     if !repo::insert_void(&mut tx, ws, p.id, &reason, access.user_id).await? {
         return Err(AppError::Conflict(ALREADY_VOID));
     }
@@ -219,7 +225,10 @@ pub async fn move_cash(
         payout_id: None,
         created_by: access.user_id,
     };
-    let id = repo::move_cash(&state.db, ws, &m).await?;
+    let mut tx = access.begin(&state.db).await?;
+    value::refuse_active(&mut tx, ws, FARM_MONEY).await?;
+    let id = repo::move_cash(&mut *tx, ws, &m).await?;
+    tx.commit().await?;
     Ok(CashMovementResource {
         id,
         kind: kind.to_owned(),

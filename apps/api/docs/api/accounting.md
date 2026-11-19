@@ -352,8 +352,27 @@ Response: `inventory {mode, quantity, value}`, `receivables`/`payables {count, f
 | `stock_quantity_mismatch` | mode `existing`: staged quantities ≠ stock on hand per product+warehouse (both directions) |
 | `stock_not_empty` | mode `empty`: the workspace has stock on hand |
 | `open_shifts` | a till shift is still open |
+| `unknown_money` | an online payment `creating`/`open`/`unknown`, a pending refund reservation, or a pending accounting exception |
+| `receipts_unbooked` | an accepted purchase receipt line not booked (and not late) |
+| `in_transit` | a supply transfer to or from the workspace not received yet |
+| `negative_stock` | a product+warehouse below zero |
+| `unsupported_products` | a live, unarchived gift card or product set/group |
+| `sku_split_required` | a stocked physical product with a nondefault variant (shared SKU) |
+| `tax_profile_missing` | a live, unarchived product without exactly one verified sale tax profile on the cutover day |
+| `role_mapping_missing` | a §8 role without an account |
+| `period_missing` | no open period covers the cutover day |
 
-### Activation core (`opening::apply`, crate-internal; M8 wraps it)
+The response also carries `cutover_date`: the set cutover, else today in the book's timezone (the day activation will use). It is part of the fingerprint.
+
+### POST /accounting/activate (`accounting_activate`, `accounting.activate`)
+
+A envelope `{client_ref, expected_version (setup version), payload: {batch_ids, opening_fingerprint}}` + Idempotency-Key. One transaction (masterplan §14 steps 3-10): exclusive book gate; book already active → 409 `already_active`; stale setup version → 409 `stale_document`; `cutover_at` = the set one, else the transaction time; then the core below re-reviews (changed fingerprint → 409 `stale_document`, issues → 422 naming them) and posts the opening; then `state = active`, `opening_fingerprint` (sha256 of the reviewed fingerprint), `activated_by`, `activated_at`, version + 1. Any refusal writes nothing. 200 → the setup resource (`state: active`). Same `client_ref` → the stored answer (permanent replay). Audit: the book's activation columns and the `opening/activated` effect.
+
+### GET /accounting/opening-baselines (`accounting_opening_baselines_list`, `accounting.read`)
+
+Every receivable/payable the opening carried: `id` (the correction's `baseline_id`), `source_kind`, `source_id`, `number` (invoice number or supplier invoice number), `party`, `currency`, `face`, `settled`, `outstanding` (at cutover), `corrected_outstanding` (+ Σ corrections), `corrections` (count). Amounts are decimal text from SQL. Empty in a setup book. Shortcut: first 500, no paging.
+
+### Activation core (`opening::apply`; `POST /accounting/activate` wraps it)
 
 Exclusive book gate; effect `opening/activated` per book, so a retry returns `false` and writes nothing. Re-runs the review: another fingerprint → 409 `stale_document`; issues → 422 listing them. Book needs `cutover_at` and timezone (accounting date = cutover day). Then once:
 
@@ -363,7 +382,7 @@ Exclusive book gate; effect `opening/activated` per book, so a retry returns `fa
 - inventory: `existing` seeds a pool and an `opening` value entry without a movement (quantity locked); `empty` writes the opening stock movement, pool and value entry;
 - `cash_place_openings` per drawer/vault from the trial balance.
 
-The book state is left as is.
+The core leaves the book state as is; the route flips it in the same transaction.
 
 ### After activation (payment contract)
 
@@ -391,7 +410,7 @@ The close checks get no opening check. Nothing opening-related can stay pending 
 
 ## Permissions
 
-`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse`, `accounting.revalue`, `accounting.reconcile` and `accounting.close` are used now. `accounting.activate` is catalogued for a later milestone.
+`accounting.read`, `accounting.configure`, `accounting.journal_create`, `accounting.post`, `accounting.reverse`, `accounting.revalue`, `accounting.reconcile`, `accounting.close` and `accounting.activate` (`POST /accounting/activate` only) are used.
 
 ## Provider observations
 

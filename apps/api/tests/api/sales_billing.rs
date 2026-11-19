@@ -377,13 +377,13 @@ async fn another_workspace_reaches_no_billing_route(pool: PgPool) {
 
 // --- customer deposits (§19 G) -------------------------------------------------------------
 
-fn provider() -> Value {
+pub(crate) fn provider() -> Value {
     json!({ "kind": "provider_clearing", "reference": "PSP-1", "evidence_ref": "dashboard/1",
             "confirmation_method": "provider_dashboard" })
 }
 
 /// Review + receive a deposit of `amount` into `location`; (status, body, request).
-async fn receive(f: &F, amount: &str, location: Value) -> (StatusCode, Value, Value) {
+pub(crate) async fn receive(f: &F, amount: &str, location: Value) -> (StatusCode, Value, Value) {
     let review = json!({ "relation_id": f.rel, "amount": amount, "received_on": today(),
                          "location": location });
     let (s, rv) = post(f, "/customer-deposits/review", review.clone()).await;
@@ -398,7 +398,7 @@ async fn receive(f: &F, amount: &str, location: Value) -> (StatusCode, Value, Va
 }
 
 /// Review + apply `amount` of deposit `d` to recognition `rec`.
-async fn apply(f: &F, d: &Value, rec: &str, amount: &str) -> (StatusCode, Value) {
+pub(crate) async fn apply(f: &F, d: &Value, rec: &str, amount: &str) -> (StatusCode, Value) {
     let id = d["id"].as_str().unwrap();
     let (s, rv) = post(
         f,
@@ -424,7 +424,7 @@ fn major(m: i64) -> String {
     format!("{}.{:02}", m / 100, m % 100)
 }
 
-async fn recognition_of(f: &F, sh: &Value) -> String {
+pub(crate) async fn recognition_of(f: &F, sh: &Value) -> String {
     sqlx::query_scalar("SELECT id::text FROM sales_recognitions WHERE shipment_id = $1::uuid")
         .bind(sh["id"].as_str().unwrap())
         .fetch_one(&f.api.pool)
