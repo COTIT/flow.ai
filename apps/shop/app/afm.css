@@ -142,11 +142,11 @@ body[data-shop-theme="afm"] {
 }
 
 [data-shop-theme="afm"] .afm-footer {
+  --afm-ink: #fff9ec;
   --afm-focus: #edd49c;
   display: grid;
   background: var(--afm-forest);
   border: 1px solid var(--afm-forest-light);
-  color: #fff9ec;
 }
 
 [data-shop-theme="afm"] .afm-newsletter {

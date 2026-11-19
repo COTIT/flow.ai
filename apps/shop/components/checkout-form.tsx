@@ -223,7 +223,12 @@ export function CheckoutForm({
           </h2>
           {ADDRESS.map((f) => field(f))}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {PLACE.map((f) => field(f))}
+            {PLACE.map((f) =>
+              field(
+                f,
+                f[0] === "country" ? "col-span-2 md:col-span-1" : undefined
+              )
+            )}
           </div>
         </section>
       </div>
