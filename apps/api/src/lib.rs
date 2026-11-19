@@ -14,6 +14,7 @@ mod health;
 pub mod healthcheck;
 mod http;
 mod idempotency;
+pub mod integrations;
 pub mod jobs;
 pub mod mail;
 mod modules;
@@ -25,6 +26,7 @@ pub mod payments;
 pub mod pdf;
 mod php;
 pub mod storage;
+mod workflows;
 
 use axum::{
     Router,
@@ -101,6 +103,8 @@ pub struct AppState {
     pub checkout_hold_max: i64,
     /// `SIGNUP_ENABLED`: `POST /v1/create-workspace` answers; off = 404.
     pub signup_enabled: bool,
+    /// Integration provider clients (`INTEGRATIONS_PROVIDERS`) and their guarded HTTP client.
+    pub integrations: integrations::Runtime,
 }
 
 /// One-off boot work before serving: login timing-equalizer hash, assistant operation inventory.

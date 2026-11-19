@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_executions SET remote_attempts = $3, phase = 'write_intent',\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3b8ca88f28702622f3fdcdd9b0b105d9337a5d25a5cb932d0c2494e44cb8f4e"
+}

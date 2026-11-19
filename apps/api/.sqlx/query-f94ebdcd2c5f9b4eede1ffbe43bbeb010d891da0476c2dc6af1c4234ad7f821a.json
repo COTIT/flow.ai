@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO approval_requests (workspace_id, workflow_key, pair_id, subject_ref, revision,\n             fingerprint, snapshot, amount_minor, currency_ref, currency_decimals,\n             required_permission, requester_user_id, status, resubmitted_by)\n         SELECT workspace_id, workflow_key, pair_id, subject_ref, revision + 1, fingerprint,\n             snapshot, amount_minor, currency_ref, currency_decimals, required_permission,\n             requester_user_id, 'pending', $3\n         FROM approval_requests WHERE workspace_id = $1 AND id = $2\n         ON CONFLICT DO NOTHING\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f94ebdcd2c5f9b4eede1ffbe43bbeb010d891da0476c2dc6af1c4234ad7f821a"
+}

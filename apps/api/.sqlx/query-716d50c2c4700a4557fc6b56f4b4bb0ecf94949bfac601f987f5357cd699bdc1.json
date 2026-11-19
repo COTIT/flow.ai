@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE approval_requests r SET status = 'invalidated', invalidated_reason = $3,\n             decided_by = NULL, decided_at = NULL, updated_at = now()\n         WHERE r.workspace_id = $1 AND r.id = $2 AND r.status IN ('blocked', 'pending', 'approved')\n           AND NOT EXISTS (SELECT 1 FROM workflow_executions e WHERE e.approval_request_id = r.id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "716d50c2c4700a4557fc6b56f4b4bb0ecf94949bfac601f987f5357cd699bdc1"
+}

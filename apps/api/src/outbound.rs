@@ -41,20 +41,29 @@ impl Outbound {
 
     /// Send `req` after refusing an untrusted IP-literal host that isn't public.
     pub async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, String> {
+        self.execute(req).await.map_err(|f| match f {
+            Failure::Refused(e) => e,
+            Failure::Http(e) => format!("send: {}", e.without_url()),
+        })
+    }
+
+    /// `send` keeping the reqwest error, so a caller can tell a failed connect (nothing sent)
+    /// from a failure after the request went out.
+    pub async fn execute(
+        &self,
+        req: reqwest::RequestBuilder,
+    ) -> Result<reqwest::Response, Failure> {
         // Errors drop the URL: a presigned one carries a live signature.
         let req = req
             .build()
-            .map_err(|e| format!("request: {}", e.without_url()))?;
+            .map_err(|e| Failure::Refused(format!("request: {}", e.without_url())))?;
         if !self.allowed(req.url()) {
-            return Err(format!(
+            return Err(Failure::Refused(format!(
                 "{} is not a public address",
                 req.url().host_str().unwrap_or("?")
-            ));
+            )));
         }
-        self.client
-            .execute(req)
-            .await
-            .map_err(|e| format!("send: {}", e.without_url()))
+        self.client.execute(req).await.map_err(Failure::Http)
     }
 
     fn allowed(&self, url: &reqwest::Url) -> bool {
@@ -71,6 +80,15 @@ impl Outbound {
             Err(_) => true,
         }
     }
+}
+
+/// Why `Outbound::execute` failed.
+#[derive(Debug)]
+pub enum Failure {
+    /// Refused before any connection (bad request or a host that isn't public).
+    Refused(String),
+    /// The HTTP client's own error.
+    Http(reqwest::Error),
 }
 
 fn client(trusted: Arc<HashSet<String>>) -> Result<reqwest::Client, String> {

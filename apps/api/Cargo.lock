@@ -1051,6 +1051,7 @@ dependencies = [
  "lettre",
  "lopdf",
  "reqwest",
+ "ring",
  "rlimit",
  "rust_decimal",
  "rustls",

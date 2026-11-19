@@ -3,6 +3,7 @@
 pub mod accounting;
 pub mod analytics;
 pub mod app_keys;
+pub mod approvals;
 pub mod assistant;
 pub mod attention;
 pub mod auth;

@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.action, w.actor_user_id, u.first_name || ' ' || u.last_name AS \"actor_name!\",\n                  w.reason, w.outcome, w.created_at\n           FROM workflow_resolutions w JOIN users u ON u.id = w.actor_user_id\n           WHERE w.workspace_id = $1 AND w.execution_id = $2 ORDER BY w.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "action",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_resolutions",
+            "name": "action"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "actor_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_resolutions",
+            "name": "actor_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "actor_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_resolutions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "outcome",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_resolutions",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_resolutions",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "88375c45d30de4e00e61f3688cab9ec046eb5428eab347962c7e0a579f4fcc9c"
+}

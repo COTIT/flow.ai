@@ -89,6 +89,8 @@ pub struct Config {
     pub graph_api_url: String,
     /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
     pub payments_provider: Option<String>,
+    /// `INTEGRATIONS_PROVIDERS`: unset = live adapters; `fake` in debug builds only.
+    pub integrations_providers: Option<String>,
     /// Operator-owned `GLOBADYME_ENVIRONMENT`; unset disables Globadyme.
     pub globadyme_environment: Option<crate::payments::GlobadymeEnvironment>,
     /// `STRIPE_*`, read only when `PAYMENTS_PROVIDER=stripe`.
@@ -167,6 +169,7 @@ impl fmt::Debug for Config {
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
             .field("payments_provider", &self.payments_provider)
+            .field("integrations_providers", &self.integrations_providers)
             .field("globadyme_environment", &self.globadyme_environment)
             .field("stripe", &self.stripe) // masks both secrets
             .field("checkout_hold_max", &self.checkout_hold_max)
@@ -269,6 +272,7 @@ impl Config {
         let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
         let skip_boot_migrations = flag(&get, "SKIP_BOOT_MIGRATIONS")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
+        let integrations_providers = get("INTEGRATIONS_PROVIDERS").filter(|v| !v.trim().is_empty());
         let globadyme_environment = match get("GLOBADYME_ENVIRONMENT").as_deref() {
             None => None,
             Some("sandbox") => Some(crate::payments::GlobadymeEnvironment::Sandbox),
@@ -287,6 +291,7 @@ impl Config {
             None
         };
         crate::payments::select(payments_provider.as_deref(), release, stripe.clone())?;
+        crate::integrations::providers::select(integrations_providers.as_deref(), release)?;
         let credentials_key = get("CREDENTIALS_KEY")
             .filter(|v| !v.is_empty())
             .map(|mut v| {
@@ -360,6 +365,7 @@ impl Config {
             graph_login_url,
             graph_api_url,
             payments_provider,
+            integrations_providers,
             globadyme_environment,
             stripe,
             checkout_hold_max,

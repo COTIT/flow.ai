@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE approval_policies\n         SET threshold_minor = coalesce($3, threshold_minor), active = coalesce($4, active),\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "030e8e16a7887d1371e97de8741b17cdb4d125da530f9e7dcb70ba8c4c448eb7"
+}

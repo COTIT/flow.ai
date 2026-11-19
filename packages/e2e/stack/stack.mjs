@@ -1,6 +1,13 @@
 // Shared bits of the full-stack harness (STACK.md): ports, paths, the state file, processes.
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { dirname, join } from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
@@ -51,7 +58,8 @@ export const FILES_BUCKET = "genesy-e2e"
 /** Where the API writes and browsers read signed links (one origin: the shop's CSP img-src). */
 export const FILES_ORIGIN = `http://127.0.0.1:${PORTS.files}`
 
-export const readState = () => (existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : null)
+export const readState = () =>
+  existsSync(STATE) ? JSON.parse(readFileSync(STATE, "utf8")) : null
 export function writeState(state) {
   mkdirSync(DIR, { recursive: true })
   writeFileSync(STATE, JSON.stringify(state, null, 2))
@@ -61,7 +69,8 @@ export const clearState = () => rmSync(STATE, { force: true })
 /** Runs a command to the end, output inherited; throws on a non-zero exit. */
 export function run(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { stdio: "inherit", ...opts })
-  if (r.status !== 0) throw new Error(`${cmd} ${args.join(" ")} exited ${r.status ?? r.signal}`)
+  if (r.status !== 0)
+    throw new Error(`${cmd} ${args.join(" ")} exited ${r.status ?? r.signal}`)
   return r
 }
 
@@ -69,7 +78,9 @@ export function run(cmd, args, opts = {}) {
 export const exec = (cmd, args, opts = {}) =>
   new Promise((resolve, reject) =>
     spawn(cmd, args, { stdio: "inherit", ...opts }).on("close", (code) =>
-      code === 0 ? resolve() : reject(new Error(`${cmd} ${args.join(" ")} exited ${code}`))
+      code === 0
+        ? resolve()
+        : reject(new Error(`${cmd} ${args.join(" ")} exited ${code}`))
     )
   )
 
@@ -77,7 +88,11 @@ export const exec = (cmd, args, opts = {}) =>
 export function start(name, cmd, args, opts = {}) {
   mkdirSync(LOGS, { recursive: true })
   const log = openSync(join(LOGS, `${name}.log`), "w")
-  const child = spawn(cmd, args, { detached: true, stdio: ["ignore", log, log], ...opts })
+  const child = spawn(cmd, args, {
+    detached: true,
+    stdio: ["ignore", log, log],
+    ...opts,
+  })
   child.unref()
   return child.pid
 }
@@ -113,12 +128,24 @@ export async function waitFor(name, url, seconds = 120) {
     }
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
-  throw new Error(`${name} did not answer ${url} within ${seconds} s (see ${join(LOGS, `${name}.log`)})`)
+  throw new Error(
+    `${name} did not answer ${url} within ${seconds} s (see ${join(LOGS, `${name}.log`)})`
+  )
 }
 
 /** SQL inside the stack's own container (the host may have no psql). */
 export const psql = (sql) =>
-  run("docker", ["exec", CONTAINER, "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-qc", sql])
+  run("docker", [
+    "exec",
+    CONTAINER,
+    "psql",
+    "-U",
+    "postgres",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-qc",
+    sql,
+  ])
 
 /** The API's env for the stack: debug build, fake payments, rate limits out of the way. */
 export function apiEnv(state) {
@@ -134,6 +161,8 @@ export function apiEnv(state) {
     SMTP_ALLOW_INSECURE: "true",
     MAIL_FROM: "Genesy e2e <no-reply@e2e.test>",
     PAYMENTS_PROVIDER: "fake",
+    // WF-01: Odoo and NetSuite answer from the in-process fake (debug builds only); nothing leaves.
+    INTEGRATIONS_PROVIDERS: "fake",
     GENESY_ALLOW_DEMO_SEED: "1",
     SIGNUP_ENABLED: "true",
     PRODUCT_BULK_ENABLED: "true",
@@ -151,7 +180,9 @@ export function apiEnv(state) {
     PRIVATE_RATE_LIMIT_BURST: "10000",
     PRIVATE_IP_RATE_LIMIT_BURST: "100000",
     INVITES_PER_HOUR: "10000",
-    ...(state.voice ? { ASSISTANT_BRIDGE_SECRET: state.voice.bridgeSecret } : {}),
+    ...(state.voice
+      ? { ASSISTANT_BRIDGE_SECRET: state.voice.bridgeSecret }
+      : {}),
   }
   // Synthetic bulk fixtures never use a developer's live extraction credentials.
   delete env.ANTHROPIC_API_KEY
@@ -180,19 +211,60 @@ export function voiceEnv(state, workspaces) {
 /** After migrations: the checkpoint role and grants, then its login password (inside the container). */
 export function voiceRole(state) {
   const sql = readFileSync(join(ROOT, "deploy/assistant-role.sql"), "utf8")
-  run("docker", [
-    "exec", "-i", CONTAINER, "psql", "-U", "postgres", "-d", DB, "-v", "ON_ERROR_STOP=1", "-q",
-    "-v", `checkpoint_role=${CHECKPOINT_ROLE}`, "-v", "checkpoint_mode=bootstrap", "-f", "-",
-  ], { input: sql, stdio: ["pipe", "ignore", "inherit"] })
+  run(
+    "docker",
+    [
+      "exec",
+      "-i",
+      CONTAINER,
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      DB,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-q",
+      "-v",
+      `checkpoint_role=${CHECKPOINT_ROLE}`,
+      "-v",
+      "checkpoint_mode=bootstrap",
+      "-f",
+      "-",
+    ],
+    { input: sql, stdio: ["pipe", "ignore", "inherit"] }
+  )
   // Hex only, so it is safe inside the quoted literal.
-  run("docker", ["exec", "-i", CONTAINER, "psql", "-U", "postgres", "-d", DB, "-v", "ON_ERROR_STOP=1", "-q", "-f", "-"], {
-    input: `ALTER ROLE ${CHECKPOINT_ROLE} LOGIN PASSWORD '${state.voice.checkpointPassword}';`,
-    stdio: ["pipe", "ignore", "inherit"],
-  })
+  run(
+    "docker",
+    [
+      "exec",
+      "-i",
+      CONTAINER,
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      DB,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-q",
+      "-f",
+      "-",
+    ],
+    {
+      input: `ALTER ROLE ${CHECKPOINT_ROLE} LOGIN PASSWORD '${state.voice.checkpointPassword}';`,
+      stdio: ["pipe", "ignore", "inherit"],
+    }
+  )
 }
 
 export const apiBin = () =>
-  join(process.env.CARGO_TARGET_DIR ?? join(API_DIR, "target"), "debug", "genesy-360-api")
+  join(
+    process.env.CARGO_TARGET_DIR ?? join(API_DIR, "target"),
+    "debug",
+    "genesy-360-api"
+  )
 
 /** The mail sink the API sends to (before the seed: signups mail a verification link). */
 export const startMail = () =>
@@ -200,12 +272,16 @@ export const startMail = () =>
     env: { ...process.env, MAIL_DIR: MAIL, MAIL_PORT: String(PORTS.mail) },
   })
 
-export const startApi = (state) => start("api", apiBin(), [], { env: apiEnv(state), cwd: DIR })
+export const startApi = (state) =>
+  start("api", apiBin(), [], { env: apiEnv(state), cwd: DIR })
 
 /** Each seeded workspace's id, by account (`seed.workspaces.AFM`), from its first member's login. */
 export async function workspaceIds(seed) {
   const ids = {}
-  for (const [name, app, role] of [["AFM", "office (AFM)", "owner"], ["RUAHA", "office (RUAHA)", "admin"]]) {
+  for (const [name, app, role] of [
+    ["AFM", "office (AFM)", "owner"],
+    ["RUAHA", "office (RUAHA)", "admin"],
+  ]) {
     const who = seed.credentials.find((c) => c.app === app && c.role === role)
     const r = await fetch(`${URLS.api}/v1/login`, {
       method: "POST",

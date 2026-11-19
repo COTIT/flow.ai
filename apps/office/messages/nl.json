@@ -82,7 +82,9 @@
     "imports": "Importeren",
     "purchases": "Inkoop",
     "accounting": "Boekhouding",
-    "taxes": "Belastingen"
+    "taxes": "Belastingen",
+    "purchaseApprovals": "Inkoopgoedkeuringen",
+    "integrations": "Koppelingen met systemen"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",

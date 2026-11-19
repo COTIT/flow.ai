@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, pair_id, entity, source_id, target_id, source_label, target_label, updated_at\n         FROM integration_mappings\n         WHERE workspace_id = $1 AND pair_id = $2 AND ($3::text IS NULL OR entity = $3)\n         ORDER BY entity, source_id LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pair_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "pair_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "entity",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "entity"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "source_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "target_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "target_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "source_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "source_label"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "target_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "target_label"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "a6987b188d9c7b250db005db9889560accde3b7bdcb1a6c38ec155dd3980f64c"
+}

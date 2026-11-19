@@ -40,6 +40,7 @@
     "./setup": "./src/setup.ts",
     "./idempotency": "./src/idempotency.ts",
     "./rights": "./src/rights.ts",
-    "./storefront-review": "./src/storefront-review.ts"
+    "./storefront-review": "./src/storefront-review.ts",
+    "./business-approvals": "./src/business-approvals.ts"
   }
 }

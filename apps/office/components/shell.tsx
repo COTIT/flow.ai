@@ -14,6 +14,7 @@ import {
   Globe,
   LayoutGrid,
   CalendarClock,
+  ClipboardCheck,
   FileUp,
   KeyRound,
   Layers,
@@ -21,6 +22,7 @@ import {
   Menu,
   Mic,
   Package,
+  Plug,
   Tags,
   Search,
   ShoppingBag,
@@ -122,6 +124,12 @@ const items: Item[] = [
     group: "shell.buy",
   },
   {
+    href: "/approvals/purchases",
+    match: "/approvals",
+    label: "nav.purchaseApprovals",
+    icon: ClipboardCheck,
+  },
+  {
     href: "/lots",
     match: "/lots",
     label: "nav.lots",
@@ -191,6 +199,12 @@ const items: Item[] = [
     match: "/settings/webhooks",
     label: "nav.webhooks",
     icon: Zap,
+  },
+  {
+    href: "/settings/integrations",
+    match: "/settings/integrations",
+    label: "nav.integrations",
+    icon: Plug,
   },
   {
     href: "/settings/invites",

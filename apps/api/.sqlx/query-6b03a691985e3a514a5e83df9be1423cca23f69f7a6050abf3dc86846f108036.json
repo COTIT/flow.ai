@@ -1,0 +1,209 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.status, e.phase, e.correlation_id, e.remote_attempts,\n                  r.id AS approval_id, r.fingerprint, r.snapshot, r.required_permission,\n                  r.decided_by, r.subject_ref, p.id AS pair_id, p.source_connection_id,\n                  p.target_connection_id,\n                  a.attempt_no AS \"latest_no?\", a.outcome AS \"latest_outcome?\"\n           FROM workflow_executions e\n           JOIN approval_requests r ON r.workspace_id = e.workspace_id AND r.id = e.approval_request_id\n           JOIN integration_pairs p ON p.workspace_id = r.workspace_id AND p.id = r.pair_id\n           LEFT JOIN LATERAL (SELECT x.attempt_no, x.outcome FROM workflow_execution_attempts x\n                              WHERE x.workspace_id = e.workspace_id AND x.execution_id = e.id ORDER BY x.attempt_no DESC LIMIT 1) a ON true\n           WHERE e.workspace_id = $1 AND e.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "phase",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "phase"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "correlation_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "correlation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "remote_attempts",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_executions",
+            "name": "remote_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "approval_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "fingerprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "snapshot",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "snapshot"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "required_permission",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "required_permission"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "decided_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "decided_by"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "subject_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "approval_requests",
+            "name": "subject_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "pair_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "source_connection_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "source_connection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "target_connection_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "target_connection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "latest_no?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "workflow_execution_attempts",
+            "name": "attempt_no"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "latest_outcome?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_execution_attempts",
+            "name": "outcome"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "6b03a691985e3a514a5e83df9be1423cca23f69f7a6050abf3dc86846f108036"
+}

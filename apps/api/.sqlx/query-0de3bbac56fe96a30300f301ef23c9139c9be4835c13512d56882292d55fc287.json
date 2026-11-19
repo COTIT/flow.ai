@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT cursor_ts, cursor_id FROM integration_poll_cursors\n         WHERE workspace_id = $1 AND connection_id = $2 AND stream = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cursor_ts",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "integration_poll_cursors",
+            "name": "cursor_ts"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "cursor_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "integration_poll_cursors",
+            "name": "cursor_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0de3bbac56fe96a30300f301ef23c9139c9be4835c13512d56882292d55fc287"
+}

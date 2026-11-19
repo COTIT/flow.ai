@@ -82,7 +82,9 @@
     "imports": "Uingizaji",
     "purchases": "Manunuzi",
     "accounting": "Uhasibu",
-    "taxes": "Kodi"
+    "taxes": "Kodi",
+    "purchaseApprovals": "Idhini za ununuzi",
+    "integrations": "Miunganisho ya mifumo"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",

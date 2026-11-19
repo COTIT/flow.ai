@@ -42,6 +42,8 @@
     "./globals.css": "./src/styles/globals.css",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
+    "./components/business-approvals/types": "./src/components/business-approvals/types.ts",
+    "./components/business-approvals/labels": "./src/components/business-approvals/labels.ts",
     "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts"
   }

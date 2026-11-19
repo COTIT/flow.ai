@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO integration_poll_cursors (workspace_id, connection_id, stream, cursor_ts, cursor_id)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (connection_id, stream) DO UPDATE\n         SET cursor_ts = EXCLUDED.cursor_ts, cursor_id = EXCLUDED.cursor_id, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b063ffe4999ef1b7f747679c4d17e5df1a983828f8dfe571a68dc5dc41487d87"
+}

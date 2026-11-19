@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t AS \"t?\" FROM (\n               SELECT coalesce(sent_at, write_intent_at) + interval '15 minutes' AS t\n               FROM workflow_execution_attempts WHERE workspace_id = $1 AND execution_id = $2\n               ORDER BY attempt_no DESC LIMIT 1) x\n           WHERE t > now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t?",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e5e3171aa0dae1b50a42ea1b0ff20af9c4394b29ad570d0e340d87e35610a8f3"
+}

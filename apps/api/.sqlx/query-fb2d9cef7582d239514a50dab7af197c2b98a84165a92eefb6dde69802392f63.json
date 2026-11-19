@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO integration_mappings\n           (workspace_id, pair_id, entity, source_id, target_id, source_label, target_label, created_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n         ON CONFLICT (pair_id, entity, source_id) DO UPDATE\n         SET target_id = EXCLUDED.target_id, source_label = EXCLUDED.source_label,\n             target_label = EXCLUDED.target_label, updated_by = $8, updated_at = now()\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_mappings",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fb2d9cef7582d239514a50dab7af197c2b98a84165a92eefb6dde69802392f63"
+}

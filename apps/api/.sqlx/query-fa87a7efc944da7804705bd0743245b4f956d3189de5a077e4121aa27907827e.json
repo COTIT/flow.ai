@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_execution_attempts\n         SET sent_at = coalesce(sent_at, $4), outcome = coalesce(outcome, $5),\n             evidence = coalesce(evidence, $6)\n         WHERE workspace_id = $1 AND execution_id = $2 AND attempt_no = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2",
+        "Timestamptz",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fa87a7efc944da7804705bd0743245b4f956d3189de5a077e4121aa27907827e"
+}

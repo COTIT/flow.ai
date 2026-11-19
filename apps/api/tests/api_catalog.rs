@@ -1,4 +1,5 @@
-//! API integration tests: products, pricing, storefront, assistant, Flow, mail and jobs.
+//! API integration tests: products, pricing, storefront, assistant, Flow, mail, jobs,
+//! integrations and workflows.
 //! The suite is split over the `tests/api_*.rs` crates so no single compile outgrows CI's memory
 //! (one ~97k-line crate peaked at 15.3 GB). Feature files stay in `tests/api/`; files that call
 //! each other's helpers (`crate::other::…`) share a crate. New file: declare it in one crate below;
@@ -7,6 +8,10 @@
 #[path = "common/mod.rs"]
 mod common;
 
+#[path = "api/approvals.rs"]
+mod approvals;
+#[path = "api/approvals_schema.rs"]
+mod approvals_schema;
 #[path = "api/assistant.rs"]
 mod assistant;
 #[path = "api/assistant_batches.rs"]
@@ -37,12 +42,18 @@ mod flow_conversations;
 mod flow_scenes;
 #[path = "api/imports.rs"]
 mod imports;
+#[path = "api/integrations.rs"]
+mod integrations;
+#[path = "api/integrations_schema.rs"]
+mod integrations_schema;
 #[path = "api/jobs.rs"]
 mod jobs;
 #[path = "api/load_deals.rs"]
 mod load_deals;
 #[path = "api/load_jobs.rs"]
 mod load_jobs;
+#[path = "api/netsuite.rs"]
+mod netsuite;
 #[path = "api/pdf_templates.rs"]
 mod pdf_templates;
 #[path = "api/price_corrections.rs"]
@@ -89,3 +100,5 @@ mod storefront_preview_links;
 mod webhook_endpoints;
 #[path = "api/webhook_events.rs"]
 mod webhook_events;
+#[path = "api/workflows.rs"]
+mod workflows;

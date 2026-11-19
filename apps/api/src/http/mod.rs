@@ -64,5 +64,7 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
             .with_globadyme_environment(Some(crate::payments::GlobadymeEnvironment::Sandbox)),
         checkout_hold_max: 500,
         signup_enabled: true,
+        integrations: crate::integrations::Runtime::new(crate::integrations::providers::Mode::Live)
+            .expect("outbound http client"),
     }
 }

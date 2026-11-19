@@ -82,7 +82,9 @@
     "imports": "Imports",
     "purchases": "Purchases",
     "accounting": "Accounting",
-    "taxes": "Taxes"
+    "taxes": "Taxes",
+    "purchaseApprovals": "Purchase approvals",
+    "integrations": "Integrations"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workflow_execution_attempts (workspace_id, execution_id, attempt_no,\n             granted_by, grant_reason)\n         VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int2",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f611a41f0804a691e8550681d21466d1fc4ab9f934068c15623f0a249c0f52d6"
+}

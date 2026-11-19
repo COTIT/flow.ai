@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE approval_requests SET status = 'invalidated', invalidated_reason = $3,\n             decided_by = NULL, decided_at = NULL, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status = 'approved'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "041d03f20dd7728e95e7c5d89a5f5732ab7106171ee32c8d42c7ad5209fda097"
+}

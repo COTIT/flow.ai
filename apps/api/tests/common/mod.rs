@@ -86,6 +86,10 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         )),
         checkout_hold_max: 500,
         signup_enabled: true,
+        integrations: genesy_360_api::integrations::Runtime::new(
+            genesy_360_api::integrations::providers::Mode::Live,
+        )
+        .unwrap(),
     }
 }
 

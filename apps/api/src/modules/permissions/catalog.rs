@@ -1,7 +1,7 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment`, `salesreturn`, `purchasereturn`, `supplierbill` and `supplierpayment` (58 / 314). Name =
-//! `group.action`.
+//! but never catalogued, plus `specialoffer`, `pdftemplate`, `accounting`, `taxprofile`, `purchaseorder`, `stocktake`, `import`, `shipment`, `salesreturn`, `purchasereturn`, `supplierbill`, `supplierpayment` and `integration` (59 / 319). Name =
+//! `group.action`. `integration.*`: Verzo glue (WF-01), not Laravel.
 //! `cashregister.refund` / `cashregister.adjust`: privileged Till approval (D14), not Laravel.
 //! Regenerate when a ported module adds actions.
 
@@ -108,6 +108,10 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     (
         "import",
         &["apply", "create", "get", "list", "upload", "validate"],
+    ),
+    (
+        "integration",
+        &["approve", "approve_high", "manage", "reconcile", "view"],
     ),
     ("invite", &["create", "delete", "get", "list"]),
     (
@@ -317,8 +321,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 58);
-        assert_eq!(names().count(), 314);
+        assert_eq!(GROUPS.len(), 59);
+        assert_eq!(names().count(), 319);
     }
 
     #[test]
