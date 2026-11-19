@@ -506,20 +506,32 @@ pub async fn role_account(conn: &mut PgConnection, ws: Uuid, role: &str) -> Resu
     .ok_or_else(crate::modules::accounting::service::not_configured)
 }
 
-/// Paid projection of an invoice in an active book: what applications and explicit rounding
-/// relieved from its receivable items, net of reversals. Reclassification is not payment.
+/// Paid projection of an invoice in an active book (masterplan §14 OPENING PAYMENT CONTRACT):
+/// reviewed baseline paid (settled − refunded to cutover) + applications and explicit rounding
+/// relieved from its receivable items, net of reversals + dated opening corrections.
+/// Reclassification is not payment; a correction's own application counts once, as correction.
 pub async fn invoice_paid(
     conn: &mut PgConnection,
     ws: Uuid,
     invoice: Uuid,
 ) -> Result<i64, AppError> {
     Ok(sqlx::query_scalar(
-        "SELECT COALESCE(sum(CASE WHEN a.reversal_of IS NULL THEN a.amount ELSE -a.amount END), 0)::bigint
-         FROM accounting_open_items i
-         JOIN accounting_allocations a ON a.workspace_id = i.workspace_id
-              AND (a.target_item_id = i.id OR a.source_item_id = i.id)
-         WHERE i.workspace_id = $1 AND i.invoice_id = $2 AND i.classification = 'receivable'
-           AND a.kind IN ('application', 'rounding')",
+        "SELECT (COALESCE((SELECT sum(CASE WHEN a.reversal_of IS NULL THEN a.amount ELSE -a.amount END)
+                  FROM accounting_open_items i
+                  JOIN accounting_allocations a ON a.workspace_id = i.workspace_id
+                       AND (a.target_item_id = i.id OR a.source_item_id = i.id)
+                  WHERE i.workspace_id = $1 AND i.invoice_id = $2 AND i.classification = 'receivable'
+                    AND a.kind IN ('application', 'rounding')
+                    AND NOT EXISTS (SELECT 1 FROM accounting_open_items c
+                                    WHERE c.workspace_id = a.workspace_id
+                                      AND c.id IN (a.source_item_id, a.target_item_id)
+                                      AND c.source_kind = 'opening_correction')), 0)
+                + COALESCE((SELECT b.settled - b.refunded
+                              + COALESCE((SELECT sum(c.settled_delta) FROM accounting_opening_corrections c
+                                          WHERE c.workspace_id = b.workspace_id AND c.baseline_id = b.id), 0)
+                            FROM accounting_opening_baselines b
+                            WHERE b.workspace_id = $1 AND b.source_kind = 'invoice'
+                              AND b.source_id = $2), 0))::bigint",
     )
     .bind(ws)
     .bind(invoice)

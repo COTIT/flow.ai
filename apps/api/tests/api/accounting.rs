@@ -195,6 +195,7 @@ impl World {
         .execute(&self.pool)
         .await
         .unwrap();
+        crate::common::tax::seed_sale_profiles(&self.pool, &self.ws).await;
     }
 
     pub(super) fn journal_body(&self, date: &str, lines: Value) -> Value {

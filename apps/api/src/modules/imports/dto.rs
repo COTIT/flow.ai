@@ -57,8 +57,9 @@ impl Validate for CreatePayload {
                     "relations",
                     crate::modules::accounting::banking::PROFILE,
                 ]
-                .contains(&p.as_str()),
-                "The profile must be products, relations or bank_statement.",
+                .contains(&p.as_str())
+                    || crate::modules::accounting::opening::is_profile(p),
+                "The profile must be products, relations, bank_statement or an opening profile.",
             );
         }
         let filename = r.text("filename", self.filename, MAX_CELL);
@@ -105,6 +106,9 @@ impl Validate for CreatePayload {
             }
             Some(crate::modules::accounting::banking::PROFILE) => {
                 crate::modules::accounting::banking::mapping(r, &mapping)
+            }
+            Some(p) if crate::modules::accounting::opening::is_profile(p) => {
+                crate::modules::accounting::opening::mapping(r, p, &mapping)
             }
             _ => None,
         };

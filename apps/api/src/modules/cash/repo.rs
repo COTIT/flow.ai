@@ -372,9 +372,8 @@ pub struct CountFacts {
     pub amount: Option<i64>,
 }
 
-/// Active balance (posted place rows, counts excluded) and the count in minor units: Office
+/// Active balance (reviewed opening + place rows from the cutover, counts excluded; masterplan §8 ACTIVE CASH BALANCE) and the count in minor units: Office
 /// `major` text × 10^decimals when whole, else Till `minor`.
-// shortcut: no opening baseline/cutover filter yet, M8 activation adds both here.
 pub async fn count_facts(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -387,9 +386,16 @@ pub async fn count_facts(
     sqlx::query_as!(
         CountFacts,
         r#"WITH b AS (
-               SELECT coalesce(sum(amount), 0)::bigint AS expected FROM cash_ledger
-               WHERE workspace_id = $1 AND kind NOT IN ('open_count', 'close_count')
-                 AND (register_id = $2 OR vault_id = $3)),
+               SELECT (coalesce((SELECT sum(l.amount) FROM cash_ledger l
+                                 JOIN accounting_settings s ON s.workspace_id = l.workspace_id
+                                 WHERE l.workspace_id = $1 AND l.kind NOT IN ('open_count', 'close_count')
+                                   AND (l.register_id = $2 OR l.vault_id = $3)
+                                   AND (s.state <> 'active' OR s.cutover_at IS NULL
+                                        OR l.created_at >= s.cutover_at)), 0)
+                       + coalesce((SELECT sum(o.amount) FROM cash_place_openings o
+                                   WHERE o.workspace_id = $1
+                                     AND (o.register_id = $2 OR o.vault_id = $3)), 0))::bigint
+                      AS expected),
            m AS (SELECT $4::numeric * 10::numeric ^ $6::int AS v),
            c AS (
                SELECT CASE WHEN $4::numeric IS NULL THEN $5::bigint
@@ -528,19 +534,33 @@ pub async fn list_places(
                   c.decimals AS "decimals!", p.balance AS "balance!", p.open_shift_id
            FROM (
                SELECT 'drawer' AS kind, r.id, r.name, r.currency_id, r.workspace_id,
-                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
-                       WHERE l.workspace_id = r.workspace_id AND l.register_id = r.id
-                         AND l.kind NOT IN ('open_count', 'close_count')) AS balance,
+                      (coalesce((SELECT sum(l.amount) FROM cash_ledger l
+                                 WHERE l.workspace_id = r.workspace_id AND l.register_id = r.id
+                                   AND l.kind NOT IN ('open_count', 'close_count')
+                                   AND (st.state <> 'active' OR st.cutover_at IS NULL
+                                        OR l.created_at >= st.cutover_at)), 0)
+                       + coalesce((SELECT o.amount FROM cash_place_openings o
+                                   WHERE o.workspace_id = r.workspace_id AND o.register_id = r.id), 0)
+                      )::bigint AS balance,
                       (SELECT s.id FROM drawer_shifts s
                        WHERE s.register_id = r.id AND s.closed_at IS NULL) AS open_shift_id
-               FROM till_registers r WHERE r.workspace_id = $1
+               FROM till_registers r
+               JOIN accounting_settings st ON st.workspace_id = r.workspace_id
+               WHERE r.workspace_id = $1
                UNION ALL
                SELECT 'vault', v.id, v.name, v.currency_id, v.workspace_id,
-                      (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l
-                       WHERE l.workspace_id = v.workspace_id AND l.vault_id = v.id
-                         AND l.kind NOT IN ('open_count', 'close_count')),
+                      (coalesce((SELECT sum(l.amount) FROM cash_ledger l
+                                 WHERE l.workspace_id = v.workspace_id AND l.vault_id = v.id
+                                   AND l.kind NOT IN ('open_count', 'close_count')
+                                   AND (st.state <> 'active' OR st.cutover_at IS NULL
+                                        OR l.created_at >= st.cutover_at)), 0)
+                       + coalesce((SELECT o.amount FROM cash_place_openings o
+                                   WHERE o.workspace_id = v.workspace_id AND o.vault_id = v.id), 0)
+                      )::bigint,
                       NULL::uuid
-               FROM cash_vaults v WHERE v.workspace_id = $1
+               FROM cash_vaults v
+               JOIN accounting_settings st ON st.workspace_id = v.workspace_id
+               WHERE v.workspace_id = $1
            ) p
            JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id
            ORDER BY p.kind, p.name, p.id

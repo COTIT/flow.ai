@@ -101,8 +101,14 @@ async fn amounts(
                SELECT l.*,
                       (money_round_div(line_excl * (before + q), whole)
                        - money_round_div(line_excl * before, whole))::bigint AS net,
-                      (money_round_div(line_vat * (before + q), whole)
-                       - money_round_div(line_vat * before, whole))::bigint AS tax
+                      -- Active-book lines: Σ each tax component's own share (credits reverse
+                      -- the same components, M6-A); else the line tax's share.
+                      coalesce((SELECT sum(money_round_div(t.tax * (before + q), whole)
+                                           - money_round_div(t.tax * before, whole))
+                                FROM order_line_taxes t
+                                WHERE t.workspace_id = $1 AND t.order_line_id = l.id),
+                               money_round_div(line_vat * (before + q), whole)
+                               - money_round_div(line_vat * before, whole))::bigint AS tax
                FROM l
            )
            SELECT id AS "order_line_id!", product_id AS "product_id!", q AS "quantity!",

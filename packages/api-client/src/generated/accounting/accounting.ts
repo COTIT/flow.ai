@@ -48,8 +48,10 @@ import type {
   ActionRevaluePayload,
   ActionReversePayload,
   ActionSetupPayload,
+  CorrectionPayload,
   CreateAccountPayload,
   CreateBankAccountPayload,
+  CreateCorrectionPayload,
   CreateJournalPayload,
   CreateOfficeAdjustPayload,
   CreatePeriodPayload,
@@ -73,6 +75,7 @@ import type {
   EnvelopeReviewResource,
   EnvelopeSetupResource,
   EnvelopeTrialBalanceResource,
+  EnvelopeValue,
   EnvelopeVecBankAccountResource,
   EnvelopeVecCashPlaceResource,
   EnvelopeVecExceptionResource,
@@ -87,6 +90,7 @@ import type {
   ResolveReviewBody,
   RevalueReviewBody,
   ReverseReviewBody,
+  ReviewBody,
   UnprocessableBody,
   ValidationErrorBody
 } from '../model';
@@ -2058,6 +2062,210 @@ export const useAccountingJournalsReverseReview = <TError = ErrorType<MessageBod
         TContext
       > => {
       return useMutation(getAccountingJournalsReverseReviewMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Append a reviewed opening correction in the current period
+ */
+export const accountingOpeningCorrectionsCreate = (
+    workspace: string,
+    createCorrectionPayload: BodyType<CreateCorrectionPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/accounting/opening-corrections`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createCorrectionPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingOpeningCorrectionsCreateMutationKey = () => ['accountingOpeningCorrectionsCreate'] as const;
+
+export const getAccountingOpeningCorrectionsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>, TError,AccountingOpeningCorrectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>, TError,AccountingOpeningCorrectionsCreateMutationVariables, TContext> => {
+
+const mutationKey = getAccountingOpeningCorrectionsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>, AccountingOpeningCorrectionsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  accountingOpeningCorrectionsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingOpeningCorrectionsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>>
+    export type AccountingOpeningCorrectionsCreateMutationBody = BodyType<CreateCorrectionPayload>
+    export type AccountingOpeningCorrectionsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingOpeningCorrectionsCreateMutationVariables = {workspace: string;data: BodyType<CreateCorrectionPayload>}
+
+    /**
+ * @summary Append a reviewed opening correction in the current period
+ */
+export const useAccountingOpeningCorrectionsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>, TError,AccountingOpeningCorrectionsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingOpeningCorrectionsCreate>>,
+        TError,
+        AccountingOpeningCorrectionsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingOpeningCorrectionsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Preview a typed opening correction (no writes)
+ */
+export const accountingOpeningCorrectionsReview = (
+    workspace: string,
+    correctionPayload: BodyType<CorrectionPayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/accounting/opening-corrections/review`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: correctionPayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingOpeningCorrectionsReviewMutationKey = () => ['accountingOpeningCorrectionsReview'] as const;
+
+export const getAccountingOpeningCorrectionsReviewMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>, TError,AccountingOpeningCorrectionsReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>, TError,AccountingOpeningCorrectionsReviewMutationVariables, TContext> => {
+
+const mutationKey = getAccountingOpeningCorrectionsReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>, AccountingOpeningCorrectionsReviewMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  accountingOpeningCorrectionsReview(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingOpeningCorrectionsReviewMutationResult = NonNullable<Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>>
+    export type AccountingOpeningCorrectionsReviewMutationBody = BodyType<CorrectionPayload>
+    export type AccountingOpeningCorrectionsReviewMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AccountingOpeningCorrectionsReviewMutationVariables = {workspace: string;data: BodyType<CorrectionPayload>}
+
+    /**
+ * @summary Preview a typed opening correction (no writes)
+ */
+export const useAccountingOpeningCorrectionsReview = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>, TError,AccountingOpeningCorrectionsReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingOpeningCorrectionsReview>>,
+        TError,
+        AccountingOpeningCorrectionsReviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingOpeningCorrectionsReviewMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Review staged opening batches (no writes)
+ */
+export const accountingOpeningValidate = (
+    workspace: string,
+    reviewBody: BodyType<ReviewBody>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/accounting/opening/validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: reviewBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingOpeningValidateMutationKey = () => ['accountingOpeningValidate'] as const;
+
+export const getAccountingOpeningValidateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningValidate>>, TError,AccountingOpeningValidateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningValidate>>, TError,AccountingOpeningValidateMutationVariables, TContext> => {
+
+const mutationKey = getAccountingOpeningValidateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingOpeningValidate>>, AccountingOpeningValidateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  accountingOpeningValidate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingOpeningValidateMutationResult = NonNullable<Awaited<ReturnType<typeof accountingOpeningValidate>>>
+    export type AccountingOpeningValidateMutationBody = BodyType<ReviewBody>
+    export type AccountingOpeningValidateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingOpeningValidateMutationVariables = {workspace: string;data: BodyType<ReviewBody>}
+
+    /**
+ * @summary Review staged opening batches (no writes)
+ */
+export const useAccountingOpeningValidate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingOpeningValidate>>, TError,AccountingOpeningValidateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingOpeningValidate>>,
+        TError,
+        AccountingOpeningValidateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingOpeningValidateMutationOptions(options), queryClient);
     }
     /**
  * @summary List posting periods

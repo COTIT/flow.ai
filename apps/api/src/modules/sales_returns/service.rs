@@ -416,7 +416,8 @@ pub struct PostFacts {
 
 /// Per return line (id, net, tax): the cumulative share of its recognition line up to the
 /// credits still posted plus this one, less the share up to the posted ones; the credit
-/// reaching the recognised quantity takes the exact rest.
+/// reaching the recognised quantity takes the exact rest. Lines with a tax snapshot (active
+/// books, M6-A) take tax as Σ [`component_shares`].
 async fn line_money(
     conn: &mut PgConnection,
     ws: Uuid,
@@ -432,16 +433,36 @@ async fn line_money(
              FROM sales_return_lines x
              JOIN sales_recognition_lines l ON l.workspace_id = x.workspace_id
                                             AND l.id = x.recognition_line_id
-             WHERE x.workspace_id = $1 AND x.return_id = $2)
-         SELECT id,
+             WHERE x.workspace_id = $1 AND x.return_id = $2),
+         c AS (SELECT return_line_id, sum(tax)::int8 AS tax FROM component_shares($1, $2)
+               GROUP BY return_line_id)
+         SELECT x.id,
                 (money_round_div(ln * (before + q), whole) - money_round_div(ln * before, whole))::int8,
-                (money_round_div(lt * (before + q), whole) - money_round_div(lt * before, whole))::int8
-         FROM x ORDER BY id",
+                coalesce(c.tax, money_round_div(lt * (before + q), whole)
+                                - money_round_div(lt * before, whole))::int8
+         FROM x LEFT JOIN c ON c.return_line_id = x.id ORDER BY x.id",
     )
     .bind(ws)
     .bind(id)
     .fetch_all(conn)
     .await?)
+}
+
+/// Freeze return `id`'s per-component tax reversal (`sales_return_line_taxes`) at post.
+async fn write_component_shares(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+) -> Result<(), AppError> {
+    sqlx::query(
+        "INSERT INTO sales_return_line_taxes (workspace_id, return_line_id, line_no, code, tax)
+         SELECT $1, return_line_id, line_no, code, tax FROM component_shares($1, $2)",
+    )
+    .bind(ws)
+    .bind(id)
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 /// What posting return `id` of the locked `sale` writes, from current facts.
@@ -610,6 +631,7 @@ pub async fn post_locked(
         &fingerprint,
     )
     .await?;
+    write_component_shares(&mut *conn, ws, id).await?;
     repo::mark_posted(
         conn,
         ws,

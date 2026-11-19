@@ -24,6 +24,7 @@ use crate::{
     modules::accounting::{
         banking,
         dto::{Action, Create},
+        opening,
         service::{created, ok, stale},
     },
 };
@@ -108,6 +109,9 @@ pub async fn create(
     } = &cmd.input.payload;
     if profile == banking::PROFILE {
         banking::header(&mut tx, ws, mapping).await?;
+    }
+    if opening::is_profile(profile) {
+        opening::header(&mut tx, ws).await?;
     }
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO import_batches (workspace_id, created_by, client_ref, profile, filename, file_hash, expected_rows, mapping)
@@ -346,8 +350,19 @@ pub async fn validate(
             issues.push(json!(issue.into_iter().collect::<Vec<_>>()));
             targets.push(None);
         }
+    } else if opening::is_profile(&profile) {
+        // One opening schedule: rows are checked together (one row per source).
+        let rows: Vec<Value> = staged.iter().map(|r| r.get(1)).collect();
+        let (found, _) = opening::check_rows(&mut tx, ws, &profile, &mapping, &rows).await?;
+        for (row, issue) in staged.iter().zip(found) {
+            ids.push(row.get::<Uuid, _>(0));
+            statuses.push(if issue.is_some() { "invalid" } else { "valid" });
+            issues.push(json!(issue.into_iter().collect::<Vec<_>>()));
+            targets.push(None);
+        }
     }
-    for row in staged.iter().filter(|_| profile != banking::PROFILE) {
+    let whole = profile == banking::PROFILE || opening::is_profile(&profile);
+    for row in staged.iter().filter(|_| !whole) {
         let (row_id, fields, key): (Uuid, Value, Option<String>) =
             (row.get(0), row.get(1), row.get(2));
         let outcome =
@@ -413,6 +428,7 @@ pub fn native_permission(profile: &str, mapping: &Value) -> &'static str {
     match (profile, mapping["operation"].as_str()) {
         ("relations", _) => "relation.create",
         (banking::PROFILE, _) => banking::PERMISSION,
+        (p, _) if opening::is_profile(p) => opening::PERMISSION,
         (_, Some("update")) => "product.update",
         _ => "product.create",
     }
@@ -447,9 +463,11 @@ pub async fn apply(
         return Err(stale());
     }
     let current = batch(&mut tx, ws, id).await?;
-    if profile == banking::PROFILE && current["counts"]["invalid"].as_i64().unwrap_or(0) > 0 {
+    if (profile == banking::PROFILE || opening::is_profile(&profile))
+        && current["counts"]["invalid"].as_i64().unwrap_or(0) > 0
+    {
         return Err(AppError::Unprocessable(
-            "Every statement row must be valid. Correct the file and start a new import.".into(),
+            "Every row must be valid. Correct the file and start a new import.".into(),
         ));
     }
     if current["counts"]["valid"].as_i64().unwrap_or(0) == 0 {

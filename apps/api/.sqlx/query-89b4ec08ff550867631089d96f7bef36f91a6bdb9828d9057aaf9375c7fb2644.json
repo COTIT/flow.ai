@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kind AS \"kind!\", p.id AS \"id!\", p.name AS \"name!\",\n                  p.currency_id AS \"currency_id!\", upper(c.asset_type) AS \"code!\",\n                  c.decimals AS \"decimals!\", p.balance AS \"balance!\", p.open_shift_id\n           FROM (\n               SELECT 'drawer' AS kind, r.id, r.name, r.currency_id, r.workspace_id,\n                      (coalesce((SELECT sum(l.amount) FROM cash_ledger l\n                                 WHERE l.workspace_id = r.workspace_id AND l.register_id = r.id\n                                   AND l.kind NOT IN ('open_count', 'close_count')\n                                   AND (st.state <> 'active' OR st.cutover_at IS NULL\n                                        OR l.created_at >= st.cutover_at)), 0)\n                       + coalesce((SELECT o.amount FROM cash_place_openings o\n                                   WHERE o.workspace_id = r.workspace_id AND o.register_id = r.id), 0)\n                      )::bigint AS balance,\n                      (SELECT s.id FROM drawer_shifts s\n                       WHERE s.register_id = r.id AND s.closed_at IS NULL) AS open_shift_id\n               FROM till_registers r\n               JOIN accounting_settings st ON st.workspace_id = r.workspace_id\n               WHERE r.workspace_id = $1\n               UNION ALL\n               SELECT 'vault', v.id, v.name, v.currency_id, v.workspace_id,\n                      (coalesce((SELECT sum(l.amount) FROM cash_ledger l\n                                 WHERE l.workspace_id = v.workspace_id AND l.vault_id = v.id\n                                   AND l.kind NOT IN ('open_count', 'close_count')\n                                   AND (st.state <> 'active' OR st.cutover_at IS NULL\n                                        OR l.created_at >= st.cutover_at)), 0)\n                       + coalesce((SELECT o.amount FROM cash_place_openings o\n                                   WHERE o.workspace_id = v.workspace_id AND o.vault_id = v.id), 0)\n                      )::bigint,\n                      NULL::uuid\n               FROM cash_vaults v\n               JOIN accounting_settings st ON st.workspace_id = v.workspace_id\n               WHERE v.workspace_id = $1\n           ) p\n           JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id\n           ORDER BY p.kind, p.name, p.id\n           LIMIT 2000",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "balance!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "open_shift_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "89b4ec08ff550867631089d96f7bef36f91a6bdb9828d9057aaf9375c7fb2644"
+}

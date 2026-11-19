@@ -80,6 +80,7 @@ pub(crate) async fn activate(pool: &PgPool, ws: &str) {
     .await
     .unwrap();
     tx.commit().await.unwrap();
+    crate::common::tax::seed_sale_profiles(pool, ws).await;
 }
 
 /// Opening stock as activation will seed it: `qty` on the slot, the pool (added to), and a

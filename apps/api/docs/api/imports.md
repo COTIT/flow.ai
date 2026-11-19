@@ -1,6 +1,6 @@
 # Imports
 
-Generic master-data imports (masterplan §14/§15). Profiles: `products`, `relations`, `bank_statement` (whole statement in one transaction, native permission `accounting.reconcile`; see `accounting.md` "Bank statements and reconciliation"). Opening profiles come later.
+Generic master-data imports (masterplan §14/§15). Profiles: `products`, `relations`, `bank_statement` (whole statement in one transaction, native permission `accounting.reconcile`; see `accounting.md` "Bank statements and reconciliation"). Opening profiles `opening_inventory`, `opening_receivables`, `opening_payables`, `opening_trial_balance` stage reviewed opening lines only (whole batch in one transaction, native permission `accounting.configure`, setup books only; see `accounting.md` "Opening conversion").
 
 Flow: create batch → upload chunks → validate (complete revision) → review rows → apply (queued) → results.
 All mutations need an `Idempotency-Key` header and the C/A envelope (`client_ref`, `expected_version`, `payload`); a repeated `client_ref` with the same body replays the first answer.

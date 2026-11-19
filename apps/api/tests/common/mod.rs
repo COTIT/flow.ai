@@ -7,6 +7,7 @@ pub mod fake_smtp;
 pub mod farm;
 pub mod invoicing;
 pub mod native_fixture;
+pub mod tax;
 
 use axum::extract::ConnectInfo;
 use axum::{

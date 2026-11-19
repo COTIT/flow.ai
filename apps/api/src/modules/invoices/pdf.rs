@@ -119,30 +119,15 @@ impl Data {
         let dp = read_summary(&invoice.summary)
             .2
             .unwrap_or(u32::try_from(currency.decimals).unwrap_or(2));
-        let engine_lines: Vec<engine::Line> = lines
-            .iter()
-            .map(|l| engine::Line {
-                quantity: l.quantity,
-                price: l.price,
-                vat: l.vat,
-                discount: l.discount_percentage,
-                purchase_price: Some(l.purchase_price),
-                set_child: false,
-            })
-            .collect();
-        // A linked invoice prints the recognised money it copies (§12).
-        let summary = match crate::modules::shipments::billing::linked_summary(
-            &state.db,
+        // Linked copy, active-book snapshot or engine: the same money the invoice shows (§12).
+        let (summary, _) = super::service::summary_of(
+            &mut *state.db.acquire().await?,
             workspace_id,
             id,
+            &lines,
             dp,
         )
-        .await?
-        {
-            Some(l) => l.summary,
-            None => engine::summarise(&engine_lines, dp)
-                .map_err(|_| AppError::Internal("stored invoice lines out of range".into()))?,
-        };
+        .await?;
         let (_, language) = workspaces::repo::locale(&state.db, workspace_id).await?;
         let general = settings::repo::section(&state.db, workspace_id, "general").await?;
         let color = Colors::of(

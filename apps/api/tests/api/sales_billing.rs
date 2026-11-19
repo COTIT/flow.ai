@@ -306,6 +306,8 @@ async fn a_cancelled_draft_releases_and_linked_lines_are_frozen(pool: PgPool) {
 #[sqlx::test]
 async fn a_standalone_invoice_recognises_on_issue(pool: PgPool) {
     let f = active(pool).await;
+    // Active books tax by the verified profile (M6-A), not the item's client `vat`.
+    crate::common::tax::replace_sale_profiles(&f.api.pool, &f.api.ws, &[("VAT", "21")]).await;
     let invoice = invoicing::draft(&f, invoicing::chairs(&f, 2, Some(&f.main)), false).await;
     let (s, r) = issue(&f, &invoice).await;
     assert_eq!(s, StatusCode::OK, "{r}");
@@ -588,11 +590,15 @@ async fn a_linked_invoice_copies_the_recognised_money_to_the_cent(pool: PgPool) 
     let f = active(pool).await;
     let (o, line) = order(&f, "3").await;
     // Line money the engine wouldn't reproduce from quantity × price: thirds of 1.00 + 0.21.
-    sqlx::query("UPDATE order_lines SET line_excl = 100, line_vat = 21 WHERE id = $1::uuid")
-        .bind(&line)
-        .execute(&f.api.pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "WITH l AS (UPDATE order_lines SET line_excl = 100, line_vat = 21 WHERE id = $1::uuid
+                    RETURNING id)
+         UPDATE order_line_taxes t SET base = 100, tax = 21 FROM l WHERE t.order_line_id = l.id",
+    )
+    .bind(&line)
+    .execute(&f.api.pool)
+    .await
+    .unwrap();
     let sh = ship(&f, &o, &line, "1").await;
     let (net, tax, g): (i64, i64, i64) = sqlx::query_as(
         "SELECT net, tax, gross FROM sales_recognitions WHERE shipment_id = $1::uuid",

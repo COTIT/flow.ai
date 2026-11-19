@@ -14,6 +14,7 @@ use crate::{
         currencies, discounts,
         pricing::{dto::Calculate, engine, repo},
         products, special_offers,
+        tax_profiles::sale,
     },
 };
 
@@ -56,7 +57,27 @@ pub async fn price(
     }
     apply_products(state, workspace_id, &mut input, view_products).await?;
     let lines: Vec<engine::Line> = input.items.iter().map(|i| i.line).collect();
-    let summary = engine::summarise(&lines, dp).map_err(out_of_range)?;
+    let mut summary = engine::summarise(&lines, dp).map_err(out_of_range)?;
+    let mut conn = state.db.acquire().await?;
+    if crate::modules::stock::value::active(&mut conn, workspace_id).await? {
+        // Active books: the verified tax path; the client's `vat` never overrides it.
+        let products: Vec<Option<Uuid>> = input
+            .items
+            .iter()
+            .map(|i| {
+                i.product_id
+                    .as_deref()
+                    .and_then(|p| Uuid::parse_str(p).ok())
+            })
+            .collect();
+        let facts = sale::Facts {
+            relation: input.relation_id.flatten(),
+            ..sale::Facts::default()
+        };
+        let amounts = sale::amounts(&summary, dp)?;
+        let t = sale::lines(&mut conn, workspace_id, facts, &products, &amounts).await?;
+        sale::into_summary(&mut summary, &t, dp);
+    }
     Ok(Priced {
         input,
         lines,

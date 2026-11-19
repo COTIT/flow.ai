@@ -57,6 +57,12 @@ pub async fn ingest(
         .to_string(),
     )
     .into();
+    // Covered opening callback: no-op only for the exact reviewed historical fact (§12); a new
+    // refund or chargeback is a new event even when its parent was covered.
+    let fact = crate::modules::accounting::opening::provider_fact(kind, amount, &op.currency);
+    if crate::modules::accounting::opening::covered_exactly(conn, ws, op.id, &fact).await? {
+        return Ok(());
+    }
     let parent = match kind {
         "collection" => None,
         "chargeback" => Some(op.id),

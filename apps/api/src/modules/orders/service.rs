@@ -40,6 +40,7 @@ use crate::{
             reserve::{self, Reserved, Want},
             value::Valued,
         },
+        tax_profiles::sale as sale_tax,
         webhooks::events,
     },
     numbering::{self, Appendix, Series},
@@ -115,6 +116,18 @@ pub(crate) async fn review_priced(
         .await?
         .ok_or(AppError::NotFound)?;
     let lines: Vec<_> = priced.lines.iter().map(|line|json!({"product_id":line.product_id,"variant_id":line.product_variant_id,"title":line.title,"quantity":line.quantity.normalize().to_string(),"unit_price_minor":line.unit_price,"vat_rate":line.vat_rate.normalize().to_string(),"discount_percentage":line.discount.normalize().to_string(),"line_excl_minor":line.line_excl,"line_vat_minor":line.line_vat,"tracked":line.tracked})).collect();
+    // Active books: the tax components (profile + revision) join the facts, so an approval
+    // goes stale when the verified profile changes before commit.
+    let lines: Vec<Value> = lines
+        .into_iter()
+        .zip(&priced.lines)
+        .map(|(mut l, line)| {
+            if let Some(t) = &line.taxes {
+                l["tax_components"] = t.clone();
+            }
+            l
+        })
+        .collect();
     Ok(
         json!({"currency":{"id":currency_id,"code":currency.asset_type.to_uppercase(),"decimals":decimals},"warehouse":{"id":warehouse_id,"name":warehouse.name},"subtotal_minor":priced.subtotal,"vat_minor":priced.vat,"total_minor":priced.total,"lines":lines}),
     )
@@ -143,6 +156,7 @@ pub async fn price(
     dp: u32,
     lines: &[LineInput],
     web: bool,
+    facts: sale_tax::Facts,
 ) -> Result<Priced, AppError> {
     let ids: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
     let found: HashMap<Uuid, repo::CatalogProduct> =
@@ -223,6 +237,7 @@ pub async fn price(
             line_excl: 0,
             line_vat: 0,
             tracked: p.has_stock,
+            taxes: None,
         });
     }
     if !errors.is_empty() {
@@ -238,6 +253,25 @@ pub async fn price(
     for (n, (line, a)) in priced.iter_mut().zip(&s.lines).enumerate() {
         line.line_excl = minor(a.excl, dp).ok_or_else(|| out_of_range(n))?;
         line.line_vat = minor(a.line_vat, dp).ok_or_else(|| out_of_range(n))?;
+    }
+    if crate::modules::stock::value::active(&mut *conn, workspace_id).await? {
+        // Active books: tax per line and component from the verified profile, totals in SQL.
+        let products: Vec<Option<Uuid>> = priced.iter().map(|l| Some(l.product_id)).collect();
+        let amounts: Vec<i64> = priced.iter().map(|l| l.line_excl).collect();
+        let t = sale_tax::lines(&mut *conn, workspace_id, facts, &products, &amounts).await?;
+        for (line, tax) in priced.iter_mut().zip(t.lines) {
+            line.vat_rate = tax.rate;
+            line.line_vat = tax.tax;
+            line.taxes = Some(tax.components);
+        }
+        return Ok(Priced {
+            lines: priced,
+            subtotal: t.subtotal,
+            vat: t.vat,
+            total: t.total,
+            summary: json!({ "vats": t.vats.iter().map(|(rate, base, vat)| json!({
+                "rate": rate.to_string(), "base": base, "vat": vat })).collect::<Vec<_>>() }),
+        });
     }
     let last = priced.len().saturating_sub(1);
     let m = |d: Decimal| minor(d, dp).ok_or_else(|| out_of_range(last));
@@ -637,7 +671,20 @@ pub async fn create(
     let (currency_id, dp) = currency(&mut tx, workspace_id, input.currency_id).await?;
     let warehouse_id = warehouse(&mut tx, workspace_id, input.warehouse_id).await?;
     relation(&mut tx, workspace_id, input.relation_id).await?;
-    let p = price(&mut tx, workspace_id, currency_id, dp, &input.lines, false).await?;
+    let facts = sale_tax::Facts {
+        relation: input.relation_id,
+        ..sale_tax::Facts::default()
+    };
+    let p = price(
+        &mut tx,
+        workspace_id,
+        currency_id,
+        dp,
+        &input.lines,
+        false,
+        facts,
+    )
+    .await?;
     if preconditions::expects("order") {
         let facts = review_priced(&mut tx, workspace_id, currency_id, dp, warehouse_id, &p).await?;
         preconditions::check_priced(workspace_id, "order", &facts)?;
@@ -812,7 +859,11 @@ pub async fn update(
         .await?;
         if let Some(lines) = patch.lines {
             let dp = u32::try_from(o.decimals).unwrap_or(2);
-            let p = price(conn, workspace_id, o.currency_id, dp, &lines, false).await?;
+            let facts = sale_tax::Facts {
+                relation: o.relation_id,
+                ..sale_tax::Facts::default()
+            };
+            let p = price(conn, workspace_id, o.currency_id, dp, &lines, false, facts).await?;
             if preconditions::expects("order") {
                 let facts =
                     review_priced(conn, workspace_id, o.currency_id, dp, warehouse_id, &p).await?;
