@@ -19,6 +19,7 @@ import { Skeleton } from "@genesy/ui/components/skeleton"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { formatQty } from "@genesy/ui/lib/format"
 import { Field } from "@/components/field"
+import { showMoney } from "../../../purchases/shared"
 
 import {
   Shell,
@@ -266,7 +267,15 @@ export function PostDialog({ stocktake, outcome, button }: Props) {
                         delta: formatQty(l.delta, locale),
                       })}
                       {l.value != null
-                        ? ` · ${t("stocktakes.post.value", { value: l.value })}`
+                        ? ` · ${t("stocktakes.post.value", {
+                            value: r.functional_currency
+                              ? showMoney(
+                                  l.value,
+                                  r.functional_currency,
+                                  locale
+                                )
+                              : l.value,
+                          })}`
                         : ""}
                     </span>
                   </li>

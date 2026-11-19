@@ -859,6 +859,7 @@ async fn each_route_needs_its_accounting_permission(pool: PgPool) {
         (Method::GET, "/setup".into(), None),
         (Method::PUT, "/setup".into(), Some(json!({}))),
         (Method::GET, "/accounts".into(), None),
+        (Method::GET, format!("/accounts/{}", w.expense), None),
         (Method::POST, "/accounts".into(), Some(json!({}))),
         (
             Method::PATCH,
@@ -1053,4 +1054,116 @@ async fn unconvertible_journals_are_refused(pool: PgPool) {
         b["errors"]["lines"][0],
         "The lines can't be converted to the functional currency exactly."
     );
+}
+
+/// Codes and total of `/accounts?q=`.
+async fn search(w: &World, q: &str) -> (Vec<String>, Value) {
+    let (s, b) = w
+        .call(Method::GET, &format!("/accounts?q={q}"), None, &w.owner)
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let codes = b["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| a["code"].as_str().unwrap().to_owned())
+        .collect();
+    (codes, b["meta"]["total"].clone())
+}
+
+#[sqlx::test]
+async fn one_account_reads_by_id_and_the_chart_searches(pool: PgPool) {
+    let w = world(pool).await;
+    let (s, b) = w
+        .call(
+            Method::GET,
+            &format!("/accounts/{}", w.expense),
+            None,
+            &w.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(
+        (&b["data"]["code"], &b["data"]["type"]),
+        (&json!("6000"), &json!("expense"))
+    );
+    let (s, _) = w
+        .call(
+            Method::GET,
+            &format!("/accounts/{}", Uuid::now_v7()),
+            None,
+            &w.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "unknown id");
+
+    // Code or name, case-insensitive; `%` and `_` match literally.
+    assert_eq!(search(&w, "600").await, (vec!["6000".to_owned()], json!(1)));
+    assert_eq!(
+        search(&w, "%25").await,
+        (vec![], json!(0)),
+        "escaped wildcard"
+    );
+    assert_eq!(search(&w, "").await.1, json!(2), "blank = all");
+    let long = "a".repeat(101);
+    let (s, _) = w
+        .call(Method::GET, &format!("/accounts?q={long}"), None, &w.owner)
+        .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "q is bounded");
+
+    // Another workspace neither reads nor finds acme's accounts.
+    let (eve, eve_ws) = signup(&w.app, "eve@example.com", "evil").await;
+    let theirs = |p: &str| format!("/v1/workspace/{eve_ws}/accounting{p}");
+    let (s, _) = send(
+        &w.app,
+        Method::GET,
+        &theirs(&format!("/accounts/{}", w.expense)),
+        None,
+        Some(&eve),
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "foreign id in own workspace");
+    let (s, _) = send(
+        &w.app,
+        Method::GET,
+        &format!("/v1/workspace/{}/accounting/accounts/{}", w.ws, w.expense),
+        None,
+        Some(&eve),
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "not a member");
+    let (s, b) = send(
+        &w.app,
+        Method::GET,
+        &theirs("/accounts?q=6000"),
+        None,
+        Some(&eve),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(b["meta"]["total"], 0, "{b}");
+}
+
+#[sqlx::test]
+async fn setup_business_date_is_today_in_the_book_timezone(pool: PgPool) {
+    let w = world(pool).await;
+    // UTC+14 and UTC-11 are 25 hours apart: their dates always differ.
+    let mut dates = vec![];
+    for tz in ["Pacific/Kiritimati", "Pacific/Pago_Pago"] {
+        sqlx::query("UPDATE accounting_settings SET timezone = $2 WHERE workspace_id = $1::uuid")
+            .bind(&w.ws)
+            .bind(tz)
+            .execute(&w.pool)
+            .await
+            .unwrap();
+        let expect: String = sqlx::query_scalar("SELECT ((now() AT TIME ZONE $1)::date)::text")
+            .bind(tz)
+            .fetch_one(&w.pool)
+            .await
+            .unwrap();
+        let got = w.setup().await["business_date"].clone();
+        assert_eq!(got, json!(expect), "{tz}");
+        dates.push(got);
+    }
+    assert_ne!(dates[0], dates[1], "the book timezone decides the date");
 }

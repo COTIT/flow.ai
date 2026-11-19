@@ -11,7 +11,6 @@ import {
   useAccountingSetupGet,
   useAccountingSetupUpdate,
 } from "@genesy/api-client/endpoints/accounting"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
 import type { SetupResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
@@ -21,6 +20,11 @@ import { formatDateTime } from "@genesy/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
+import {
+  AccountPicker,
+  CurrencyPicker,
+  accountLabel,
+} from "@/components/pickers"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useCan } from "@/lib/can"
@@ -76,13 +80,18 @@ function SetupForm({
   const mayConfigure = useCan("accounting.configure")
   const editable = mayConfigure && setup.allowed_actions.includes("update")
   const enabled = { query: { enabled: Boolean(workspaceId) } }
-  // shortcut: first 100 currencies and accounts; page these when a book holds more.
-  const currencies = useCurrenciesList(workspaceId, { page_size: 100 }, enabled)
+  // One page of accounts names the mapped roles; a mapped account beyond it is read alone.
   const accounts = useAccountingAccountsList(
     workspaceId,
     { page_size: "100" },
     enabled
   )
+  const [currency, setCurrency] = React.useState(
+    setup.functional_currency?.id ?? ""
+  )
+  const [mapped, setMapped] = React.useState<Record<string, string>>(() => ({
+    ...(setup.account_mappings as Record<string, string>),
+  }))
   const key = useIdempotencyKey()
   const refresh = () =>
     void queryClient.invalidateQueries({
@@ -102,14 +111,16 @@ function SetupForm({
     request: key.request,
   })
   const errors = fieldErrors(save.error)
-  const mappings = setup.account_mappings as Record<string, string | undefined>
   const zones = React.useMemo(() => {
     const all = Intl.supportedValuesOf("timeZone")
     return setup.timezone && !all.includes(setup.timezone)
       ? [setup.timezone, ...all]
       : all
   }, [setup.timezone])
-  const active = (accounts.data?.data ?? []).filter((a) => a.active)
+  const named = (id: string) => {
+    const a = accounts.data?.data.find((x) => x.id === id)
+    return a ? accountLabel(a) : undefined
+  }
 
   return (
     <form
@@ -187,27 +198,17 @@ function SetupForm({
             label={t("accounting.setup.currency")}
             errors={errors["payload.functional_currency_id"]}
           >
-            <select
-              key={currencies.data ? "loaded" : "loading"}
+            <CurrencyPicker
               name="functional_currency_id"
-              className={selectClass}
-              defaultValue={setup.functional_currency?.id ?? ""}
-            >
-              <option value="">{t("accounting.setup.chooseCurrency")}</option>
-              {setup.functional_currency &&
-              !currencies.data?.data.some(
-                (c) => c.id === setup.functional_currency?.id
-              ) ? (
-                <option value={setup.functional_currency.id}>
-                  {setup.functional_currency.code}
-                </option>
-              ) : null}
-              {currencies.data?.data.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.asset_type}
-                </option>
-              ))}
-            </select>
+              value={currency}
+              onChange={setCurrency}
+              knownLabel={
+                currency && currency === setup.functional_currency?.id
+                  ? setup.functional_currency.code
+                  : undefined
+              }
+              placeholder={t("accounting.setup.chooseCurrency")}
+            />
           </Field>
           <Field
             id="setup-timezone"
@@ -252,23 +253,19 @@ function SetupForm({
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-2">
           {roles.map((r) => (
             <Field
-              key={`${r}-${accounts.data ? "loaded" : "loading"}`}
+              key={r}
               id={`setup-role-${r}`}
               label={word("roles", r)}
               errors={errors[`payload.account_mappings.${r}`]}
             >
-              <select
+              <AccountPicker
                 name={`role.${r}`}
-                className={selectClass}
-                defaultValue={mappings[r] ?? ""}
-              >
-                <option value="">{t("accounting.setup.unmapped")}</option>
-                {active.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.code} {a.name}
-                  </option>
-                ))}
-              </select>
+                value={mapped[r] ?? ""}
+                onChange={(id) => setMapped((m) => ({ ...m, [r]: id }))}
+                filter={(a) => a.active}
+                knownLabel={mapped[r] ? named(mapped[r]) : undefined}
+                placeholder={t("accounting.setup.unmapped")}
+              />
             </Field>
           ))}
         </fieldset>

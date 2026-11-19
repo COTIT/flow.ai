@@ -73,6 +73,7 @@ pub async fn setup(conn: &mut PgConnection, ws: Uuid) -> Result<SetupResource, A
         .collect();
     let configured = currency.is_some() && s.timezone.is_some() && missing_roles.is_empty();
     let setup = s.state == "setup";
+    let business_date = crate::modules::purchasing::repo::today(&mut *conn, ws).await?;
     Ok(SetupResource {
         state: s.state,
         version: s.version,
@@ -80,6 +81,7 @@ pub async fn setup(conn: &mut PgConnection, ws: Uuid) -> Result<SetupResource, A
         timezone: s.timezone,
         cutover_at: s.cutover_at,
         activated_at: s.activated_at,
+        business_date,
         account_mappings: mappings
             .into_iter()
             .map(|m| (m.role, m.account_id))
@@ -200,18 +202,23 @@ fn account_resource(r: AccountRow, ws: Uuid) -> AccountResource {
 pub async fn accounts(
     state: &AppState,
     ws: Uuid,
+    q: Option<String>,
     page: Page,
 ) -> Result<(Vec<AccountResource>, i64), AppError> {
-    let rows = repo::accounts(&state.db, ws, None, page.size, page.offset()).await?;
-    let total = repo::account_count(&state.db, ws).await?;
+    let rows = repo::accounts(&state.db, ws, None, q.as_deref(), page.size, page.offset()).await?;
+    let total = repo::account_count(&state.db, ws, q.as_deref()).await?;
     Ok((
         rows.into_iter().map(|r| account_resource(r, ws)).collect(),
         total,
     ))
 }
 
-async fn account(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<AccountResource, AppError> {
-    let row = repo::accounts(conn, ws, Some(id), 1, 0)
+pub async fn account(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+) -> Result<AccountResource, AppError> {
+    let row = repo::accounts(conn, ws, Some(id), None, 1, 0)
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;

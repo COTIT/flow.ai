@@ -7,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
-import { useAccountingAccountsList } from "@genesy/api-client/endpoints/accounting"
 import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
 import { useProductsList } from "@genesy/api-client/endpoints/products"
 import { useRelationsList } from "@genesy/api-client/endpoints/relations"
@@ -18,7 +17,11 @@ import {
   useSupplierBillsUpdate,
 } from "@genesy/api-client/endpoints/supplier-bills"
 import { useTaxProfilesList } from "@genesy/api-client/endpoints/tax-profiles"
-import type { BillPayload, SupplierBillResource } from "@genesy/api-client/model"
+import type {
+  AccountResource,
+  BillPayload,
+  SupplierBillResource,
+} from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { Card } from "@genesy/ui/components/card"
@@ -26,6 +29,7 @@ import { Input } from "@genesy/ui/components/input"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { usePayReasons } from "@/components/payables"
+import { AccountPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
@@ -67,7 +71,6 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const suppliers = useRelationsList(workspaceId, { suppliers: true, limit: 100 }, enabled)
   const currencies = useCurrenciesList(workspaceId, { page_size: 100 }, enabled)
   const products = useProductsList(workspaceId, { page_size: 100 }, enabled)
-  const accounts = useAccountingAccountsList(workspaceId, { page_size: "100" }, enabled)
   const taxes = useTaxProfilesList(workspaceId, { page_size: 100 }, enabled)
   const key = useIdempotencyKey()
   const [lines, setLines] = React.useState<Line[]>(() =>
@@ -117,9 +120,8 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
     setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)))
   const defaultCurrency = currencies.data?.data.find((c) => c.default_currency)?.id
   // Display only: the API refuses a mapped control or inactive account.
-  const expenseAccounts = (accounts.data?.data ?? []).filter(
-    (a) => a.type === "expense" && a.active && a.roles.length === 0
-  )
+  const expenseAccount = (a: AccountResource) =>
+    a.type === "expense" && a.active && a.roles.length === 0
   const taxLabel = (p: { components: { name: string }[]; country: string }) =>
     `${p.components.map((c) => c.name).join(" + ")} (${p.country})`
 
@@ -259,27 +261,30 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
                 label={l.kind === "goods" ? t("payables.product") : t("payables.expenseAccount")}
                 errors={le("product_id") ?? le("expense_account_id") ?? err(`lines.${i}`)}
               >
-                <select
-                  className={selectClass}
-                  required
-                  value={l.target}
-                  onChange={(e) => setLine(l.key, { target: e.target.value })}
-                >
-                  <option value="" disabled>
-                    {l.kind === "goods" ? t("payables.chooseProduct") : t("payables.chooseAccount")}
-                  </option>
-                  {l.kind === "goods"
-                    ? products.data?.data.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))
-                    : expenseAccounts.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.code} {a.name}
-                        </option>
-                      ))}
-                </select>
+                {l.kind === "goods" ? (
+                  <select
+                    className={selectClass}
+                    required
+                    value={l.target}
+                    onChange={(e) => setLine(l.key, { target: e.target.value })}
+                  >
+                    <option value="" disabled>
+                      {t("payables.chooseProduct")}
+                    </option>
+                    {products.data?.data.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <AccountPicker
+                    value={l.target}
+                    onChange={(id) => setLine(l.key, { target: id })}
+                    filter={expenseAccount}
+                    placeholder={t("payables.chooseAccount")}
+                  />
+                )}
               </Field>
               <Field id={`bl-${l.key}-qty`} label={t("payables.quantity")} errors={le("quantity")}>
                 <Input

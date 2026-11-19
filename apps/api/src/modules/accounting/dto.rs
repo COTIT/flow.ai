@@ -588,6 +588,16 @@ pub struct ListQuery {
     pub page_size: Option<String>,
 }
 
+/// `?q=&page=&page_size=` on the chart of accounts.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct AccountListQuery {
+    /// Search on code and name (max 100 characters).
+    pub q: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
 /// A currency as shown beside amounts.
 #[derive(Serialize, ToSchema, Clone)]
 pub struct CurrencyRef {
@@ -607,6 +617,8 @@ pub struct SetupResource {
     pub timezone: Option<String>,
     pub cutover_at: Option<DateTime<Utc>>,
     pub activated_at: Option<DateTime<Utc>>,
+    /// Today in the book timezone (workspace timezone, else UTC); reports default to it.
+    pub business_date: NaiveDate,
     /// role → account id.
     pub account_mappings: BTreeMap<String, Uuid>,
     /// Required roles without an active mapped account.

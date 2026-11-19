@@ -7,10 +7,15 @@ import { useCan } from "@/lib/can"
 
 export { Shell, today, useAction, type Outcome } from "../../accounting/shared"
 
-/** The stock views as one pill bar: all rows, below zero, counts (when the member may list them). */
-export function StockPills({ view }: { view: "all" | "negative" | "counts" }) {
+/** The stock views as one pill bar: all rows, below zero, counts and valuation (when allowed). */
+export function StockPills({
+  view,
+}: {
+  view: "all" | "negative" | "counts" | "valuation"
+}) {
   const t = useTranslations()
   const mayCount = useCan("stocktake.list")
+  const mayValue = useCan("accounting.read")
   return (
     <PillLinks
       label={t("stock.title")}
@@ -27,6 +32,15 @@ export function StockPills({ view }: { view: "all" | "negative" | "counts" }) {
                 href: "/stock/counts",
                 label: t("stocktakes.title"),
                 active: view === "counts",
+              },
+            ]
+          : []),
+        ...(mayValue
+          ? [
+              {
+                href: "/stock/valuation",
+                label: t("valuation.title"),
+                active: view === "valuation",
               },
             ]
           : []),

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, slug, alias, description, is_store, default_warehouse,\n                  stock_count_enabled, pickup_enabled, auto_generate_transfer_list,\n                  total_sum_enabled, user_id, manager_id, manager_assistant_id, location,\n                  status, type AS kind, dimensions, loading_docks, sections, rows_per_sections,\n                  shelves_per_row, bins_per_shelf, management_contact, operating_hours,\n                  additional_settings, meta, created_at, updated_at,\n                  count(*) OVER () AS \"total!\"\n           FROM warehouses\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::uuid IS NULL OR parent_id = $2)\n             AND ($2::uuid IS NOT NULL OR NOT $3 OR parent_id IS NULL)\n             AND (NOT $4 OR pickup_enabled)\n           ORDER BY id\n           LIMIT $5 OFFSET $6",
+  "query": "SELECT id, name, slug, alias, description, is_store, default_warehouse,\n                  stock_count_enabled, pickup_enabled, auto_generate_transfer_list,\n                  total_sum_enabled, user_id, manager_id, manager_assistant_id, location,\n                  status, type AS kind, dimensions, loading_docks, sections, rows_per_sections,\n                  shelves_per_row, bins_per_shelf, management_contact, operating_hours,\n                  additional_settings, meta, created_at, updated_at,\n                  count(*) OVER () AS \"total!\"\n           FROM warehouses\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::uuid IS NULL OR parent_id = $2)\n             AND ($2::uuid IS NOT NULL OR NOT $3 OR parent_id IS NULL)\n             AND (NOT $4 OR pickup_enabled)\n             AND ($7::text IS NULL OR name ILIKE $7 OR alias ILIKE $7)\n           ORDER BY id\n           LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -336,7 +336,8 @@
         "Bool",
         "Bool",
         "Int8",
-        "Int8"
+        "Int8",
+        "Text"
       ]
     },
     "nullable": [
@@ -372,5 +373,5 @@
       null
     ]
   },
-  "hash": "0d1c7cd1ab409e312c6142e4581feb635cb489e9b20b04b998dddeea8d5a47ba"
+  "hash": "ba95b385ef0d56ad195089a6d07e3059b2728518ab2441b1d245c73473b93d37"
 }

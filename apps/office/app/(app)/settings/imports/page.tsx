@@ -28,6 +28,7 @@ export default function ImportsPage() {
   const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const canCreate = useCan("import.create")
+  const canOpen = useCan("accounting.configure")
   const list = useImportsList(workspaceId, undefined, {
     query: { enabled: Boolean(workspaceId) },
   })
@@ -52,10 +53,22 @@ export default function ImportsPage() {
         title={t("imports.title")}
         description={t("imports.intro")}
         actions={
-          canCreate ? (
-            <Link href="/settings/imports/new" className={buttonVariants()}>
-              {t("imports.new")}
-            </Link>
+          canCreate || canOpen ? (
+            <div className="flex flex-wrap gap-2 max-md:w-full max-md:flex-col">
+              {canOpen ? (
+                <Link
+                  href="/settings/imports/opening"
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  {t("opening.title")}
+                </Link>
+              ) : null}
+              {canCreate ? (
+                <Link href="/settings/imports/new" className={buttonVariants()}>
+                  {t("imports.new")}
+                </Link>
+              ) : null}
+            </div>
           ) : null
         }
       />

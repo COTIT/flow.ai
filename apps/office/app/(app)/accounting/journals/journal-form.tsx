@@ -10,7 +10,6 @@ import { useSession } from "@genesy/api-client/auth"
 import {
   getAccountingJournalsGetQueryKey,
   getAccountingJournalsListQueryKey,
-  useAccountingAccountsList,
   useAccountingJournalsCreate,
   useAccountingJournalsUpdate,
 } from "@genesy/api-client/endpoints/accounting"
@@ -21,8 +20,8 @@ import { Button } from "@genesy/ui/components/button"
 import { Card } from "@genesy/ui/components/card"
 import { Input } from "@genesy/ui/components/input"
 import { Textarea } from "@genesy/ui/components/textarea"
-import { Field, selectClass } from "@/components/field"
-import { Capped } from "@/components/states"
+import { Field } from "@/components/field"
+import { AccountPicker, CurrencyPicker } from "@/components/pickers"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
 import { isStale, today, useReasons } from "../shared"
@@ -57,13 +56,9 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
   const queryClient = useQueryClient()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const enabled = { query: { enabled: Boolean(workspaceId) } }
-  // shortcut: first 100 currencies and accounts; page these when a book holds more.
+  // The workspace default currency is preselected for a new journal (first page holds it).
   const currencies = useCurrenciesList(workspaceId, { page_size: 100 }, enabled)
-  const accounts = useAccountingAccountsList(
-    workspaceId,
-    { page_size: "100" },
-    enabled
-  )
+  const [currency, setCurrency] = React.useState(journal?.currency.id ?? "")
   const key = useIdempotencyKey()
   const [lines, setLines] = React.useState<Line[]>(() =>
     journal?.lines.length
@@ -112,9 +107,6 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
   const defaultCurrency = currencies.data?.data.find(
     (c) => c.default_currency
   )?.id
-  const usable = (accounts.data?.data ?? []).filter(
-    (a) => a.active || lines.some((l) => l.account_id === a.id)
-  )
 
   return (
     <form
@@ -168,22 +160,12 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
             label={t("accounting.journals.currency")}
             errors={err("currency_id")}
           >
-            <select
-              key={defaultCurrency ?? "none"}
+            <CurrencyPicker
               name="currency_id"
-              className={selectClass}
-              required
-              defaultValue={journal?.currency.id ?? defaultCurrency ?? ""}
-            >
-              <option value="" disabled>
-                {t("accounting.journals.chooseCurrency")}
-              </option>
-              {currencies.data?.data.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.asset_type}
-                </option>
-              ))}
-            </select>
+              value={currency || defaultCurrency || ""}
+              onChange={setCurrency}
+              placeholder={t("accounting.journals.chooseCurrency")}
+            />
           </Field>
           <Field
             id="jn-evidence"
@@ -225,7 +207,6 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
         <p className="text-[13px] text-muted-foreground">
           {t("accounting.journals.linesHint")}
         </p>
-        <Capped meta={accounts.data?.meta} />
         {err("lines")?.length ? (
           <p className="text-sm text-destructive">{err("lines")!.join(" ")}</p>
         ) : null}
@@ -242,21 +223,12 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
               label={t("accounting.journals.account")}
               errors={err(`lines.${i}.account_id`) ?? err(`lines.${i}`)}
             >
-              <select
-                className={selectClass}
-                required
+              <AccountPicker
                 value={l.account_id}
-                onChange={(e) => setLine(l.key, { account_id: e.target.value })}
-              >
-                <option value="" disabled>
-                  {t("accounting.journals.chooseAccount")}
-                </option>
-                {usable.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.code} {a.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => setLine(l.key, { account_id: id })}
+                filter={(a) => a.active || a.id === l.account_id}
+                placeholder={t("accounting.journals.chooseAccount")}
+              />
             </Field>
             <Field
               id={`jn-${l.key}-debit`}

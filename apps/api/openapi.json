@@ -27240,6 +27240,17 @@
             "format": "date",
             "type": "string"
           },
+          "functional_currency": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CurrencyRef",
+                "description": "The book's functional currency (line values are in it); null before it is set."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "lines": {
             "description": "Changed lines only.",
             "items": {
@@ -27253,6 +27264,7 @@
         },
         "required": [
           "accounting_date",
+          "functional_currency",
           "lines",
           "review_fingerprint"
         ],
@@ -37259,6 +37271,11 @@
             },
             "type": "array"
           },
+          "business_date": {
+            "description": "Today in the book timezone (workspace timezone, else UTC); reports default to it.",
+            "format": "date",
+            "type": "string"
+          },
           "configured": {
             "description": "Currency, timezone and every role mapped.",
             "type": "boolean"
@@ -37305,6 +37322,7 @@
         "required": [
           "state",
           "version",
+          "business_date",
           "account_mappings",
           "missing_roles",
           "configured",
@@ -53032,6 +53050,15 @@
             }
           },
           {
+            "description": "Search on code and name (max 100 characters).",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "page",
             "required": false,
@@ -53108,6 +53135,16 @@
               }
             },
             "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`q` longer than 100 characters"
           },
           "429": {
             "content": {
@@ -53349,6 +53386,148 @@
       }
     },
     "/workspace/{workspace}/accounting/accounts/{account}": {
+      "get": {
+        "operationId": "accounting_accounts_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Account id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AccountResource"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or account, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get one ledger account",
+        "tags": [
+          "accounting"
+        ]
+      },
       "patch": {
         "operationId": "accounting_accounts_update",
         "parameters": [
@@ -104499,6 +104678,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "List only: batches of this profile (e.g. `opening_inventory`).",
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -105385,6 +105573,15 @@
             "description": "Rows only: staged, valid, invalid, applied or failed.",
             "in": "query",
             "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List only: batches of this profile (e.g. `opening_inventory`).",
+            "in": "query",
+            "name": "profile",
             "required": false,
             "schema": {
               "type": "string"
@@ -164207,6 +164404,15 @@
             }
           },
           {
+            "description": "Search on name and alias (max 100 characters).",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -164324,7 +164530,7 @@
                 }
               }
             },
-            "description": "Malformed `parent_id`"
+            "description": "Malformed `parent_id`, or `q` longer than 100 characters"
           },
           "429": {
             "content": {

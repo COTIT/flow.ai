@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 
+import { useSession } from "@genesy/api-client/auth"
+import { useAccountingSetupGet } from "@genesy/api-client/endpoints/accounting"
 import { PillLinks } from "@/components/list"
 
 export {
@@ -99,13 +101,22 @@ export function AccountingTabs() {
   )
 }
 
-/** First and next first of the current month, as the API's dates (a range's default). */
-export const thisMonth = () => {
-  const d = new Date()
+/** First of `day`'s month and the first of the next (a range's default, `to` exclusive). */
+export const monthOf = (day: string) => {
+  const [y = 0, m = 1] = day.split("-").map(Number)
   const pad = (n: number) => String(n).padStart(2, "0")
-  const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
   return {
-    from: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`,
-    to: `${next.getFullYear()}-${pad(next.getMonth() + 1)}-01`,
+    from: `${y}-${pad(m)}-01`,
+    to: m === 12 ? `${y + 1}-01-01` : `${y}-${pad(m + 1)}-01`,
   }
+}
+
+/** The book's current month: today in the accounting timezone, from the API (`business_date`). */
+export function useBookMonth() {
+  const workspaceId = useSession((s) => s.workspaceId) ?? ""
+  const setup = useAccountingSetupGet(workspaceId, {
+    query: { enabled: Boolean(workspaceId), staleTime: 60_000 },
+  })
+  const day = setup.data?.data.business_date
+  return { month: day ? monthOf(day) : undefined, today: day, setup }
 }

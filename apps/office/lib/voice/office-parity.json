@@ -2,6 +2,9 @@
   "accounting_accounts_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_accounts_get": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_accounts_list": {
     "ask": {
       "en": ["show the chart of accounts"],
@@ -69,6 +72,9 @@
       "sw": ["onyesha leja kuu"]
     }
   },
+  "accounting_inventory_valuation": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_journals_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -99,6 +105,9 @@
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_journals_update": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_opening_validate": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_periods_create": {
@@ -215,6 +224,13 @@
       "en": ["show imported bank statements"],
       "nl": ["toon bankafschriften"],
       "sw": ["onyesha taarifa za benki"]
+    }
+  },
+  "currencies_get": {
+    "ask": {
+      "en": ["open currency TZS"],
+      "nl": ["open valuta TZS"],
+      "sw": ["fungua sarafu TZS"]
     }
   },
   "currencies_list": {
@@ -856,6 +872,13 @@
       "sw": ["vipimo vya ununuzi"]
     }
   },
+  "relations_get": {
+    "ask": {
+      "en": ["open customer Bees BV"],
+      "nl": ["open klant Bees BV"],
+      "sw": ["fungua mteja Bees BV"]
+    }
+  },
   "relations_list": {
     "ask": {
       "en": ["list our suppliers"],
@@ -1320,6 +1343,13 @@
       "en": ["delete the warehouse North Depot"],
       "nl": ["verwijder het magazijn Noord"],
       "sw": ["futa ghala la Kaskazini"]
+    }
+  },
+  "warehouses_get": {
+    "ask": {
+      "en": ["open warehouse Main store"],
+      "nl": ["open magazijn Main store"],
+      "sw": ["fungua ghala Main store"]
     }
   },
   "warehouses_list": {

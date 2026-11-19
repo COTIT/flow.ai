@@ -462,8 +462,15 @@ pub async fn post_review(
     if !costs(access) {
         lines.iter_mut().for_each(|l| l.value = None);
     }
+    let mut conn = state.db.acquire().await?;
+    let setup = crate::modules::accounting::repo::settings(&mut conn, ws, false).await?;
+    let functional_currency = match setup.functional_currency_id {
+        Some(c) => crate::modules::accounting::repo::currency(&mut *conn, ws, c).await?,
+        None => None,
+    };
     Ok(PostReview {
         accounting_date: date,
+        functional_currency,
         review_fingerprint,
         lines,
     })

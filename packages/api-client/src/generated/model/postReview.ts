@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { CurrencyRef } from './currencyRef';
 import type { PostReviewLine } from './postReviewLine';
 
 /**
@@ -12,6 +13,7 @@ import type { PostReviewLine } from './postReviewLine';
  */
 export interface PostReview {
   accounting_date: string;
+  functional_currency: CurrencyRef | null;
   /** Changed lines only. */
   lines: PostReviewLine[];
   review_fingerprint: string;

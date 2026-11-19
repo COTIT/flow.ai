@@ -1350,11 +1350,21 @@
     "profiles": {
       "products_create": "New products",
       "products_update": "Update existing products",
-      "relations": "New customers and suppliers"
+      "relations": "New customers and suppliers",
+      "bank_statement": "Bank statement",
+      "opening_inventory": "Opening stock",
+      "opening_receivables": "Opening customer balances",
+      "opening_payables": "Opening supplier balances",
+      "opening_trial_balance": "Opening trial balance"
     },
     "profileShort": {
       "products": "Products",
-      "relations": "Customers and suppliers"
+      "relations": "Customers and suppliers",
+      "bank_statement": "Bank statement",
+      "opening_inventory": "Opening stock",
+      "opening_receivables": "Opening customer balances",
+      "opening_payables": "Opening supplier balances",
+      "opening_trial_balance": "Opening trial balance"
     },
     "matchKeys": {
       "product_nr_formatted": "Product number",
@@ -1400,8 +1410,45 @@
       "zipcode": "Postcode",
       "city": "City",
       "state": "Region",
-      "country": "Country"
-    }
+      "country": "Country",
+      "booking_date": "Booking date",
+      "amount": "Amount",
+      "warehouse_id": "Warehouse id",
+      "product_id": "Product id",
+      "quantity": "Quantity",
+      "value": "Value",
+      "invoice_number": "Invoice number",
+      "bill_number": "Supplier bill number",
+      "face": "Invoiced",
+      "settled": "Paid",
+      "credited": "Credited",
+      "refunded": "Refunded",
+      "outstanding": "Open",
+      "carrying": "Book value",
+      "account_code": "Account code",
+      "debit": "Debit",
+      "credit": "Credit",
+      "register_id": "Till id",
+      "vault_id": "Vault id",
+      "bank_account_id": "Bank account id"
+    },
+    "mode": "Workspace",
+    "modes": {
+      "existing": "Has stock already (value only)",
+      "empty": "New, no stock yet"
+    },
+    "statement": "Statement",
+    "bankAccount": "Bank account",
+    "chooseBankAccount": "Choose a bank account",
+    "header": {
+      "reference": "Statement reference",
+      "start_date": "From",
+      "end_date": "To",
+      "opening_balance": "Opening balance",
+      "closing_balance": "Closing balance"
+    },
+    "openingNote": "Opening rows are only staged. Check them together on the opening review page.",
+    "needStatement": "Choose the bank account and fill in every statement detail."
   },
   "purchases": {
     "title": "Purchases",
@@ -2054,7 +2101,9 @@
       "tax_profile_verified": "This profile is verified and can't be changed. Make a correction instead.",
       "tax_profile_correction_exists": "This profile already has a correction.",
       "tax_profile_overlap": "Another verified profile already covers the same country, region, type, category and dates."
-    }
+    },
+    "customer": "Customer",
+    "chooseCustomer": "Choose a customer"
   },
   "warehouses": {
     "title": "Warehouses",
@@ -2510,5 +2559,63 @@
       "reverseTitle": "Reverse cost adjustment",
       "reverseText": "Possible only while nothing moved in that stock since."
     }
+  },
+  "picker": {
+    "choose": "Choose…",
+    "search": "Search",
+    "loading": "Loading…",
+    "error": "Could not load the list. Close and try again.",
+    "none": "Nothing matches.",
+    "more": "Show more ({shown} of {total})"
+  },
+  "valuation": {
+    "title": "Valuation",
+    "lead": "Stock value per product and warehouse on a day, checked against the inventory account.",
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "quantity": "Quantity",
+    "value": "Value",
+    "asOf": "On",
+    "allWarehouses": "All warehouses",
+    "show": "Show",
+    "on": "Value at the end of {day}",
+    "cutover": "books started {day}",
+    "differs": "Stock value and the inventory account differ by {difference}",
+    "differsText": "Check unposted receipts, counts and write-downs. The difference stays until the books match.",
+    "oneWarehouse": "The inventory account is compared for all warehouses together only.",
+    "empty": "No stock value on this day",
+    "total": "Total stock value",
+    "gl": "Inventory account",
+    "difference": "Difference"
+  },
+  "opening": {
+    "title": "Opening review",
+    "lead": "Check the opening balances you imported before the books start. Nothing is saved here.",
+    "later": "Starting the books (activation) is a later step. This page only checks the opening imports.",
+    "batches": "Finished opening imports",
+    "none": "Not included",
+    "nothing": "No finished opening import yet. Import an opening file first.",
+    "review": "Check opening",
+    "reviewing": "Checking…",
+    "result": "Result",
+    "ready": "Ready",
+    "notReady": "Needs a fix",
+    "issues": "What to fix",
+    "allGood": "The opening imports agree with each other.",
+    "fingerprint": "Check reference {value}",
+    "inventory": "Opening stock",
+    "mode": "Mode",
+    "quantity": "Quantity",
+    "value": "Value",
+    "trialBalance": "Opening trial balance",
+    "debit": "Debit",
+    "credit": "Credit",
+    "receivables": "Customers owe",
+    "payables": "Owed to suppliers",
+    "count": "Invoices",
+    "face": "Invoiced",
+    "settled": "Paid",
+    "outstanding": "Open",
+    "carrying": "Book value"
   }
 }

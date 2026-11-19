@@ -666,6 +666,10 @@ async fn an_active_book_values_differences_at_average_and_posts_once(pool: PgPoo
     };
     assert_eq!(value(&r1, &honey), "-2.00");
     assert_eq!(value(&r1, &wax), "4.50");
+    assert_eq!(
+        r1["data"]["functional_currency"]["code"], "EUR",
+        "values are in the book currency: {r1}"
+    );
 
     // Stale fingerprint, then the real post, then its replay.
     let id = st["id"].as_str().unwrap();

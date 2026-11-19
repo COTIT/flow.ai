@@ -91,6 +91,8 @@ pub struct ListFilter {
     /// Only when `parent_id` is None.
     pub roots_only: bool,
     pub pickup_only: bool,
+    /// Escaped ILIKE pattern on name or alias.
+    pub q: Option<String>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -437,6 +439,7 @@ pub async fn list(
              AND ($2::uuid IS NULL OR parent_id = $2)
              AND ($2::uuid IS NOT NULL OR NOT $3 OR parent_id IS NULL)
              AND (NOT $4 OR pickup_enabled)
+             AND ($7::text IS NULL OR name ILIKE $7 OR alias ILIKE $7)
            ORDER BY id
            LIMIT $5 OFFSET $6"#,
         workspace_id,
@@ -445,6 +448,7 @@ pub async fn list(
         f.pickup_only,
         f.limit,
         f.offset,
+        f.q.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -497,11 +501,13 @@ pub async fn count(
            WHERE workspace_id = $1 AND deleted_at IS NULL
              AND ($2::uuid IS NULL OR parent_id = $2)
              AND ($2::uuid IS NOT NULL OR NOT $3 OR parent_id IS NULL)
-             AND (NOT $4 OR pickup_enabled)"#,
+             AND (NOT $4 OR pickup_enabled)
+             AND ($5::text IS NULL OR name ILIKE $5 OR alias ILIKE $5)"#,
         workspace_id,
         f.parent_id,
         f.roots_only,
         f.pickup_only,
+        f.q.as_deref(),
     )
     .fetch_one(db)
     .await

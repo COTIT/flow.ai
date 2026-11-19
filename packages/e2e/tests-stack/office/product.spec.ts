@@ -14,7 +14,10 @@ import {
 
 type Warehouse = { id: string; is_store: boolean }
 
-test("office: a new product and its size reach the shop and the till", async ({ page, request }) => {
+test("office: a new product and its size reach the shop and the till", async ({
+  page,
+  request,
+}) => {
   // The till first: pairing signs this page into the till; the office login comes after.
   const { owner, register } = await pairTill(page, request)
   const name = `e2e product ${unique()}`
@@ -26,7 +29,9 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await create.getByLabel("Name").fill(name)
   await create.getByLabel("Price excl. VAT").fill("4.00")
   await create.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("status").filter({ hasText: "Product created." })).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product created." })
+  ).toBeVisible()
   await expect(page.getByRole("heading", { name })).toBeVisible()
   const id = new URL(page.url()).pathname.split("/").at(-1)!
 
@@ -36,7 +41,9 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await size.getByLabel("Size").fill("250 g")
   await size.getByLabel("Price excl. VAT").fill("4.20")
   await size.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("status").filter({ hasText: "Size added." })).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Size added." })
+  ).toBeVisible()
   await expect(sizes.getByText("250 g")).toBeVisible()
   await sizes.getByRole("button", { name: "Edit size 250 g" }).click()
   const editSize = page.getByRole("dialog", { name: "Edit size" })
@@ -54,7 +61,11 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   const depot = warehouses.find((w) => !w.is_store)!
   await owner.post(owner.ws(`/products/${id}/set-stock-levels`), {
     warehouses: [
-      { warehouse_id: register.warehouse_id, stock_lvl: "20.00", reason: "e2e" },
+      {
+        warehouse_id: register.warehouse_id,
+        stock_lvl: "20.00",
+        reason: "e2e",
+      },
       { warehouse_id: depot.id, stock_lvl: "20.00", reason: "e2e" },
     ],
   })
@@ -63,7 +74,9 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await page.goto(`${urls.shop}/products/${id}`)
   await expect(page.getByRole("heading", { name })).toBeVisible()
   await expect(
-    page.getByRole("group", { name: "Size" }).getByRole("button", { name: /^250 G(?:\s|$)/ })
+    page
+      .getByRole("group", { name: "Size" })
+      .getByRole("button", { name: /^250 G(?:\s|$)/ })
   ).toBeVisible()
   await expectNoRawValues(page)
 
@@ -71,7 +84,9 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await page.goto(`${urls.till}/sale`)
   await page.getByLabel("Scan a barcode or type a name").fill(name)
   await expect(
-    page.getByRole("list", { name: "Products" }).getByText(`${name} · 250 G`, { exact: true })
+    page
+      .getByRole("list", { name: "Products" })
+      .getByText(`${name} · 250 G`, { exact: true })
   ).toBeVisible()
 })
 
@@ -81,12 +96,18 @@ test.describe(() => {
       ...stackAllow,
       responses: [
         ...stackAllow.responses,
-        { url: `${urls.office}/v1/workspace/${workspaces.AFM}/products`, status: 422 },
+        {
+          url: `${urls.office}/v1/workspace/${workspaces.AFM}/products`,
+          status: 422,
+        },
       ],
     },
   })
 
-  test("office: a name the API refuses shows at the field and makes no product", async ({ page, request }) => {
+  test("office: a name the API refuses shows at the field and makes no product", async ({
+    page,
+    request,
+  }) => {
     const owner = await apiAs(request, cred("office (AFM)", "owner"))
     const tag = `e2e ${unique()}`
     await loginOffice(page, cred("office (AFM)", "owner"))
@@ -96,10 +117,17 @@ test.describe(() => {
     await create.getByLabel("Name").fill(`${tag} ${"x".repeat(260)}`)
     await create.getByLabel("Price excl. VAT").fill("4.00")
     await create.getByRole("button", { name: "Save" }).click()
-    await expect(create.getByLabel("Name")).toHaveAttribute("aria-invalid", "true")
+    await expect(create.getByLabel("Name")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
     await expect(create.getByLabel("Name")).toHaveAccessibleDescription(/255/)
     await expect(page).toHaveURL(`${urls.office}/products`)
-    expect(await owner.get<unknown[]>(owner.ws(`/products?q=${encodeURIComponent(tag)}`))).toHaveLength(0)
+    expect(
+      await owner.get<unknown[]>(
+        owner.ws(`/products?q=${encodeURIComponent(tag)}`)
+      )
+    ).toHaveLength(0)
   })
 })
 
@@ -109,7 +137,10 @@ test.describe(() => {
   test.beforeAll(async ({ request }) => {
     const afm = await apiAs(request, cred("office (AFM)", "owner"))
     foreign = (
-      await afm.post<{ product_id: string }>(afm.ws("/products"), { name: `e2e private ${unique()}`, price: "4.00" })
+      await afm.post<{ product_id: string }>(afm.ws("/products"), {
+        name: `e2e private ${unique()}`,
+        price: "4.00",
+      })
     ).product_id
   })
   // A fixture function, so the id beforeAll made is read when the test starts.
@@ -121,21 +152,31 @@ test.describe(() => {
         responses: [
           ...stackAllow.responses,
           // The product and the reads beside it (stock, movements) are all refused with 404.
-          ...["", "/stock-with-bins", "/stock-movements?page=1"].map((tail) => ({
-            url: `${urls.office}/v1/workspace/${workspaces.RUAHA}/products/${foreign}${tail}`,
-            status: 404,
-          })),
+          ...["", "/stock-with-bins", "/stock-movements?page=1"].map(
+            (tail) => ({
+              url: `${urls.office}/v1/workspace/${workspaces.RUAHA}/products/${foreign}${tail}`,
+              status: 404,
+            })
+          ),
         ],
       }),
   })
 
-  test("office: another account's product is refused, not shown", async ({ page }) => {
+  test("office: another account's product is refused, not shown", async ({
+    page,
+  }) => {
     await loginOffice(page, cred("office (RUAHA)", "admin"))
     await page.goto(`${urls.office}/products/${foreign}`)
     // TanStack retries three times before giving up.
-    await expect(page.getByText("Not found", { exact: true })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByRole("link", { name: "Back to the list" })).toHaveAttribute("href", "/products")
+    await expect(page.getByText("Not found", { exact: true })).toBeVisible({
+      timeout: 20_000,
+    })
+    await expect(
+      page.getByRole("link", { name: "Back to the list" })
+    ).toHaveAttribute("href", "/products")
     await expect(page.getByText("e2e private")).toHaveCount(0)
-    await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "Save changes" })
+    ).toHaveCount(0)
   })
 })

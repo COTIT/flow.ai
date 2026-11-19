@@ -196,4 +196,6 @@ pub struct ListQuery {
     pub page_size: Option<String>,
     /// Rows only: staged, valid, invalid, applied or failed.
     pub status: Option<String>,
+    /// List only: batches of this profile (e.g. `opening_inventory`).
+    pub profile: Option<String>,
 }

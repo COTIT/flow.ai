@@ -13,4 +13,8 @@ page_size?: string;
  * Rows only: staged, valid, invalid, applied or failed.
  */
 status?: string;
+/**
+ * List only: batches of this profile (e.g. `opening_inventory`).
+ */
+profile?: string;
 };
