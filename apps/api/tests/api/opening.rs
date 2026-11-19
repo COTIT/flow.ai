@@ -56,6 +56,21 @@ pub(crate) async fn opening(pool: PgPool) -> O {
         income: String::new(),
     };
     w.ready().await;
+    // Activation preflight: one verified sale tax profile per product, and an open 2026 period
+    // around today's cutover (ready() opened 2027-01 only).
+    crate::common::tax::seed_sale_profiles(&pool, &w.ws).await;
+    let year = w
+        .create(
+            "/fiscal-years",
+            json!({"start_date": "2026-01-01", "end_date": "2027-01-01"}),
+        )
+        .await;
+    w.create(
+        "/periods",
+        json!({"fiscal_year_id": year["id"], "start_date": "2026-01-01",
+               "end_date": "2027-01-01"}),
+    )
+    .await;
     let o = O {
         number: sqlx::query_scalar("SELECT invoice_number FROM invoices WHERE id = $1::uuid")
             .bind(&invoice)
@@ -549,23 +564,9 @@ impl O {
             .unwrap()
     }
 
-    /// Cutover now, inside an open 2026 period (ready() opened 2027-01 only); rows written
-    /// after this call fall after the cutover.
+    /// Cutover now, inside the fixture's open 2026 period; rows written after this call fall
+    /// after the cutover.
     pub(crate) async fn cutover(&self) {
-        let year = self
-            .w
-            .create(
-                "/fiscal-years",
-                json!({"start_date": "2026-01-01", "end_date": "2027-01-01"}),
-            )
-            .await;
-        self.w
-            .create(
-                "/periods",
-                json!({"fiscal_year_id": year["id"], "start_date": "2026-01-01",
-                       "end_date": "2027-01-01"}),
-            )
-            .await;
         sqlx::query(
             "UPDATE accounting_settings SET cutover_at = clock_timestamp() WHERE workspace_id = $1::uuid",
         )
@@ -610,17 +611,36 @@ impl O {
         fp
     }
 
-    /// M8 flips the book; here by SQL, keeping the reviewed cutover.
-    pub(crate) async fn go_active(&self) {
-        sqlx::query(
-            "UPDATE accounting_settings SET state = 'active', activated_at = now(),
-                    activated_by = (SELECT created_by_user_id FROM workspaces WHERE id = $1::uuid)
-             WHERE workspace_id = $1::uuid",
-        )
-        .bind(&self.w.ws)
-        .execute(&self.w.pool)
-        .await
-        .unwrap();
+    /// `POST /accounting/activate` on the reviewed opening (the core already ran: the route
+    /// flips the book, keeping the reviewed cutover); panics unless it answers 200.
+    pub(crate) async fn go_active(&self, batches: &[String], fingerprint: &str) {
+        let (s, b) = self
+            .activate(batches, fingerprint, &self.w.owner.clone())
+            .await;
+        assert_eq!(s, StatusCode::OK, "{b}");
+        assert_eq!(b["data"]["state"], "active", "{b}");
+    }
+
+    /// `POST /accounting/activate` as `token` at the current setup version.
+    pub(crate) async fn activate(
+        &self,
+        batches: &[String],
+        fingerprint: &str,
+        token: &str,
+    ) -> (StatusCode, Value) {
+        let version = self.w.setup().await["version"].clone();
+        self.w
+            .call(
+                Method::POST,
+                "/activate",
+                Some(
+                    json!({ "client_ref": Uuid::now_v7(), "expected_version": version,
+                             "payload": { "batch_ids": batches,
+                                          "opening_fingerprint": fingerprint } }),
+                ),
+                token,
+            )
+            .await
     }
 
     pub(crate) async fn vault(&self) -> String {
@@ -680,7 +700,7 @@ impl O {
 
 /// Opening example with a 50.00 vault opening: TB receivables 60 + inventory 50 + vault 50 =
 /// equity 160.
-async fn opened(pool: PgPool) -> (O, String, [String; 3]) {
+pub(crate) async fn opened(pool: PgPool) -> (O, String, [String; 3]) {
     let o = opening(pool).await;
     let vault = o.vault().await;
     let inv = o
@@ -792,7 +812,7 @@ async fn opening_payment_contract_end_to_end(pool: PgPool) {
     );
     assert_eq!(o.count("cash_place_openings").await, 1);
 
-    o.go_active().await;
+    o.go_active(&batches, &fp).await;
     // Visible paid starts at 40.
     assert_eq!(o.invoice_state().await.0, 4_000);
     assert_eq!(o.place_balance(&vault).await, 5_000);
@@ -1047,8 +1067,9 @@ async fn covered_provider_callback_is_a_no_op_and_new_facts_stay_new(pool: PgPoo
             .execute(&o.w.pool)
     };
     insert(op_id, 4_000).await.unwrap();
-    o.open_books(&[inv, ar, tb]).await;
-    o.go_active().await;
+    let batches = [inv, ar, tb];
+    let fp = o.open_books(&batches).await;
+    o.go_active(&batches, &fp).await;
     let o = &o;
     let collect = |id: Uuid| async move {
         let op = genesy_360_api::gateway::repo::find(&o.w.pool, ws, id)
@@ -1081,7 +1102,7 @@ async fn covered_provider_callback_is_a_no_op_and_new_facts_stay_new(pool: PgPoo
 #[sqlx::test]
 async fn opening_corrections_permissions_and_isolation(pool: PgPool) {
     let (o, _, batches) = opened(pool.clone()).await;
-    o.open_books(&batches).await;
+    let fp = o.open_books(&batches).await;
     let baseline: String = sqlx::query_scalar(
         "SELECT id::text FROM accounting_opening_baselines WHERE workspace_id = $1::uuid",
     )
@@ -1100,7 +1121,7 @@ async fn opening_corrections_permissions_and_isolation(pool: PgPool) {
         )
         .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
-    o.go_active().await;
+    o.go_active(&batches, &fp).await;
     let configure = member_with(
         &o.w.app,
         &pool,

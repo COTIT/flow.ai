@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 
 /// Payables book (M5-A fixture) plus a mapped `unrealized_fx` account; the expense account.
-async fn book(w: &W) -> String {
+pub(crate) async fn book(w: &W) -> String {
     let expense = crate::payables::book(w).await;
     sqlx::query(
         "WITH a AS (INSERT INTO accounts (workspace_id, code, name, type, created_by)
@@ -81,14 +81,14 @@ async fn revalue(w: &W, rate_date: &str) -> (StatusCode, Value) {
     .await
 }
 
-async fn revalued(w: &W, rate_date: &str) -> Value {
+pub(crate) async fn revalued(w: &W, rate_date: &str) -> Value {
     let (s, r) = revalue(w, rate_date).await;
     assert_eq!(s, StatusCode::OK, "{r}");
     r["data"].clone()
 }
 
 /// Functional carrying (residual) of an open item.
-async fn carrying(w: &W, item: &Value) -> i64 {
+pub(crate) async fn carrying(w: &W, item: &Value) -> i64 {
     sqlx::query_scalar("SELECT functional_residual FROM accounting_open_items WHERE id = $1::uuid")
         .bind(item.as_str().unwrap())
         .fetch_one(w.pool())

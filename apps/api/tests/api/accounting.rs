@@ -184,7 +184,7 @@ impl World {
         period["id"].as_str().unwrap().to_owned()
     }
 
-    // shortcut: activation by SQL until M8 activate route.
+    // fixture: disposable SQL activation without an opening; `POST /accounting/activate` is proven in activation.rs.
     pub(super) async fn activate(&self) {
         sqlx::query(
             "UPDATE accounting_settings SET state = 'active', cutover_at = now(), activated_at = now(),

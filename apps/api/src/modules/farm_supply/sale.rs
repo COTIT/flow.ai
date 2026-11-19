@@ -102,6 +102,7 @@ pub async fn on_sale(
         };
         let (raw, units) = l.pack.unwrap_or((Decimal::ONE, Decimal::ONE));
         let total = credit_total(l.price_per_kg, t.qty, raw, units).ok_or_else(overflow)?;
+        farm_book_dormant(&mut *conn, l.root_workspace_id).await?;
         // After the order's stock locks, like a correction approval: no deadlock between them.
         repo::share_batch(&mut *conn, l.root_workspace_id, l.batch_id).await?;
         let weights = repo::weights(&mut *conn, l.root_workspace_id, l.batch_id).await?;
@@ -150,6 +151,7 @@ pub async fn on_return(
             let Some(sale) = repo::sale_of(&mut *conn, sold_ws, order_id, lot).await? else {
                 continue;
             };
+            farm_book_dormant(&mut *conn, sale.workspace_id).await?;
             // Before reading what farmers hold: an approval's splits count in it.
             repo::share_batch(&mut *conn, sale.workspace_id, sale.batch_id).await?;
             let (done_jars, done) =
@@ -252,6 +254,24 @@ pub async fn restock_plan(
         }
     }
     Ok(out)
+}
+
+/// §16: attribution liability stays outside native accounting, so an active farm book refuses
+/// it. A row share lock, not the book gate: the order already holds stock locks (§6), and the
+/// lock still waits for an activation committing on that book.
+async fn farm_book_dormant(conn: &mut PgConnection, farm_ws: Uuid) -> Result<(), AppError> {
+    let state: Option<String> = sqlx::query_scalar(
+        "SELECT state FROM accounting_settings WHERE workspace_id = $1 FOR SHARE",
+    )
+    .bind(farm_ws)
+    .fetch_optional(&mut *conn)
+    .await?;
+    if state.as_deref() == Some("active") {
+        return Err(crate::modules::accounting::service::unsupported(
+            "Crediting farmers for a sale isn't supported while the farm's accounting book is active.",
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

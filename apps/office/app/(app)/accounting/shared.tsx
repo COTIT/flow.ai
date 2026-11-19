@@ -70,6 +70,7 @@ export function useReasons() {
       "accounting_not_configured",
       "accounting_period_closed",
       "unsupported_active_erp_operation",
+      "already_active",
     ].map((c) => [c, t(c)])
   )
 }
@@ -82,6 +83,7 @@ const sections = [
   "cash",
   "banking",
   "exceptions",
+  "opening",
   "setup",
 ] as const
 

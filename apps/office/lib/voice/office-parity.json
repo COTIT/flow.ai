@@ -15,6 +15,9 @@
   "accounting_accounts_update": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_activate": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
   "accounting_balance_sheet": {
     "ask": {
       "en": ["show the balance sheet"],
@@ -106,6 +109,15 @@
   },
   "accounting_journals_update": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_opening_baselines_list": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
+  "accounting_opening_corrections_create": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
+  },
+  "accounting_opening_corrections_review": {
+    "officeOnlyBecause": "Activation and opening balances are done on the Office opening screen (review, then confirm); the assistant keeps them internal (masterplan M8)."
   },
   "accounting_opening_validate": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."

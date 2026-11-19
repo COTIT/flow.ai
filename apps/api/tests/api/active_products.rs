@@ -8,7 +8,7 @@ use common::Api;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
-// shortcut: activation by SQL until the M8 activate route.
+// fixture: disposable SQL activation without an opening; `POST /accounting/activate` is proven in activation.rs.
 async fn activate(api: &Api) {
     sqlx::query(
         "UPDATE accounting_settings SET state = 'active', timezone = 'UTC',

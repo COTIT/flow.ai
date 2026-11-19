@@ -25249,6 +25249,74 @@
       "mode": "reconcile_only"
     },
     "confirmationFields": []
+  },  "accounting_activate": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/accounting/activate",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#activate",
+        "apps/api/src/modules/accounting/opening.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "high",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },  "accounting_opening_baselines_list": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/accounting/opening-baselines",
+    "disposition": "internal",
+    "reason": "Flow ERP route: activation and opening balances stay on the Office opening screen; hidden from the assistant (masterplan M8).",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/accounting/handlers.rs#opening_baselines_list",
+        "apps/api/src/modules/accounting/opening.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
   },
   "bank_statements_line_candidates": {
     "method": "GET",

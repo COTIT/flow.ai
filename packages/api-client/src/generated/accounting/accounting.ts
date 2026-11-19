@@ -40,6 +40,7 @@ import type {
   AccountingTrialBalanceParams,
   AccountingYearsListParams,
   ActionAccountPatch,
+  ActionActivatePayload,
   ActionClosePayload,
   ActionJournalPayload,
   ActionPostPayload,
@@ -453,6 +454,74 @@ export const useAccountingAccountsUpdate = <TError = ErrorType<MessageBody | Val
         TContext
       > => {
       return useMutation(getAccountingAccountsUpdateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Activate the books from a reviewed opening
+ */
+export const accountingActivate = (
+    workspace: string,
+    actionActivatePayload: BodyType<ActionActivatePayload>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSetupResource>(
+      {url: `/workspace/${workspace}/accounting/activate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: actionActivatePayload, signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingActivateMutationKey = () => ['accountingActivate'] as const;
+
+export const getAccountingActivateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingActivate>>, TError,AccountingActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof accountingActivate>>, TError,AccountingActivateMutationVariables, TContext> => {
+
+const mutationKey = getAccountingActivateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof accountingActivate>>, AccountingActivateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  accountingActivate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AccountingActivateMutationResult = NonNullable<Awaited<ReturnType<typeof accountingActivate>>>
+    export type AccountingActivateMutationBody = BodyType<ActionActivatePayload>
+    export type AccountingActivateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type AccountingActivateMutationVariables = {workspace: string;data: BodyType<ActionActivatePayload>}
+
+    /**
+ * @summary Activate the books from a reviewed opening
+ */
+export const useAccountingActivate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof accountingActivate>>, TError,AccountingActivateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof accountingActivate>>,
+        TError,
+        AccountingActivateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAccountingActivateMutationOptions(options), queryClient);
     }
     /**
  * @summary List bank accounts
@@ -2163,6 +2232,98 @@ export const useAccountingJournalsReverseReview = <TError = ErrorType<MessageBod
       return useMutation(getAccountingJournalsReverseReviewMutationOptions(options), queryClient);
     }
     /**
+ * @summary The opening's receivables and payables, as corrected
+ */
+export const accountingOpeningBaselinesList = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeValue>(
+      {url: `/workspace/${workspace}/accounting/opening-baselines`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAccountingOpeningBaselinesListQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/accounting/opening-baselines`
+    ] as const;
+    }
+
+
+export const getAccountingOpeningBaselinesListQueryOptions = <TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccountingOpeningBaselinesListQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>> = ({ signal }) => accountingOpeningBaselinesList(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccountingOpeningBaselinesListQueryResult = NonNullable<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>>
+export type AccountingOpeningBaselinesListQueryError = ErrorType<MessageBody>
+
+
+export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingOpeningBaselinesList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingOpeningBaselinesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accountingOpeningBaselinesList>>,
+          TError,
+          Awaited<ReturnType<typeof accountingOpeningBaselinesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The opening's receivables and payables, as corrected
+ */
+
+export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccountingOpeningBaselinesListQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Append a reviewed opening correction in the current period
  */
 export const accountingOpeningCorrectionsCreate = (

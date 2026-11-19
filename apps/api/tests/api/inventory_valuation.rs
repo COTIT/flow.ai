@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-// --- book fixture (activation by SQL until the M8 activate route) ---------------------------
+// --- book fixture (disposable SQL activation; the route is proven in activation.rs) -------
 
 /// Map inventory/cogs/inventory_adjustment/opening_equity and the sales roles (receivables,
 /// unbilled receivables, customer deposits, revenue, sales returns, tax, cash, provider clearing, rounding), set the book active in UTC
