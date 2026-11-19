@@ -63,7 +63,13 @@ fn reason(code: &'static str, message: &str) -> AppError {
 }
 
 fn resource(h: Head, lines: Option<(Vec<Line>, i32)>) -> StocktakeResource {
+    let allowed_actions = match h.state.as_str() {
+        "draft" => vec!["start", "cancel"],
+        "counting" => vec!["count", "post", "cancel"],
+        _ => vec![],
+    };
     StocktakeResource {
+        allowed_actions,
         id: h.id,
         warehouse_id: h.warehouse_id,
         state: h.state,
@@ -81,8 +87,12 @@ fn resource(h: Head, lines: Option<(Vec<Line>, i32)>) -> StocktakeResource {
                 .map(|l| StocktakeLine {
                     stock_identity: l.stock_id,
                     product_id: l.product_id,
+                    product_name: l.product_name,
+                    product_reference: l.product_reference,
                     bin_id: l.bin_id,
+                    bin_code: l.bin_code,
                     lot_id: l.lot_id,
+                    lot_code: l.lot_code,
                     expected_quantity: qty(l.expected),
                     counted_quantity: l.counted.map(qty),
                     positive_adjustment_value: l.value.map(|v| amount(v, dp as i16)),

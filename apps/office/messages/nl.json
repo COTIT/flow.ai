@@ -799,6 +799,12 @@
       "created": "Belastingprofiel als concept opgeslagen.",
       "saved": "Concept opgeslagen.",
       "verified": "Belastingprofiel geverifieerd."
+    },
+    "stocktakes": {
+      "started": "Telling gestart. Het magazijn is gepauzeerd.",
+      "counted": "Tellingen opgeslagen.",
+      "posted": "Telling geboekt.",
+      "cancelled": "Telling geannuleerd."
     }
   },
   "images": {
@@ -1631,7 +1637,9 @@
       "edit": "Wijzigen",
       "editTitle": "Rekening {code}",
       "editText": "Geef de rekening een andere naam of zet haar uit. Een rekening die voor een rol is ingesteld, blijft in gebruik.",
-      "inUse": "In gebruik"
+      "inUse": "In gebruik",
+      "history": "Rekeninghistorie",
+      "under": "onder {code} {name}"
     },
     "periods": {
       "title": "Boekjaren en perioden",
@@ -1912,5 +1920,82 @@
     "select": "Kies een magazijn",
     "selectionUnavailable": "Dit magazijn is niet beschikbaar. Kies een ander magazijn om verder te gaan.",
     "listDenied": "Je hebt toestemming nodig om magazijnen te bekijken voordat je voorraad kunt wijzigen."
+  },
+  "stocktakes": {
+    "title": "Tellingen",
+    "one": "Voorraadtelling",
+    "titleOf": "Telling van {warehouse}",
+    "open": "Telling openen",
+    "count": "{total, plural, one {# telling} other {# tellingen}}",
+    "empty": "Nog geen tellingen.",
+    "warehouse": "Magazijn",
+    "reason": "Reden",
+    "state": "Status",
+    "created": "Aangemaakt",
+    "startedAt": "Gestart",
+    "postedAt": "Geboekt",
+    "cancelledAt": "Geannuleerd",
+    "new": "Nieuwe telling",
+    "newText": "Kies het magazijn om te tellen. Er wordt pas iets gepauzeerd als je de telling start.",
+    "chooseWarehouse": "Kies een magazijn",
+    "create": "Telling aanmaken",
+    "states": {
+      "draft": "Concept",
+      "counting": "Bezig met tellen",
+      "posted": "Geboekt",
+      "cancelled": "Geannuleerd"
+    },
+    "lines": "Artikelen",
+    "item": "Artikel",
+    "expected": "Verwacht",
+    "counted": "Geteld",
+    "notCounted": "Niet geteld",
+    "countedOf": "Geteld voor {item}",
+    "foundValue": "Waarde gevonden voorraad",
+    "foundValueOf": "Waarde gevonden voorraad voor {item}",
+    "foundValueHint": "Vul alleen een waarde in als de telling meer vindt dan verwacht en het artikel hier nog geen kostprijs heeft. De telling zegt het als het nodig is.",
+    "save": "Tellingen opslaan",
+    "noLines": "Dit magazijn had geen voorraadregels toen de telling startte.",
+    "nextStep": "Volgende stap",
+    "details": "Gegevens",
+    "paused": "Dit magazijn is gepauzeerd: geen voorraad in of uit tot de telling geboekt of geannuleerd is.",
+    "reallocated": "Reserveringen op teruggeroepen, geblokkeerde of verlopen partijen zijn waar mogelijk naar verkoopbare voorraad verplaatst. Een reservering die niet kon verhuizen blijft op de partijpagina.",
+    "next": {
+      "start": "Starten bevriest de verwachte voorraad en pauzeert dit magazijn terwijl je telt.",
+      "post": "Als elk artikel geteld is, boek je de verschillen naar de voorraad."
+    },
+    "postedInfo": "Deze telling is geboekt. De verschillen staan in de voorraadhistorie.",
+    "cancelledInfo": "Deze telling is geannuleerd. Er is geen voorraad verplaatst.",
+    "nothingToDo": "Met jouw rechten valt hier niets te doen.",
+    "start": {
+      "action": "Telling starten",
+      "title": "Deze telling starten?",
+      "text": "De verwachte voorraad wordt nu bevroren en het magazijn is gepauzeerd tot de telling geboekt of geannuleerd is."
+    },
+    "cancel": {
+      "action": "Telling annuleren",
+      "title": "Deze telling annuleren?",
+      "text": "De tellingen blijven als historie, er verplaatst geen voorraad en het magazijn gaat weer verder.",
+      "keep": "Behouden"
+    },
+    "post": {
+      "action": "Telling boeken",
+      "title": "Deze telling boeken",
+      "text": "Kies de datum, controleer elk verschil en boek.",
+      "date": "Boekdatum",
+      "review": "Verschillen controleren",
+      "reviewing": "Verschillen worden gecontroleerd",
+      "noChanges": "Elke telling klopt met de verwachting. Boeken hervat alleen het magazijn.",
+      "delta": "Verschil {delta}",
+      "value": "waarde {value}"
+    },
+    "reasons": {
+      "receipt_booking_required": "Ontvangen goederen in dit magazijn wachten nog op boeking. Boek ze eerst en start dan de telling.",
+      "warehouse_paused": "In dit magazijn loopt al een andere telling.",
+      "stocktake_value_required": "Er is een artikel gevonden zonder kostprijs in dit magazijn. Vul de waarde van de gevonden voorraad in.",
+      "stocktake_value_not_allowed": "Dit artikel heeft hier al een kostprijs. Laat de waarde van de gevonden voorraad leeg.",
+      "backdated_valuation": "Deze datum ligt voor de laatste waardering van het artikel. Kies een latere datum."
+    },
+    "linesAfterStart": "De te tellen artikelen verschijnen zodra de telling start."
   }
 }

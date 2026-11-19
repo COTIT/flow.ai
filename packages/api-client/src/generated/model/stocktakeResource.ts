@@ -13,6 +13,8 @@ import type { StocktakeLine } from './stocktakeLine';
 export interface StocktakeResource {
   /** @nullable */
   accounting_date?: string | null;
+  /** Subset of start, count, post, cancel the state allows. */
+  allowed_actions: string[];
   /** @nullable */
   cancel_reason?: string | null;
   /** @nullable */
