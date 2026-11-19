@@ -3,6 +3,15 @@
 ## Unreleased
 
 - Flow ERP M6-A, one verified tax calculation path (migration `20261119150000_sale_tax`, `docs/api/tax-profiles.md`). Active books tax orders, storefront, Till, `/calculate-items` and invoice drafts through SQL `sale_tax_lines` → `tax_line`, per line and per component. Quote and commit share the query; snapshots in `order_line_taxes` / `item_taxes`; client `vat` ignored; legacy `vat_rate`/`vat` are projections. No covering verified sale profile, or several jurisdictions → 422 `unsupported_active_erp_operation`. Recognition and credits split tax per component; credits freeze their reversal in `sales_return_line_taxes`. Setup books unchanged.
+- Flow ERP M6-B opening conversion (`docs/api/accounting.md` "Opening conversion", `docs/api/imports.md`; migration `20261119160000_opening_conversion`):
+  - four opening import profiles (`opening_inventory` existing/empty, `opening_receivables`, `opening_payables`, `opening_trial_balance` with drawer/vault/bank detail) stage typed `accounting_opening_lines` only; every row valid or nothing stages;
+  - `POST /accounting/opening/validate`: schedules, control/mode/payment/shift issues and a stable `opening_fingerprint`, no writes;
+  - crate-internal activation core `opening::apply` (steps 7-9, M8 adds the route and the flip): one opening journal, `accounting_opening_baselines` + opening items, `opening_covered` links for historical payments, value seeded on existing stock or opening stock created once, `cash_place_openings`; retry is a no-op;
+  - active paid projection = baseline paid + post-cutover settlement + corrections; void of a covered payment → 422 `opening_covered_source`; an exact covered provider callback is a no-op;
+  - `POST /accounting/opening-corrections/review` and `/opening-corrections`: typed, reviewed, current-period correction (functional currency); the baseline never changes;
+  - active book cash per place = reviewed opening + rows from the cutover (shortcut removed);
+  - decision: no "unresolved opening controls" close check, because nothing stays pending after the atomic core (review refuses mismatches first).
+
 - WF-01 execute review fixes (`docs/api/integrations.md`, `docs/api/workflows.md`; no migration):
   - a granted retry whose Odoo source changed goes to `awaiting_reconciliation` with a `source_changed_during_write` incident instead of a cancel the I2 CHECK refused (the job looped);
   - `allow_retry` while a grant is unused → 409 `retry_already_granted` (UI text en/sw/nl); attempt n carries grant n-1, so one grant never covers two attempts;

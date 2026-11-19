@@ -242,6 +242,17 @@ pub async fn void(
 ) -> Result<Answer, AppError> {
     let (id, payment) = (parse(invoice)?, parse(payment)?);
     let mut tx = state.db.begin().await?;
+    // Historical cash the opening covers has no post-cutover journal to reverse.
+    if crate::modules::accounting::opening::covered(
+        &mut tx,
+        workspace_id,
+        "invoice_payment",
+        payment,
+    )
+    .await?
+    {
+        return Err(crate::modules::accounting::opening::covered_error());
+    }
     if value::active(&mut tx, workspace_id).await? {
         return Err(unsupported(ACTIVE_VOID));
     }
@@ -359,6 +370,22 @@ pub async fn mark_as_credited(
 
 /// Lock the live invoices `ids` in id order (so two writes over the same pair never
 /// deadlock); the ones found, by id.
+/// Lock invoice `invoice` and recompute its paid total and status from the current projection
+/// (opening corrections move the active paid projection without a payment row).
+pub(crate) async fn refresh(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice: Uuid,
+) -> Result<(), AppError> {
+    for t in lock_all(conn, workspace_id, &[Some(invoice)])
+        .await?
+        .values()
+    {
+        rebalance(conn, workspace_id, t, None).await?;
+    }
+    Ok(())
+}
+
 async fn lock_all(
     conn: &mut PgConnection,
     workspace_id: Uuid,

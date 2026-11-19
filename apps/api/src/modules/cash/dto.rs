@@ -663,7 +663,8 @@ pub struct CashPlaceResource {
     pub id: Uuid,
     pub name: String,
     pub currency: PlaceCurrency,
-    /// Minor units: reviewed adjustments + posted movements; counts excluded.
+    /// Minor units: reviewed opening + posted movements since the cutover (active books);
+    /// counts excluded.
     pub balance: i64,
     /// Drawers: the open shift, if any.
     pub open_shift_id: Option<Uuid>,

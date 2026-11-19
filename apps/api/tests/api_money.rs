@@ -67,6 +67,8 @@ mod login;
 mod money_sql;
 #[path = "api/numbering.rs"]
 mod numbering;
+#[path = "api/opening.rs"]
+mod opening;
 #[path = "api/payables.rs"]
 mod payables;
 #[path = "api/payments.rs"]
