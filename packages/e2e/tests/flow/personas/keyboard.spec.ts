@@ -658,6 +658,9 @@ test("probe: choosing a product by keyboard (clarify)", async ({
   await startText(page)
   await page.keyboard.type("Update the honey stock.")
   await page.keyboard.press("Enter")
+  await expect(page.getByRole("log", { name: v.transcript })).toContainText(
+    "You: Update the honey stock."
+  )
   persona.agent.call("products_list", { query: { q: "honey" } })
   await expect.poll(persona.agent.results).toBe(1)
   persona.agent.say("I found three honey products. Which one did you mean?")
