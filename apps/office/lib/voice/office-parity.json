@@ -11,6 +11,9 @@
   "accounting_balance_sheet": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_bank_accounts_list": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_cash_adjustments_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -73,23 +76,41 @@
   },
   "app_keys_create": {
     "ask": {
-      "en": ["create an app key for the web shop"],
-      "nl": ["nieuwe app-sleutel voor de webwinkel"],
-      "sw": ["tengeneza ufunguo wa programu kwa duka la mtandaoni"]
+      "en": [
+        "create an app key for the web shop"
+      ],
+      "nl": [
+        "nieuwe app-sleutel voor de webwinkel"
+      ],
+      "sw": [
+        "tengeneza ufunguo wa programu kwa duka la mtandaoni"
+      ]
     }
   },
   "app_keys_list": {
     "ask": {
-      "en": ["show our app keys"],
-      "nl": ["onze app-sleutels laten zien"],
-      "sw": ["onyesha funguo za programu"]
+      "en": [
+        "show our app keys"
+      ],
+      "nl": [
+        "onze app-sleutels laten zien"
+      ],
+      "sw": [
+        "onyesha funguo za programu"
+      ]
     }
   },
   "app_keys_revoke": {
     "ask": {
-      "en": ["revoke the till app key"],
-      "nl": ["app-sleutel van de kassa intrekken"],
-      "sw": ["batilisha ufunguo wa programu wa kaunta"]
+      "en": [
+        "revoke the till app key"
+      ],
+      "nl": [
+        "app-sleutel van de kassa intrekken"
+      ],
+      "sw": [
+        "batilisha ufunguo wa programu wa kaunta"
+      ]
     }
   },
   "approvals_requests_approve": {
@@ -115,9 +136,15 @@
   },
   "currencies_list": {
     "ask": {
-      "en": ["which currencies do we use"],
-      "nl": ["welke valuta gebruiken we"],
-      "sw": ["tunatumia sarafu gani"]
+      "en": [
+        "which currencies do we use"
+      ],
+      "nl": [
+        "welke valuta gebruiken we"
+      ],
+      "sw": [
+        "tunatumia sarafu gani"
+      ]
     }
   },
   "farm_supply_correction_approve": {
@@ -125,9 +152,15 @@
   },
   "farm_supply_correction_list": {
     "ask": {
-      "en": ["show delivery corrections waiting for approval"],
-      "nl": ["leveringscorrecties die wachten op goedkeuring"],
-      "sw": ["marekebisho ya mapokezi yanayosubiri idhini"]
+      "en": [
+        "show delivery corrections waiting for approval"
+      ],
+      "nl": [
+        "leveringscorrecties die wachten op goedkeuring"
+      ],
+      "sw": [
+        "marekebisho ya mapokezi yanayosubiri idhini"
+      ]
     }
   },
   "farm_supply_correction_reject": {
@@ -135,23 +168,41 @@
   },
   "farm_supply_correction_request": {
     "ask": {
-      "en": ["correct Gift's delivery to 40 kg"],
-      "nl": ["corrigeer de levering van Gift naar 40 kilo"],
-      "sw": ["rekebisha uwasilishaji wa Gift kuwa kilo 40"]
+      "en": [
+        "correct Gift's delivery to 40 kg"
+      ],
+      "nl": [
+        "corrigeer de levering van Gift naar 40 kilo"
+      ],
+      "sw": [
+        "rekebisha uwasilishaji wa Gift kuwa kilo 40"
+      ]
     }
   },
   "farm_supply_list": {
     "ask": {
-      "en": ["show farmer deliveries this week"],
-      "nl": ["leveringen van boeren deze week"],
-      "sw": ["mapokezi ya wakulima wiki hii"]
+      "en": [
+        "show farmer deliveries this week"
+      ],
+      "nl": [
+        "leveringen van boeren deze week"
+      ],
+      "sw": [
+        "mapokezi ya wakulima wiki hii"
+      ]
     }
   },
   "files_list": {
     "ask": {
-      "en": ["show uploaded files"],
-      "nl": ["geüploade bestanden laten zien"],
-      "sw": ["onyesha faili zilizopakiwa"]
+      "en": [
+        "show uploaded files"
+      ],
+      "nl": [
+        "geüploade bestanden laten zien"
+      ],
+      "sw": [
+        "onyesha faili zilizopakiwa"
+      ]
     }
   },
   "imports_apply": {
@@ -216,16 +267,28 @@
   },
   "invites_delete": {
     "ask": {
-      "en": ["withdraw the invite for amina@example.com"],
-      "nl": ["uitnodiging voor amina intrekken"],
-      "sw": ["futa mwaliko wa amina"]
+      "en": [
+        "withdraw the invite for amina@example.com"
+      ],
+      "nl": [
+        "uitnodiging voor amina intrekken"
+      ],
+      "sw": [
+        "futa mwaliko wa amina"
+      ]
     }
   },
   "invites_list": {
     "ask": {
-      "en": ["show the invites I sent"],
-      "nl": ["verstuurde uitnodigingen laten zien"],
-      "sw": ["onyesha mialiko niliyotuma"]
+      "en": [
+        "show the invites I sent"
+      ],
+      "nl": [
+        "verstuurde uitnodigingen laten zien"
+      ],
+      "sw": [
+        "onyesha mialiko niliyotuma"
+      ]
     }
   },
   "invites_register": {
@@ -233,9 +296,15 @@
   },
   "invites_send": {
     "ask": {
-      "en": ["invite amina@example.com as manager"],
-      "nl": ["nodig amina@example.com uit als manager"],
-      "sw": ["alika amina@example.com kama meneja"]
+      "en": [
+        "invite amina@example.com as manager"
+      ],
+      "nl": [
+        "nodig amina@example.com uit als manager"
+      ],
+      "sw": [
+        "alika amina@example.com kama meneja"
+      ]
     }
   },
   "invites_status": {
@@ -243,44 +312,80 @@
   },
   "invoice_payments_create": {
     "ask": {
-      "en": ["record a cash payment on invoice 2024-0042"],
-      "nl": ["betaling registreren op factuur 2024-0042"],
-      "sw": ["rekodi malipo ya ankara 2024-0042"]
+      "en": [
+        "record a cash payment on invoice 2024-0042"
+      ],
+      "nl": [
+        "betaling registreren op factuur 2024-0042"
+      ],
+      "sw": [
+        "rekodi malipo ya ankara 2024-0042"
+      ]
     }
   },
   "invoice_payments_mark_as_credited": {
     "ask": {
-      "en": ["mark the credit note as credited, refund paid out"],
-      "nl": ["creditnota markeren als terugbetaald"],
-      "sw": ["weka hati ya mkopo kama imelipwa"]
+      "en": [
+        "mark the credit note as credited, refund paid out"
+      ],
+      "nl": [
+        "creditnota markeren als terugbetaald"
+      ],
+      "sw": [
+        "weka hati ya mkopo kama imelipwa"
+      ]
     }
   },
   "invoice_payments_void": {
     "ask": {
-      "en": ["void the payment on invoice 2024-0042"],
-      "nl": ["betaling op factuur 2024-0042 ongedaan maken"],
-      "sw": ["batilisha malipo ya ankara 2024-0042"]
+      "en": [
+        "void the payment on invoice 2024-0042"
+      ],
+      "nl": [
+        "betaling op factuur 2024-0042 ongedaan maken"
+      ],
+      "sw": [
+        "batilisha malipo ya ankara 2024-0042"
+      ]
     }
   },
   "invoices_credit": {
     "ask": {
-      "en": ["make a credit note for invoice 2024-0042"],
-      "nl": ["creditnota maken voor factuur 2024-0042"],
-      "sw": ["tengeneza hati ya mkopo kwa ankara 2024-0042"]
+      "en": [
+        "make a credit note for invoice 2024-0042"
+      ],
+      "nl": [
+        "creditnota maken voor factuur 2024-0042"
+      ],
+      "sw": [
+        "tengeneza hati ya mkopo kwa ankara 2024-0042"
+      ]
     }
   },
   "invoices_delete": {
     "ask": {
-      "en": ["cancel the draft invoice"],
-      "nl": ["conceptfactuur annuleren"],
-      "sw": ["ghairi rasimu ya ankara"]
+      "en": [
+        "cancel the draft invoice"
+      ],
+      "nl": [
+        "conceptfactuur annuleren"
+      ],
+      "sw": [
+        "ghairi rasimu ya ankara"
+      ]
     }
   },
   "invoices_duplicate": {
     "ask": {
-      "en": ["duplicate invoice 2024-0042"],
-      "nl": ["factuur 2024-0042 dupliceren"],
-      "sw": ["nakili ankara 2024-0042"]
+      "en": [
+        "duplicate invoice 2024-0042"
+      ],
+      "nl": [
+        "factuur 2024-0042 dupliceren"
+      ],
+      "sw": [
+        "nakili ankara 2024-0042"
+      ]
     }
   },
   "invoices_gateway_create": {
@@ -294,23 +399,42 @@
   },
   "invoices_get": {
     "ask": {
-      "en": ["open invoice 2024-0042"],
-      "nl": ["open factuur 2024-0042"],
-      "sw": ["fungua ankara 2024-0042"]
+      "en": [
+        "open invoice 2024-0042"
+      ],
+      "nl": [
+        "open factuur 2024-0042"
+      ],
+      "sw": [
+        "fungua ankara 2024-0042"
+      ]
     }
   },
   "invoices_list": {
     "ask": {
-      "en": ["show open invoices", "search invoices for Brightwater"],
-      "nl": ["laat openstaande facturen zien"],
-      "sw": ["onyesha ankara ambazo hazijalipwa"]
+      "en": [
+        "show open invoices",
+        "search invoices for Brightwater"
+      ],
+      "nl": [
+        "laat openstaande facturen zien"
+      ],
+      "sw": [
+        "onyesha ankara ambazo hazijalipwa"
+      ]
     }
   },
   "invoices_preview": {
     "ask": {
-      "en": ["make the PDF of invoice 2024-0042"],
-      "nl": ["maak de pdf van factuur 2024-0042"],
-      "sw": ["tengeneza pdf ya ankara 2024-0042"]
+      "en": [
+        "make the PDF of invoice 2024-0042"
+      ],
+      "nl": [
+        "maak de pdf van factuur 2024-0042"
+      ],
+      "sw": [
+        "tengeneza pdf ya ankara 2024-0042"
+      ]
     }
   },
   "invoices_public": {
@@ -318,205 +442,382 @@
   },
   "invoices_resend": {
     "ask": {
-      "en": ["send invoice 2024-0042 again"],
-      "nl": ["factuur 2024-0042 opnieuw versturen"],
-      "sw": ["tuma tena ankara 2024-0042"]
+      "en": [
+        "send invoice 2024-0042 again"
+      ],
+      "nl": [
+        "factuur 2024-0042 opnieuw versturen"
+      ],
+      "sw": [
+        "tuma tena ankara 2024-0042"
+      ]
     }
   },
   "invoices_send": {
     "ask": {
-      "en": ["send invoice 2024-0042 to the customer"],
-      "nl": ["verstuur factuur 2024-0042"],
-      "sw": ["tuma ankara 2024-0042 kwa mteja"]
+      "en": [
+        "send invoice 2024-0042 to the customer"
+      ],
+      "nl": [
+        "verstuur factuur 2024-0042"
+      ],
+      "sw": [
+        "tuma ankara 2024-0042 kwa mteja"
+      ]
     }
   },
   "invoices_update": {
     "ask": {
-      "en": ["change the due date of the draft invoice"],
-      "nl": ["vervaldatum van de conceptfactuur wijzigen"],
-      "sw": ["badilisha tarehe ya mwisho ya ankara"]
+      "en": [
+        "change the due date of the draft invoice"
+      ],
+      "nl": [
+        "vervaldatum van de conceptfactuur wijzigen"
+      ],
+      "sw": [
+        "badilisha tarehe ya mwisho ya ankara"
+      ]
     }
   },
   "lots_create": {
     "ask": {
-      "en": ["create a new batch of honey"],
-      "nl": ["nieuwe partij honing aanmaken"],
-      "sw": ["tengeneza bechi mpya ya asali"]
+      "en": [
+        "create a new batch of honey"
+      ],
+      "nl": [
+        "nieuwe partij honing aanmaken"
+      ],
+      "sw": [
+        "tengeneza bechi mpya ya asali"
+      ]
     }
   },
   "lots_events": {
     "ask": {
-      "en": ["history of batch L-12"],
-      "nl": ["geschiedenis van partij L-12"],
-      "sw": ["historia ya bechi L-12"]
+      "en": [
+        "history of batch L-12"
+      ],
+      "nl": [
+        "geschiedenis van partij L-12"
+      ],
+      "sw": [
+        "historia ya bechi L-12"
+      ]
     }
   },
   "lots_farmer_credits": {
     "ask": {
-      "en": ["farmer credits from jars sold of batch L-12"],
-      "nl": ["boerentegoed van verkochte potten partij L-12"],
-      "sw": ["mikopo ya wakulima kutoka mitungi iliyouzwa bechi L-12"]
+      "en": [
+        "farmer credits from jars sold of batch L-12"
+      ],
+      "nl": [
+        "boerentegoed van verkochte potten partij L-12"
+      ],
+      "sw": [
+        "mikopo ya wakulima kutoka mitungi iliyouzwa bechi L-12"
+      ]
     }
   },
   "lots_get": {
     "ask": {
-      "en": ["open batch L-12"],
-      "nl": ["open partij L-12"],
-      "sw": ["fungua bechi L-12"]
+      "en": [
+        "open batch L-12"
+      ],
+      "nl": [
+        "open partij L-12"
+      ],
+      "sw": [
+        "fungua bechi L-12"
+      ]
     }
   },
   "lots_holds": {
     "ask": {
-      "en": ["which orders are waiting on batch L-12"],
-      "nl": ["welke bestellingen wachten op partij L-12"],
-      "sw": ["oda zipi zinasubiri bechi L-12"]
+      "en": [
+        "which orders are waiting on batch L-12"
+      ],
+      "nl": [
+        "welke bestellingen wachten op partij L-12"
+      ],
+      "sw": [
+        "oda zipi zinasubiri bechi L-12"
+      ]
     }
   },
   "lots_list": {
     "ask": {
-      "en": ["show batches in quarantine", "which batches expire this month"],
-      "nl": ["partijen in quarantaine"],
-      "sw": ["bechi zilizo karantini"]
+      "en": [
+        "show batches in quarantine",
+        "which batches expire this month"
+      ],
+      "nl": [
+        "partijen in quarantaine"
+      ],
+      "sw": [
+        "bechi zilizo karantini"
+      ]
     }
   },
   "lots_passport_get": {
     "ask": {
-      "en": ["show the passport of batch L-12"],
-      "nl": ["paspoort van partij L-12"],
-      "sw": ["pasipoti ya bechi L-12"]
+      "en": [
+        "show the passport of batch L-12"
+      ],
+      "nl": [
+        "paspoort van partij L-12"
+      ],
+      "sw": [
+        "pasipoti ya bechi L-12"
+      ]
     }
   },
   "lots_passport_publish": {
     "ask": {
-      "en": ["publish the passport of batch L-12"],
-      "nl": ["paspoort van partij L-12 publiceren"],
-      "sw": ["chapisha pasipoti ya bechi L-12"]
+      "en": [
+        "publish the passport of batch L-12"
+      ],
+      "nl": [
+        "paspoort van partij L-12 publiceren"
+      ],
+      "sw": [
+        "chapisha pasipoti ya bechi L-12"
+      ]
     }
   },
   "lots_passport_save": {
     "ask": {
-      "en": ["change the story on the passport of batch L-12"],
-      "nl": ["verhaal in het paspoort van partij L-12 aanpassen"],
-      "sw": ["badilisha hadithi kwenye pasipoti ya bechi L-12"]
+      "en": [
+        "change the story on the passport of batch L-12"
+      ],
+      "nl": [
+        "verhaal in het paspoort van partij L-12 aanpassen"
+      ],
+      "sw": [
+        "badilisha hadithi kwenye pasipoti ya bechi L-12"
+      ]
     }
   },
   "lots_passport_unpublish": {
     "ask": {
-      "en": ["take the passport of batch L-12 offline"],
-      "nl": ["paspoort van partij L-12 offline halen"],
-      "sw": ["ondoa pasipoti ya bechi L-12 mtandaoni"]
+      "en": [
+        "take the passport of batch L-12 offline"
+      ],
+      "nl": [
+        "paspoort van partij L-12 offline halen"
+      ],
+      "sw": [
+        "ondoa pasipoti ya bechi L-12 mtandaoni"
+      ]
     }
   },
   "lots_stock": {
     "ask": {
-      "en": ["how much is left in batch L-12"],
-      "nl": ["hoeveel zit er nog in partij L-12"],
-      "sw": ["kiasi gani kimebaki kwenye bechi L-12"]
+      "en": [
+        "how much is left in batch L-12"
+      ],
+      "nl": [
+        "hoeveel zit er nog in partij L-12"
+      ],
+      "sw": [
+        "kiasi gani kimebaki kwenye bechi L-12"
+      ]
     }
   },
   "lots_stock_mutate": {
     "ask": {
-      "en": ["take 5 kg out of batch L-12"],
-      "nl": ["5 kilo uit partij L-12 halen"],
-      "sw": ["toa kilo 5 kwenye bechi L-12"]
+      "en": [
+        "take 5 kg out of batch L-12"
+      ],
+      "nl": [
+        "5 kilo uit partij L-12 halen"
+      ],
+      "sw": [
+        "toa kilo 5 kwenye bechi L-12"
+      ]
     }
   },
   "lots_update": {
     "ask": {
-      "en": ["recall batch L-12", "release batch L-12 from quarantine"],
-      "nl": ["partij L-12 terugroepen"],
-      "sw": ["rudisha bechi L-12 sokoni"]
+      "en": [
+        "recall batch L-12",
+        "release batch L-12 from quarantine"
+      ],
+      "nl": [
+        "partij L-12 terugroepen"
+      ],
+      "sw": [
+        "rudisha bechi L-12 sokoni"
+      ]
     }
   },
   "orders_cancel": {
     "ask": {
-      "en": ["cancel order 1042"],
-      "nl": ["annuleer bestelling 1042"],
-      "sw": ["ghairi oda 1042"]
+      "en": [
+        "cancel order 1042"
+      ],
+      "nl": [
+        "annuleer bestelling 1042"
+      ],
+      "sw": [
+        "ghairi oda 1042"
+      ]
     }
   },
   "orders_complete": {
     "ask": {
-      "en": ["complete order 1042"],
-      "nl": ["bestelling 1042 afronden"],
-      "sw": ["kamilisha oda 1042"]
+      "en": [
+        "complete order 1042"
+      ],
+      "nl": [
+        "bestelling 1042 afronden"
+      ],
+      "sw": [
+        "kamilisha oda 1042"
+      ]
     }
   },
   "orders_confirm": {
     "ask": {
-      "en": ["confirm order 1042"],
-      "nl": ["bevestig bestelling 1042"],
-      "sw": ["thibitisha oda 1042"]
+      "en": [
+        "confirm order 1042"
+      ],
+      "nl": [
+        "bevestig bestelling 1042"
+      ],
+      "sw": [
+        "thibitisha oda 1042"
+      ]
     }
   },
   "orders_events": {
     "ask": {
-      "en": ["what happened to order 1042, show its timeline"],
-      "nl": ["geschiedenis van bestelling 1042"],
-      "sw": ["historia ya oda 1042"]
+      "en": [
+        "what happened to order 1042, show its timeline"
+      ],
+      "nl": [
+        "geschiedenis van bestelling 1042"
+      ],
+      "sw": [
+        "historia ya oda 1042"
+      ]
     }
   },
   "orders_get": {
     "ask": {
-      "en": ["open order 1042"],
-      "nl": ["open bestelling 1042"],
-      "sw": ["fungua oda 1042"]
+      "en": [
+        "open order 1042"
+      ],
+      "nl": [
+        "open bestelling 1042"
+      ],
+      "sw": [
+        "fungua oda 1042"
+      ]
     }
   },
   "orders_invoice": {
     "ask": {
-      "en": ["make the invoice for order 1042"],
-      "nl": ["maak de factuur voor bestelling 1042"],
-      "sw": ["tengeneza ankara ya oda 1042"]
+      "en": [
+        "make the invoice for order 1042"
+      ],
+      "nl": [
+        "maak de factuur voor bestelling 1042"
+      ],
+      "sw": [
+        "tengeneza ankara ya oda 1042"
+      ]
     }
   },
   "orders_list": {
     "ask": {
-      "en": ["show today's orders", "orders waiting to be picked"],
-      "nl": ["laat de bestellingen van vandaag zien"],
-      "sw": ["onyesha oda za leo"]
+      "en": [
+        "show today's orders",
+        "orders waiting to be picked"
+      ],
+      "nl": [
+        "laat de bestellingen van vandaag zien"
+      ],
+      "sw": [
+        "onyesha oda za leo"
+      ]
     }
   },
   "orders_pick": {
     "ask": {
-      "en": ["record picking for order 1042"],
-      "nl": ["picking invoeren voor bestelling 1042"],
-      "sw": ["rekodi bidhaa zilizokusanywa kwa oda 1042"]
+      "en": [
+        "record picking for order 1042"
+      ],
+      "nl": [
+        "picking invoeren voor bestelling 1042"
+      ],
+      "sw": [
+        "rekodi bidhaa zilizokusanywa kwa oda 1042"
+      ]
     }
   },
   "orders_refund": {
     "ask": {
-      "en": ["refund 10 euro on order 1042"],
-      "nl": ["terugbetaling op bestelling 1042"],
-      "sw": ["rejesha pesa kwa oda 1042"]
+      "en": [
+        "refund 10 euro on order 1042"
+      ],
+      "nl": [
+        "terugbetaling op bestelling 1042"
+      ],
+      "sw": [
+        "rejesha pesa kwa oda 1042"
+      ]
     }
   },
   "orders_returns": {
     "ask": {
-      "en": ["take back returns on order 1042"],
-      "nl": ["retour van bestelling 1042 terugnemen"],
-      "sw": ["pokea bidhaa zilizorudishwa za oda 1042"]
+      "en": [
+        "take back returns on order 1042"
+      ],
+      "nl": [
+        "retour van bestelling 1042 terugnemen"
+      ],
+      "sw": [
+        "pokea bidhaa zilizorudishwa za oda 1042"
+      ]
     }
   },
   "orders_sales_summary": {
     "ask": {
-      "en": ["how much did we sell this week"],
-      "nl": ["hoeveel hebben we deze week verkocht"],
-      "sw": ["tumeuza kiasi gani wiki hii"]
+      "en": [
+        "how much did we sell this week"
+      ],
+      "nl": [
+        "hoeveel hebben we deze week verkocht"
+      ],
+      "sw": [
+        "tumeuza kiasi gani wiki hii"
+      ]
     }
   },
   "payments_gateway_get": {
     "ask": {
-      "en": ["show the chargebacks and settlements of this online payment"],
-      "nl": ["terugboekingen van deze online betaling"],
-      "sw": ["maelezo ya malipo haya ya mtandaoni"]
+      "en": [
+        "show the chargebacks and settlements of this online payment"
+      ],
+      "nl": [
+        "terugboekingen van deze online betaling"
+      ],
+      "sw": [
+        "maelezo ya malipo haya ya mtandaoni"
+      ]
     }
   },
   "payments_gateway_list": {
     "ask": {
-      "en": ["show online payments"],
-      "nl": ["online betalingen laten zien"],
-      "sw": ["onyesha malipo ya mtandaoni"]
+      "en": [
+        "show online payments"
+      ],
+      "nl": [
+        "online betalingen laten zien"
+      ],
+      "sw": [
+        "onyesha malipo ya mtandaoni"
+      ]
     }
   },
   "payments_gateway_refresh": {
@@ -530,101 +831,204 @@
   },
   "product_categories_create": {
     "ask": {
-      "en": ["add a product category called spices"],
-      "nl": ["nieuwe productcategorie kruiden"],
-      "sw": ["ongeza kundi jipya la bidhaa viungo"]
+      "en": [
+        "add a product category called spices"
+      ],
+      "nl": [
+        "nieuwe productcategorie kruiden"
+      ],
+      "sw": [
+        "ongeza kundi jipya la bidhaa viungo"
+      ]
     }
   },
   "product_categories_delete": {
     "ask": {
-      "en": ["remove the category spices"],
-      "nl": ["categorie kruiden verwijderen"],
-      "sw": ["futa kundi la bidhaa viungo"]
+      "en": [
+        "remove the category spices"
+      ],
+      "nl": [
+        "categorie kruiden verwijderen"
+      ],
+      "sw": [
+        "futa kundi la bidhaa viungo"
+      ]
     }
   },
   "product_categories_list": {
     "ask": {
-      "en": ["show product categories"],
-      "nl": ["productcategorieën laten zien"],
-      "sw": ["onyesha makundi ya bidhaa"]
+      "en": [
+        "show product categories"
+      ],
+      "nl": [
+        "productcategorieën laten zien"
+      ],
+      "sw": [
+        "onyesha makundi ya bidhaa"
+      ]
     }
   },
   "product_categories_update": {
     "ask": {
-      "en": ["rename the category spices to herbs"],
-      "nl": ["categorie kruiden hernoemen"],
-      "sw": ["badilisha jina la kundi la bidhaa viungo"]
+      "en": [
+        "rename the category spices to herbs"
+      ],
+      "nl": [
+        "categorie kruiden hernoemen"
+      ],
+      "sw": [
+        "badilisha jina la kundi la bidhaa viungo"
+      ]
     }
   },
   "product_variants_delete": {
     "ask": {
-      "en": ["delete the 250 g product size"],
-      "nl": ["verwijder de productmaat 250 g"],
-      "sw": ["futa saizi ya bidhaa ya gramu 250"]
+      "en": [
+        "delete the 250 g product size"
+      ],
+      "nl": [
+        "verwijder de productmaat 250 g"
+      ],
+      "sw": [
+        "futa saizi ya bidhaa ya gramu 250"
+      ]
     }
   },
   "product_variants_generate": {
     "ask": {
-      "en": ["add sizes 250 g and 500 g to honey"],
-      "nl": ["maten 250 g en 500 g toevoegen aan honing"],
-      "sw": ["ongeza saizi 250 g na 500 g kwa asali"]
+      "en": [
+        "add sizes 250 g and 500 g to honey"
+      ],
+      "nl": [
+        "maten 250 g en 500 g toevoegen aan honing"
+      ],
+      "sw": [
+        "ongeza saizi 250 g na 500 g kwa asali"
+      ]
     }
   },
   "product_variants_list": {
     "ask": {
-      "en": ["what sizes does the honey come in"],
-      "nl": ["welke maten heeft de honing"],
-      "sw": ["saizi zilizopo za asali"]
+      "en": [
+        "what sizes does the honey come in"
+      ],
+      "nl": [
+        "welke maten heeft de honing"
+      ],
+      "sw": [
+        "saizi zilizopo za asali"
+      ]
     }
   },
   "product_variants_update": {
     "ask": {
-      "en": ["correct the 250 g product size"],
-      "nl": ["corrigeer de productmaat 250 g"],
-      "sw": ["sahihisha saizi ya bidhaa ya gramu 250"]
+      "en": [
+        "correct the 250 g product size"
+      ],
+      "nl": [
+        "corrigeer de productmaat 250 g"
+      ],
+      "sw": [
+        "sahihisha saizi ya bidhaa ya gramu 250"
+      ]
     }
   },
   "products_create": {
     "ask": {
-      "en": ["add a new product"],
-      "nl": ["nieuw product aanmaken"],
-      "sw": ["ongeza bidhaa mpya"]
+      "en": [
+        "add a new product"
+      ],
+      "nl": [
+        "nieuw product aanmaken"
+      ],
+      "sw": [
+        "ongeza bidhaa mpya"
+      ]
     }
   },
   "products_get": {
     "ask": {
-      "en": ["open the product wildflower honey"],
-      "nl": ["open het product bloemenhoning"],
-      "sw": ["fungua bidhaa asali ya maua"]
+      "en": [
+        "open the product wildflower honey"
+      ],
+      "nl": [
+        "open het product bloemenhoning"
+      ],
+      "sw": [
+        "fungua bidhaa asali ya maua"
+      ]
     }
   },
   "products_images_list": {
     "ask": {
-      "en": ["show the pictures of the honey product"],
-      "nl": ["foto's van het product honing"],
-      "sw": ["picha za bidhaa asali"]
+      "en": [
+        "show the pictures of the honey product"
+      ],
+      "nl": [
+        "foto's van het product honing"
+      ],
+      "sw": [
+        "picha za bidhaa asali"
+      ]
     }
   },
   "products_images_replace": {
     "ask": {
-      "en": ["change the pictures of the honey product"],
-      "nl": ["foto's van honing vervangen"],
-      "sw": ["badilisha picha za bidhaa asali"]
+      "en": [
+        "change the pictures of the honey product"
+      ],
+      "nl": [
+        "foto's van honing vervangen"
+      ],
+      "sw": [
+        "badilisha picha za bidhaa asali"
+      ]
     }
   },
   "products_list": {
     "ask": {
-      "en": ["find the product honey", "show active products"],
-      "nl": ["zoek het product honing"],
-      "sw": ["tafuta bidhaa asali"]
+      "en": [
+        "find the product honey",
+        "show active products"
+      ],
+      "nl": [
+        "zoek het product honing"
+      ],
+      "sw": [
+        "tafuta bidhaa asali"
+      ]
     }
   },
   "products_update": {
     "ask": {
-      "en": ["change the price of honey to 12 euro"],
-      "nl": ["prijs van honing wijzigen naar 12 euro"],
-      "sw": ["badilisha bei ya asali kuwa shilingi 12000"]
+      "en": [
+        "change the price of honey to 12 euro"
+      ],
+      "nl": [
+        "prijs van honing wijzigen naar 12 euro"
+      ],
+      "sw": [
+        "badilisha bei ya asali kuwa shilingi 12000"
+      ]
     }
+  },
+  "purchase_cost_adjustments_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_cost_adjustments_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "purchase_orders_cancel": {
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
@@ -668,28 +1072,67 @@
   "purchase_receipts_list": {
     "officeOnlyBecause": "Purchasing is ordinary ERP work done on the Office purchase screens; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "purchase_returns_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "purchase_returns_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "purchase_units_list": {
     "officeOnlyBecause": "Picking a purchase unit is part of the Office purchase order form; the assistant keeps purchasing internal until its milestone."
   },
   "relations_list": {
     "ask": {
-      "en": ["list our suppliers"],
-      "nl": ["onze leveranciers tonen"],
-      "sw": ["orodha ya wasambazaji"]
+      "en": [
+        "list our suppliers"
+      ],
+      "nl": [
+        "onze leveranciers tonen"
+      ],
+      "sw": [
+        "orodha ya wasambazaji"
+      ]
     }
   },
   "scheduled_reports_delete": {
     "ask": {
-      "en": ["delete my weekly sales report email"],
-      "nl": ["mijn wekelijkse rapport verwijderen"],
-      "sw": ["futa ripoti yangu ya kila wiki"]
+      "en": [
+        "delete my weekly sales report email"
+      ],
+      "nl": [
+        "mijn wekelijkse rapport verwijderen"
+      ],
+      "sw": [
+        "futa ripoti yangu ya kila wiki"
+      ]
     }
   },
   "scheduled_reports_list": {
     "ask": {
-      "en": ["which report emails do I get"],
-      "nl": ["welke rapportmails krijg ik"],
-      "sw": ["ripoti zipi za barua pepe ninapata"]
+      "en": [
+        "which report emails do I get"
+      ],
+      "nl": [
+        "welke rapportmails krijg ik"
+      ],
+      "sw": [
+        "ripoti zipi za barua pepe ninapata"
+      ]
     }
   },
   "scheduled_reports_unsubscribe": {
@@ -697,65 +1140,119 @@
   },
   "scheduled_reports_update": {
     "ask": {
-      "en": ["pause my weekly sales email"],
-      "nl": ["mijn wekelijkse verkoopmail pauzeren"],
-      "sw": ["sitisha barua pepe ya mauzo ya kila wiki"]
+      "en": [
+        "pause my weekly sales email"
+      ],
+      "nl": [
+        "mijn wekelijkse verkoopmail pauzeren"
+      ],
+      "sw": [
+        "sitisha barua pepe ya mauzo ya kila wiki"
+      ]
     }
   },
   "search_quick": {
     "ask": {
-      "en": ["search for honey everywhere"],
-      "nl": ["zoek overal naar honing"],
-      "sw": ["tafuta asali kila mahali"]
+      "en": [
+        "search for honey everywhere"
+      ],
+      "nl": [
+        "zoek overal naar honing"
+      ],
+      "sw": [
+        "tafuta asali kila mahali"
+      ]
     }
   },
   "settings_get": {
     "ask": {
-      "en": ["are online payments switched on"],
-      "nl": ["staan online betalingen aan"],
-      "sw": ["malipo ya mtandaoni yamewashwa"]
+      "en": [
+        "are online payments switched on"
+      ],
+      "nl": [
+        "staan online betalingen aan"
+      ],
+      "sw": [
+        "malipo ya mtandaoni yamewashwa"
+      ]
     }
   },
   "settings_update": {
     "ask": {
-      "en": ["turn on iDEAL online payments"],
-      "nl": ["online betalingen aanzetten"],
-      "sw": ["washa malipo ya mtandaoni"]
+      "en": [
+        "turn on iDEAL online payments"
+      ],
+      "nl": [
+        "online betalingen aanzetten"
+      ],
+      "sw": [
+        "washa malipo ya mtandaoni"
+      ]
     }
   },
   "stock_list": {
     "ask": {
-      "en": ["how much stock do we have"],
-      "nl": ["hoeveel voorraad hebben we"],
-      "sw": ["tuna hisa kiasi gani stoo"]
+      "en": [
+        "how much stock do we have"
+      ],
+      "nl": [
+        "hoeveel voorraad hebben we"
+      ],
+      "sw": [
+        "tuna hisa kiasi gani stoo"
+      ]
     }
   },
   "stock_movements": {
     "ask": {
-      "en": ["show stock movements of honey"],
-      "nl": ["voorraad mutaties van honing"],
-      "sw": ["mabadiliko ya hisa ya asali"]
+      "en": [
+        "show stock movements of honey"
+      ],
+      "nl": [
+        "voorraad mutaties van honing"
+      ],
+      "sw": [
+        "mabadiliko ya hisa ya asali"
+      ]
     }
   },
   "stock_mutate": {
     "ask": {
-      "en": ["add 10 jars of honey to stock"],
-      "nl": ["10 potten honing aan de voorraad toevoegen"],
-      "sw": ["ongeza mitungi 10 ya asali kwenye hisa"]
+      "en": [
+        "add 10 jars of honey to stock"
+      ],
+      "nl": [
+        "10 potten honing aan de voorraad toevoegen"
+      ],
+      "sw": [
+        "ongeza mitungi 10 ya asali kwenye hisa"
+      ]
     }
   },
   "stock_negative": {
     "ask": {
-      "en": ["which products are below zero"],
-      "nl": ["welke producten staan onder nul"],
-      "sw": ["bidhaa zipi ziko chini ya sifuri"]
+      "en": [
+        "which products are below zero"
+      ],
+      "nl": [
+        "welke producten staan onder nul"
+      ],
+      "sw": [
+        "bidhaa zipi ziko chini ya sifuri"
+      ]
     }
   },
   "stock_with_bins": {
     "ask": {
-      "en": ["where is the honey stored, stock per warehouse and bin"],
-      "nl": ["waar ligt de honing, voorraad per magazijn"],
-      "sw": ["asali iko wapi stoo, hisa kwa ghala"]
+      "en": [
+        "where is the honey stored, stock per warehouse and bin"
+      ],
+      "nl": [
+        "waar ligt de honing, voorraad per magazijn"
+      ],
+      "sw": [
+        "asali iko wapi stoo, hisa kwa ghala"
+      ]
     }
   },
   "stocktakes_cancel": {
@@ -790,9 +1287,15 @@
   },
   "storefront_design_get": {
     "ask": {
-      "en": ["what does my shop home page look like now"],
-      "nl": ["hoe ziet mijn webwinkel er nu uit"],
-      "sw": ["ukurasa wa duka unaonekanaje sasa"]
+      "en": [
+        "what does my shop home page look like now"
+      ],
+      "nl": [
+        "hoe ziet mijn webwinkel er nu uit"
+      ],
+      "sw": [
+        "ukurasa wa duka unaonekanaje sasa"
+      ]
     }
   },
   "storefront_design_preview": {
@@ -800,65 +1303,170 @@
   },
   "storefront_design_publish": {
     "ask": {
-      "en": ["publish the new storefront design"],
-      "nl": ["publiceer het nieuwe winkelontwerp"],
-      "sw": ["chapisha muundo mpya wa duka"]
+      "en": [
+        "publish the new storefront design"
+      ],
+      "nl": [
+        "publiceer het nieuwe winkelontwerp"
+      ],
+      "sw": [
+        "chapisha muundo mpya wa duka"
+      ]
     }
   },
   "storefront_design_restore": {
     "ask": {
-      "en": ["undo the last change to the shop page design"],
-      "nl": ["vorige versie van het winkelontwerp terugzetten"],
-      "sw": ["rejesha muundo wa zamani wa duka"]
+      "en": [
+        "undo the last change to the shop page design"
+      ],
+      "nl": [
+        "vorige versie van het winkelontwerp terugzetten"
+      ],
+      "sw": [
+        "rejesha muundo wa zamani wa duka"
+      ]
     }
   },
   "storefront_design_revisions": {
     "ask": {
-      "en": ["show saved versions of the shop design"],
-      "nl": ["opgeslagen versies van het winkelontwerp"],
-      "sw": ["matoleo yaliyohifadhiwa ya muundo wa duka"]
+      "en": [
+        "show saved versions of the shop design"
+      ],
+      "nl": [
+        "opgeslagen versies van het winkelontwerp"
+      ],
+      "sw": [
+        "matoleo yaliyohifadhiwa ya muundo wa duka"
+      ]
     }
+  },
+  "supplier_bills_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_match": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_post": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_post_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_bills_update": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_allocate": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_allocate_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_create": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_create_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_get": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_list": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_reverse": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "supplier_payments_reverse_review": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "supply_chain_list": {
     "ask": {
-      "en": ["which supply transfers are on their way"],
-      "nl": ["welke leveringen zijn onderweg"],
-      "sw": ["usafirishaji upi uko njiani"]
+      "en": [
+        "which supply transfers are on their way"
+      ],
+      "nl": [
+        "welke leveringen zijn onderweg"
+      ],
+      "sw": [
+        "usafirishaji upi uko njiani"
+      ]
     }
   },
   "supply_chain_pack": {
     "ask": {
-      "en": ["pack batch L-12 into jars"],
-      "nl": ["partij L-12 in potten afvullen"],
-      "sw": ["fungasha bechi L-12 kwenye mitungi"]
+      "en": [
+        "pack batch L-12 into jars"
+      ],
+      "nl": [
+        "partij L-12 in potten afvullen"
+      ],
+      "sw": [
+        "fungasha bechi L-12 kwenye mitungi"
+      ]
     }
   },
   "supply_chain_receive": {
     "ask": {
-      "en": ["receive the transfer of batch K-7"],
-      "nl": ["zending van partij K-7 ontvangen"],
-      "sw": ["pokea usafirishaji wa bechi K-7"]
+      "en": [
+        "receive the transfer of batch K-7"
+      ],
+      "nl": [
+        "zending van partij K-7 ontvangen"
+      ],
+      "sw": [
+        "pokea usafirishaji wa bechi K-7"
+      ]
     }
   },
   "supply_links_accept": {
     "ask": {
-      "en": ["accept the supply link from Kitowo co-op"],
-      "nl": ["leveringskoppeling van Kitowo accepteren"],
-      "sw": ["kubali kiungo cha usambazaji kutoka Kitowo"]
+      "en": [
+        "accept the supply link from Kitowo co-op"
+      ],
+      "nl": [
+        "leveringskoppeling van Kitowo accepteren"
+      ],
+      "sw": [
+        "kubali kiungo cha usambazaji kutoka Kitowo"
+      ]
     }
   },
   "supply_links_list": {
     "ask": {
-      "en": ["show our supply links with partners"],
-      "nl": ["leveringskoppelingen met partners"],
-      "sw": ["viungo vya usambazaji na washirika"]
+      "en": [
+        "show our supply links with partners"
+      ],
+      "nl": [
+        "leveringskoppelingen met partners"
+      ],
+      "sw": [
+        "viungo vya usambazaji na washirika"
+      ]
     }
   },
   "supply_links_revoke": {
     "ask": {
-      "en": ["revoke the supply link with Kitowo co-op"],
-      "nl": ["leveringskoppeling met Kitowo intrekken"],
-      "sw": ["sitisha kiungo cha usambazaji na Kitowo"]
+      "en": [
+        "revoke the supply link with Kitowo co-op"
+      ],
+      "nl": [
+        "leveringskoppeling met Kitowo intrekken"
+      ],
+      "sw": [
+        "sitisha kiungo cha usambazaji na Kitowo"
+      ]
     }
   },
   "tax_profiles_create": {
@@ -881,93 +1489,172 @@
   },
   "teams_list": {
     "ask": {
-      "en": ["which teams and roles do we have"],
-      "nl": ["welke teams en rollen hebben we"],
-      "sw": ["tuna timu na majukumu gani"]
+      "en": [
+        "which teams and roles do we have"
+      ],
+      "nl": [
+        "welke teams en rollen hebben we"
+      ],
+      "sw": [
+        "tuna timu na majukumu gani"
+      ]
     }
   },
   "till_registers_create": {
     "ask": {
-      "en": ["add a new till register"],
-      "nl": ["nieuwe kassa toevoegen"],
-      "sw": ["ongeza rejista mpya ya kaunta"]
+      "en": [
+        "add a new till register"
+      ],
+      "nl": [
+        "nieuwe kassa toevoegen"
+      ],
+      "sw": [
+        "ongeza rejista mpya ya kaunta"
+      ]
     }
   },
   "till_registers_list": {
     "ask": {
-      "en": ["show our till registers"],
-      "nl": ["onze kassa's laten zien"],
-      "sw": ["onyesha rejista za kaunta"]
+      "en": [
+        "show our till registers"
+      ],
+      "nl": [
+        "onze kassa's laten zien"
+      ],
+      "sw": [
+        "onyesha rejista za kaunta"
+      ]
     }
   },
   "till_registers_pairing": {
     "ask": {
-      "en": ["pair a till with a code"],
-      "nl": ["kassa koppelen met een code"],
-      "sw": ["unganisha kaunta kwa msimbo"]
+      "en": [
+        "pair a till with a code"
+      ],
+      "nl": [
+        "kassa koppelen met een code"
+      ],
+      "sw": [
+        "unganisha kaunta kwa msimbo"
+      ]
     }
   },
   "till_registers_rotate_key": {
     "ask": {
-      "en": ["disconnect the till in the shop"],
-      "nl": ["kassa in de winkel loskoppelen"],
-      "sw": ["tenganisha kaunta ya dukani"]
+      "en": [
+        "disconnect the till in the shop"
+      ],
+      "nl": [
+        "kassa in de winkel loskoppelen"
+      ],
+      "sw": [
+        "tenganisha kaunta ya dukani"
+      ]
     }
   },
   "till_sales_list": {
     "ask": {
-      "en": ["show till sales today"],
-      "nl": ["kassaverkopen van vandaag"],
-      "sw": ["mauzo ya kaunta leo"]
+      "en": [
+        "show till sales today"
+      ],
+      "nl": [
+        "kassaverkopen van vandaag"
+      ],
+      "sw": [
+        "mauzo ya kaunta leo"
+      ]
     }
   },
   "till_shifts_list": {
     "ask": {
-      "en": ["which till shifts are still open"],
-      "nl": ["welke kassadiensten staan nog open"],
-      "sw": ["zamu zipi za kaunta bado ziko wazi"]
+      "en": [
+        "which till shifts are still open"
+      ],
+      "nl": [
+        "welke kassadiensten staan nog open"
+      ],
+      "sw": [
+        "zamu zipi za kaunta bado ziko wazi"
+      ]
     }
   },
   "till_users_create": {
     "ask": {
-      "en": ["add a till user with a PIN"],
-      "nl": ["kassagebruiker met pincode toevoegen"],
-      "sw": ["ongeza mtumiaji wa kaunta mwenye PIN"]
+      "en": [
+        "add a till user with a PIN"
+      ],
+      "nl": [
+        "kassagebruiker met pincode toevoegen"
+      ],
+      "sw": [
+        "ongeza mtumiaji wa kaunta mwenye PIN"
+      ]
     }
   },
   "till_users_list": {
     "ask": {
-      "en": ["who can log in at the till"],
-      "nl": ["wie kan inloggen op de kassa"],
-      "sw": ["nani anaweza kuingia kwenye kaunta"]
+      "en": [
+        "who can log in at the till"
+      ],
+      "nl": [
+        "wie kan inloggen op de kassa"
+      ],
+      "sw": [
+        "nani anaweza kuingia kwenye kaunta"
+      ]
     }
   },
   "till_users_update": {
     "ask": {
-      "en": ["reset the PIN of till user Amina", "deactivate till user Amina"],
-      "nl": ["pincode van kassagebruiker Amina resetten"],
-      "sw": ["badilisha PIN ya mtumiaji wa kaunta Amina"]
+      "en": [
+        "reset the PIN of till user Amina",
+        "deactivate till user Amina"
+      ],
+      "nl": [
+        "pincode van kassagebruiker Amina resetten"
+      ],
+      "sw": [
+        "badilisha PIN ya mtumiaji wa kaunta Amina"
+      ]
     }
   },
   "till_vaults_create": {
     "ask": {
-      "en": ["add a new vault"],
-      "nl": ["nieuwe kluis toevoegen"],
-      "sw": ["ongeza sefu mpya"]
+      "en": [
+        "add a new vault"
+      ],
+      "nl": [
+        "nieuwe kluis toevoegen"
+      ],
+      "sw": [
+        "ongeza sefu mpya"
+      ]
     }
   },
   "till_vaults_list": {
     "ask": {
-      "en": ["how much is in the vaults"],
-      "nl": ["hoeveel zit er in de kluizen"],
-      "sw": ["kiasi gani kiko kwenye sefu"]
+      "en": [
+        "how much is in the vaults"
+      ],
+      "nl": [
+        "hoeveel zit er in de kluizen"
+      ],
+      "sw": [
+        "kiasi gani kiko kwenye sefu"
+      ]
     }
   },
   "users_list": {
     "ask": {
-      "en": ["who works in this account"],
-      "nl": ["wie werkt er in dit account"],
-      "sw": ["nani anafanya kazi kwenye akaunti hii"]
+      "en": [
+        "who works in this account"
+      ],
+      "nl": [
+        "wie werkt er in dit account"
+      ],
+      "sw": [
+        "nani anafanya kazi kwenye akaunti hii"
+      ]
     }
   },
   "users_me": {
@@ -975,9 +1662,15 @@
   },
   "users_remove": {
     "ask": {
-      "en": ["remove Juma's access, he left"],
-      "nl": ["toegang van Juma intrekken"],
-      "sw": ["ondoa ruhusa ya Juma"]
+      "en": [
+        "remove Juma's access, he left"
+      ],
+      "nl": [
+        "toegang van Juma intrekken"
+      ],
+      "sw": [
+        "ondoa ruhusa ya Juma"
+      ]
     }
   },
   "users_workspaces": {
@@ -985,65 +1678,119 @@
   },
   "vat_groups_list": {
     "ask": {
-      "en": ["which VAT rates do we have"],
-      "nl": ["welke btw tarieven hebben we"],
-      "sw": ["viwango vya VAT tulivyonavyo"]
+      "en": [
+        "which VAT rates do we have"
+      ],
+      "nl": [
+        "welke btw tarieven hebben we"
+      ],
+      "sw": [
+        "viwango vya VAT tulivyonavyo"
+      ]
     }
   },
   "warehouses_create": {
     "ask": {
-      "en": ["create a warehouse called North Depot"],
-      "nl": ["maak een nieuw magazijn aan"],
-      "sw": ["unda ghala jipya"]
+      "en": [
+        "create a warehouse called North Depot"
+      ],
+      "nl": [
+        "maak een nieuw magazijn aan"
+      ],
+      "sw": [
+        "unda ghala jipya"
+      ]
     }
   },
   "warehouses_delete": {
     "ask": {
-      "en": ["delete the warehouse North Depot"],
-      "nl": ["verwijder het magazijn Noord"],
-      "sw": ["futa ghala la Kaskazini"]
+      "en": [
+        "delete the warehouse North Depot"
+      ],
+      "nl": [
+        "verwijder het magazijn Noord"
+      ],
+      "sw": [
+        "futa ghala la Kaskazini"
+      ]
     }
   },
   "warehouses_list": {
     "ask": {
-      "en": ["which warehouses do we have"],
-      "nl": ["welke magazijnen hebben we"],
-      "sw": ["onyesha maghala yote"]
+      "en": [
+        "which warehouses do we have"
+      ],
+      "nl": [
+        "welke magazijnen hebben we"
+      ],
+      "sw": [
+        "onyesha maghala yote"
+      ]
     }
   },
   "warehouses_update": {
     "ask": {
-      "en": ["rename the warehouse North Depot"],
-      "nl": ["hernoem het magazijn Noord"],
-      "sw": ["badilisha jina la ghala la Kaskazini"]
+      "en": [
+        "rename the warehouse North Depot"
+      ],
+      "nl": [
+        "hernoem het magazijn Noord"
+      ],
+      "sw": [
+        "badilisha jina la ghala la Kaskazini"
+      ]
     }
   },
   "webhooks_create": {
     "ask": {
-      "en": ["add a webhook endpoint"],
-      "nl": ["webhook toevoegen"],
-      "sw": ["ongeza webhook mpya"]
+      "en": [
+        "add a webhook endpoint"
+      ],
+      "nl": [
+        "webhook toevoegen"
+      ],
+      "sw": [
+        "ongeza webhook mpya"
+      ]
     }
   },
   "webhooks_delete": {
     "ask": {
-      "en": ["delete the webhook"],
-      "nl": ["webhook verwijderen"],
-      "sw": ["futa webhook"]
+      "en": [
+        "delete the webhook"
+      ],
+      "nl": [
+        "webhook verwijderen"
+      ],
+      "sw": [
+        "futa webhook"
+      ]
     }
   },
   "webhooks_list": {
     "ask": {
-      "en": ["show our webhooks"],
-      "nl": ["onze webhooks laten zien"],
-      "sw": ["onyesha webhooks zetu"]
+      "en": [
+        "show our webhooks"
+      ],
+      "nl": [
+        "onze webhooks laten zien"
+      ],
+      "sw": [
+        "onyesha webhooks zetu"
+      ]
     }
   },
   "webhooks_update": {
     "ask": {
-      "en": ["pause the webhook"],
-      "nl": ["webhook pauzeren"],
-      "sw": ["sitisha webhook kwa muda"]
+      "en": [
+        "pause the webhook"
+      ],
+      "nl": [
+        "webhook pauzeren"
+      ],
+      "sw": [
+        "sitisha webhook kwa muda"
+      ]
     }
   },
   "workflows_executions_get": {

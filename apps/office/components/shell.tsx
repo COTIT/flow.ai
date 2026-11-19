@@ -33,6 +33,9 @@ import {
   type LucideIcon,
   BookOpen,
   Percent,
+  Banknote,
+  Receipt,
+  Undo2,
 } from "lucide-react"
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
@@ -122,6 +125,24 @@ const items: Item[] = [
     label: "nav.purchases",
     icon: ShoppingBasket,
     group: "shell.buy",
+  },
+  {
+    href: "/supplier-bills",
+    match: "/supplier-bills",
+    label: "nav.supplierBills",
+    icon: Receipt,
+  },
+  {
+    href: "/supplier-payments",
+    match: "/supplier-payments",
+    label: "nav.supplierPayments",
+    icon: Banknote,
+  },
+  {
+    href: "/purchase-returns",
+    match: "/purchase-returns",
+    label: "nav.purchaseReturns",
+    icon: Undo2,
   },
   {
     href: "/approvals/purchases",
