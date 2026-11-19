@@ -1146,6 +1146,11 @@
     "nl": ["pdf", "factuur", "maak"],
     "sw": ["pdf", "ankara", "tengeneza"]
   },
+  "currencies_get": {
+    "en": ["open", "currency"],
+    "nl": ["open", "valuta"],
+    "sw": ["fungua", "sarafu"]
+  },
   "currencies_list": {
     "en": [],
     "nl": ["valuta"],
@@ -1284,6 +1289,11 @@
     "en": ["delete", "warehouse"],
     "nl": ["verwijder", "magazijn"],
     "sw": ["futa", "ghala"]
+  },
+  "warehouses_get": {
+    "en": ["open", "warehouse"],
+    "nl": ["open", "magazijn"],
+    "sw": ["fungua", "ghala"]
   },
   "warehouses_list": {
     "en": [],
@@ -1499,6 +1509,11 @@
     "en": ["pause"],
     "nl": ["pauzeren"],
     "sw": ["sitisha"]
+  },
+  "relations_get": {
+    "en": ["open", "customer"],
+    "nl": ["open", "klant"],
+    "sw": ["fungua", "mteja"]
   },
   "relations_list": {
     "en": ["supplier", "suppliers", "relation", "relations", "vendors"],

@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
-import { useAccountingAccountsList } from "@genesy/api-client/endpoints/accounting"
+import { useAccountingAccountsGet } from "@genesy/api-client/endpoints/accounting"
 import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
 import { Field } from "@/components/field"
-import { ListCard, PageHead } from "@/components/list"
+import { ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { LoadError } from "@/components/states"
 
 import { Ledger } from "../../ledger"
-import { thisMonth, useWord } from "../../shared"
+import { useBookMonth, useWord } from "../../shared"
 
 type Query = { from?: string; to?: string; page?: string }
 
@@ -34,19 +34,18 @@ export default function AccountPage({
   const word = useWord()
   const { id } = React.use(params)
   const q = React.use(searchParams)
-  const month = thisMonth()
-  const from = q.from ?? month.from
-  const to = q.to ?? month.to
+  const book = useBookMonth()
+  const from = q.from ?? book.month?.from ?? ""
+  const to = q.to ?? book.month?.to ?? ""
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
-  // shortcut: the account's facts come from the first 100 accounts (no single-account read);
-  // the history below works for any account.
-  const accounts = useAccountingAccountsList(
-    workspaceId,
-    { page_size: "100" },
-    { query: { enabled: Boolean(workspaceId) } }
-  )
-  const account = accounts.data?.data.find((a) => a.id === id)
-  const parent = accounts.data?.data.find((a) => a.id === account?.parent_id)
+  const on = (more: boolean) => ({
+    query: { enabled: Boolean(workspaceId) && more },
+  })
+  const one = useAccountingAccountsGet(workspaceId, id, on(true))
+  const account = one.data?.data
+  const parentId = account?.parent_id ?? ""
+  const parent = useAccountingAccountsGet(workspaceId, parentId, on(!!parentId))
+    .data?.data
   const go = (next: Query) => {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries({ ...q, ...next }))
@@ -58,11 +57,12 @@ export default function AccountPage({
     label: t("accounting.accounts.title"),
   }
 
-  if (accounts.isError)
+  const failed = one.isError ? one : book.setup.isError ? book.setup : null
+  if (failed)
     return (
       <LoadError
-        error={accounts.error}
-        onRetry={() => void accounts.refetch()}
+        error={failed.error}
+        onRetry={() => void failed.refetch()}
         backHref={back.href}
       />
     )
@@ -111,6 +111,7 @@ export default function AccountPage({
       <ListCard
         filters={
           <form
+            key={`${from}|${to}`}
             className="flex flex-wrap items-end gap-3 max-md:w-full max-md:flex-col max-md:items-stretch"
             onSubmit={(e) => {
               e.preventDefault()
@@ -132,13 +133,17 @@ export default function AccountPage({
           </form>
         }
       >
-        <Ledger
-          account={id}
-          from={from}
-          to={to}
-          page={q.page}
-          onPage={(p) => go({ page: String(p) })}
-        />
+        {from && to && account ? (
+          <Ledger
+            account={id}
+            from={from}
+            to={to}
+            page={q.page}
+            onPage={(p) => go({ page: String(p) })}
+          />
+        ) : (
+          <ListSkeleton columns={[{ label: "" }, { label: "", right: true }]} />
+        )}
       </ListCard>
     </>
   )

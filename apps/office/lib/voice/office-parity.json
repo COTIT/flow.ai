@@ -2,6 +2,9 @@
   "accounting_accounts_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_accounts_get": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_accounts_list": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -41,6 +44,9 @@
   "accounting_general_ledger": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
+  "accounting_inventory_valuation": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
   "accounting_journals_create": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
@@ -63,6 +69,9 @@
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_journals_update": {
+    "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "accounting_opening_validate": {
     "officeOnlyBecause": "Accounting is done on the Office accounting screens, where every posting is reviewed first; the assistant keeps it internal until its milestone (masterplan section 17)."
   },
   "accounting_periods_create": {
@@ -148,6 +157,13 @@
   },
   "bank_statements_list": {
     "officeOnlyBecause": "Bank matching links statement lines to posted journal lines on the Office banking screens; the assistant keeps it internal until its milestone (masterplan section 17)."
+  },
+  "currencies_get": {
+    "ask": {
+      "en": ["open currency TZS"],
+      "nl": ["open valuta TZS"],
+      "sw": ["fungua sarafu TZS"]
+    }
   },
   "currencies_list": {
     "ask": {
@@ -752,6 +768,13 @@
   "purchase_units_list": {
     "officeOnlyBecause": "Picking a purchase unit is part of the Office purchase order form; the assistant keeps purchasing internal until its milestone."
   },
+  "relations_get": {
+    "ask": {
+      "en": ["open customer Bees BV"],
+      "nl": ["open klant Bees BV"],
+      "sw": ["fungua mteja Bees BV"]
+    }
+  },
   "relations_list": {
     "ask": {
       "en": ["list our suppliers"],
@@ -1176,6 +1199,13 @@
       "en": ["delete the warehouse North Depot"],
       "nl": ["verwijder het magazijn Noord"],
       "sw": ["futa ghala la Kaskazini"]
+    }
+  },
+  "warehouses_get": {
+    "ask": {
+      "en": ["open warehouse Main store"],
+      "nl": ["open magazijn Main store"],
+      "sw": ["fungua ghala Main store"]
     }
   },
   "warehouses_list": {

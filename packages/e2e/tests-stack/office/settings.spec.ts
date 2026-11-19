@@ -1,7 +1,17 @@
 import type { APIRequestContext } from "@playwright/test"
 
 import { expectNoRawValues } from "../../src/test"
-import { apiAs, cred, expect, loginOffice, stackAllow, test, unique, urls, workspaces } from "../../src/stack"
+import {
+  apiAs,
+  cred,
+  expect,
+  loginOffice,
+  stackAllow,
+  test,
+  unique,
+  urls,
+  workspaces,
+} from "../../src/stack"
 
 const catalogWith = (request: APIRequestContext, key: string) =>
   request.get(`${urls.api}/v1/storefront/products?page_size=1`, {
@@ -34,8 +44,13 @@ test("office app key: the secret shows once, reads the catalog, and stops workin
   await expectNoRawValues(page)
 
   await row.getByRole("button", { name: "Revoke" }).click()
-  await page.getByRole("alertdialog").getByRole("button", { name: "Revoke" }).click()
-  await expect(page.getByRole("status").filter({ hasText: "App key revoked." })).toBeVisible()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Revoke" })
+    .click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "App key revoked." })
+  ).toBeVisible()
   await expect(row.getByText("Revoked", { exact: true })).toBeVisible()
   expect((await catalogWith(request, secret)).status()).toBe(401)
 })
@@ -46,8 +61,14 @@ test.describe(() => {
       ...stackAllow,
       responses: [
         ...stackAllow.responses,
-        { url: `${urls.office}/v1/workspace/${workspaces.AFM}/app-keys`, status: 422 },
-        { url: `${urls.office}/v1/workspace/${workspaces.AFM}/webhook-endpoints`, status: 422 },
+        {
+          url: `${urls.office}/v1/workspace/${workspaces.AFM}/app-keys`,
+          status: 422,
+        },
+        {
+          url: `${urls.office}/v1/workspace/${workspaces.AFM}/webhook-endpoints`,
+          status: 422,
+        },
       ],
     },
   })
@@ -60,7 +81,11 @@ test.describe(() => {
     // A scope the form cannot offer, sent straight to the API: 422 and no key.
     const bad = `e2e bad key ${unique()}`
     await expect(
-      owner.post(owner.ws("/app-keys"), { name: bad, kind: "shop", scopes: ["orders:delete"] })
+      owner.post(owner.ws("/app-keys"), {
+        name: bad,
+        kind: "shop",
+        scopes: ["orders:delete"],
+      })
     ).rejects.toThrow(/: 422 /)
 
     const name = `e2e no scope ${unique()}`
@@ -71,8 +96,12 @@ test.describe(() => {
     const scopes = dialog.getByRole("group", { name: "Scopes" })
     // The issuable scopes only (till login is the till's own), each by its name.
     await expect(scopes.getByRole("checkbox")).toHaveCount(2)
-    await expect(scopes.getByRole("checkbox", { name: "Read catalogue" })).toBeVisible()
-    await expect(scopes.getByRole("checkbox", { name: "Take web orders" })).toBeVisible()
+    await expect(
+      scopes.getByRole("checkbox", { name: "Read catalogue" })
+    ).toBeVisible()
+    await expect(
+      scopes.getByRole("checkbox", { name: "Take web orders" })
+    ).toBeVisible()
     await expect(dialog.getByLabel("Kind").locator("option")).toHaveText([
       "Choose what the key is for",
       "Web shop",
@@ -85,10 +114,14 @@ test.describe(() => {
     await dialog.getByLabel("Name").fill(name)
     await dialog.getByLabel("Kind").selectOption({ label: "Web shop" })
     await dialog.getByRole("button", { name: "Save" }).click()
-    await expect(scopes).toHaveAccessibleDescription("The scopes field must list 1 to 20 scopes.")
+    await expect(scopes).toHaveAccessibleDescription(
+      "The scopes field must list 1 to 20 scopes."
+    )
     await expect(dialog.getByLabel("Secret")).toHaveCount(0)
 
-    const keys = await owner.get<{ name: string }[]>(owner.ws("/app-keys?page_size=100"))
+    const keys = await owner.get<{ name: string }[]>(
+      owner.ws("/app-keys?page_size=100")
+    )
     expect(keys.map((k) => k.name)).not.toContain(name)
     expect(keys.map((k) => k.name)).not.toContain(bad)
   })
@@ -101,7 +134,10 @@ test.describe(() => {
     const url = `https://hooks.example.com/e2e/${unique()}`
     // An event the form cannot offer, sent straight to the API.
     await expect(
-      owner.post(owner.ws("/webhook-endpoints"), { url, events: ["order.teleported"] })
+      owner.post(owner.ws("/webhook-endpoints"), {
+        url,
+        events: ["order.teleported"],
+      })
     ).rejects.toThrow(/: 422 .*Unknown event order\.teleported\./)
 
     await loginOffice(page, cred("office (AFM)", "owner"))
@@ -114,7 +150,9 @@ test.describe(() => {
     await dialog.getByLabel("URL").fill(url.replace("https:", "http:"))
     await events.getByRole("checkbox", { name: "Stock changed" }).check()
     await dialog.getByRole("button", { name: "Save" }).click()
-    await expect(dialog.getByLabel("URL")).toHaveAccessibleDescription("The url must be a public https URL.")
+    await expect(dialog.getByLabel("URL")).toHaveAccessibleDescription(
+      "The url must be a public https URL."
+    )
 
     await dialog.getByLabel("URL").fill(url)
     await events.getByRole("checkbox", { name: "Stock changed" }).uncheck()
@@ -127,14 +165,16 @@ test.describe(() => {
     await expect(dialog.getByLabel("Secret")).toHaveText(/^whsec_/)
     await page.keyboard.press("Escape")
     await expect(page.getByText(/whsec_/)).toHaveCount(0)
-    const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: url, exact: true }) })
+    const row = page
+      .getByRole("row")
+      .filter({ has: page.getByRole("cell", { name: url, exact: true }) })
     await expect(row).toContainText("Stock changed")
     await expect(row).toContainText("Order placed")
     await expectNoRawValues(page)
 
-    const hooks = await owner.get<{ url: string; events: string[]; active: boolean }[]>(
-      owner.ws("/webhook-endpoints?page_size=100")
-    )
+    const hooks = await owner.get<
+      { url: string; events: string[]; active: boolean }[]
+    >(owner.ws("/webhook-endpoints?page_size=100"))
     const hook = hooks.find((h) => h.url === url)!
     expect(hook.active).toBe(true)
     // The API keeps events as a set; order is its own.
@@ -142,9 +182,16 @@ test.describe(() => {
 
     // Delete it again: the workspace allows at most 10 endpoints, and every run adds one.
     await row.getByRole("button", { name: "Delete" }).click()
-    await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click()
-    await expect(page.getByRole("cell", { name: url, exact: true })).toHaveCount(0)
-    const after = await owner.get<{ url: string }[]>(owner.ws("/webhook-endpoints?page_size=100"))
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Delete" })
+      .click()
+    await expect(
+      page.getByRole("cell", { name: url, exact: true })
+    ).toHaveCount(0)
+    const after = await owner.get<{ url: string }[]>(
+      owner.ws("/webhook-endpoints?page_size=100")
+    )
     expect(after.map((h) => h.url)).not.toContain(url)
   })
 })

@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
-  useAccountingAccountsList,
   useAccountingBalanceSheet,
   useAccountingProfitAndLoss,
   useAccountingTrialBalance,
@@ -29,7 +28,10 @@ import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { Empty } from "@/components/states"
 
 import { Ledger, ReportError, useMoney } from "../ledger"
-import { AccountingTabs, thisMonth } from "../shared"
+import { AccountPicker } from "@/components/pickers"
+import { LoadError } from "@/components/states"
+
+import { AccountingTabs, useBookMonth } from "../shared"
 
 const reports = [
   "trial-balance",
@@ -62,24 +64,26 @@ export default function ReportsPage({
   const report: Report = reports.includes(q.report as Report)
     ? (q.report as Report)
     : "trial-balance"
-  const month = thisMonth()
-  const from = q.from ?? month.from
-  const to = q.to ?? month.to
+  const book = useBookMonth()
+  const from = q.from ?? book.month?.from ?? ""
+  const to = q.to ?? book.month?.to ?? ""
   const asOf = q.as_of ?? to
-  const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [kind, setKind] = React.useState<Report>(report)
-  // shortcut: the first 100 accounts in the ledger's picker; page these when a book holds more.
-  const accounts = useAccountingAccountsList(
-    workspaceId,
-    { page_size: "100" },
-    { query: { enabled: Boolean(workspaceId) && kind === "general-ledger" } }
-  )
+  const [account, setAccount] = React.useState(q.account ?? "")
   const go = (next: Query) => {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries({ ...q, ...next }))
       if (v) params.set(k, v)
     router.push(`?${params}`)
   }
+
+  if (book.setup.isError)
+    return (
+      <LoadError
+        error={book.setup.error}
+        onRetry={() => void book.setup.refetch()}
+      />
+    )
 
   return (
     <>
@@ -91,6 +95,7 @@ export default function ReportsPage({
       <ListCard
         filters={
           <form
+            key={`${from}|${to}`}
             className="flex flex-wrap items-end gap-3 max-md:w-full max-md:flex-col max-md:items-stretch"
             onSubmit={(e) => {
               e.preventDefault()
@@ -136,29 +141,21 @@ export default function ReportsPage({
             )}
             {kind === "general-ledger" ? (
               <Field id="rp-account" label={t("accounting.reports.account")}>
-                <select
-                  key={accounts.data ? "loaded" : "loading"}
+                <AccountPicker
                   name="account"
-                  className={selectClass}
-                  required
-                  defaultValue={q.account ?? ""}
-                >
-                  <option value="" disabled>
-                    {t("accounting.reports.chooseAccount")}
-                  </option>
-                  {accounts.data?.data.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.code} {a.name}
-                    </option>
-                  ))}
-                </select>
+                  value={account}
+                  onChange={setAccount}
+                  placeholder={t("accounting.reports.chooseAccount")}
+                />
               </Field>
             ) : null}
             <Button type="submit">{t("accounting.reports.show")}</Button>
           </form>
         }
       >
-        {report === "trial-balance" ? (
+        {!from || !to ? (
+          <ListSkeleton columns={[{ label: "" }, { label: "", right: true }]} />
+        ) : report === "trial-balance" ? (
           <TrialBalance from={from} to={to} />
         ) : report === "general-ledger" ? (
           q.account ? (

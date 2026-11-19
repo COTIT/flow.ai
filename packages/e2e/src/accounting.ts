@@ -5,7 +5,15 @@ import { execFileSync } from "node:child_process"
 
 import type { APIRequestContext } from "@playwright/test"
 
-import { type Api, apiAs, container, expect, mailTo, unique, urls } from "./stack"
+import {
+  type Api,
+  apiAs,
+  container,
+  expect,
+  mailTo,
+  unique,
+  urls,
+} from "./stack"
 
 /** The book's 26 roles (docs/api/accounting.md "Setup"). */
 const ROLES = [
@@ -57,7 +65,9 @@ export async function freshWorkspace(request: APIRequestContext, tag: string) {
     },
   })
   expect(signup.status(), "signup").toBe(201)
-  const link = (await mailTo(login.login)).match(/https?:\/\/\S+\/v1\/verify-email\/\S+/)?.[0]
+  const link = (await mailTo(login.login)).match(
+    /https?:\/\/\S+\/v1\/verify-email\/\S+/
+  )?.[0]
   expect(link, "verification link").toBeTruthy()
   await request.get(link!, { maxRedirects: 0 })
   return { login, api: await apiAs(request, login) }
@@ -77,15 +87,16 @@ export async function command<T>(
     headers: { Authorization: `Bearer ${api.token}`, "Idempotency-Key": key },
     data: { client_ref: key, ...body },
   })
-  if (res.status() >= 400) throw new Error(`${method} ${path}: ${res.status()} ${await res.text()}`)
+  if (res.status() >= 400)
+    throw new Error(`${method} ${path}: ${res.status()} ${await res.text()}`)
   return ((await res.json()) as { data: T }).data
 }
 
 /** The workspace's main currency id. */
 export async function mainCurrency(api: Api) {
-  const list = await api.get<{ id: string; default_currency: boolean; asset_type: string }[]>(
-    api.ws("/currencies?page_size=100")
-  )
+  const list = await api.get<
+    { id: string; default_currency: boolean; asset_type: string }[]
+  >(api.ws("/currencies?page_size=100"))
   const main = list.find((c) => c.default_currency) ?? list[0]
   expect(main, "a currency in the fresh workspace").toBeTruthy()
   return main!
@@ -99,9 +110,15 @@ export const addAccount = (
   name: string,
   type: string
 ) =>
-  command<{ id: string; code: string }>(request, api, "POST", "/accounting/accounts", {
-    payload: { code, name, type },
-  })
+  command<{ id: string; code: string }>(
+    request,
+    api,
+    "POST",
+    "/accounting/accounts",
+    {
+      payload: { code, name, type },
+    }
+  )
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
@@ -109,29 +126,59 @@ const ymd = (d: Date) => d.toISOString().slice(0, 10)
  * Configures the book (currency, UTC, one account per role, this year and month open) through
  * the API, then flips it to active by SQL in this stack's own database, for this workspace only.
  */
-export async function activeBook(request: APIRequestContext, api: Api) {
+/** A configured book with this month's period; `activate: false` leaves it in setup (openings). */
+export async function activeBook(
+  request: APIRequestContext,
+  api: Api,
+  { activate = true }: { activate?: boolean } = {}
+) {
   const currency = await mainCurrency(api)
   const mappings: Record<string, string> = {}
   for (const [i, role] of ROLES.entries())
-    mappings[role] = (await addAccount(request, api, `R${String(i).padStart(2, "0")}`, `Role ${role}`, "asset")).id
+    mappings[role] = (
+      await addAccount(
+        request,
+        api,
+        `R${String(i).padStart(2, "0")}`,
+        `Role ${role}`,
+        "asset"
+      )
+    ).id
   const setup = await api.get<{ version: number }>(api.ws("/accounting/setup"))
   await command(request, api, "PUT", "/accounting/setup", {
     expected_version: setup.version,
-    payload: { functional_currency_id: currency.id, timezone: "UTC", account_mappings: mappings },
-  })
-  const now = new Date()
-  const year = await command<{ id: string }>(request, api, "POST", "/accounting/fiscal-years", {
     payload: {
-      start_date: `${now.getUTCFullYear()}-01-01`,
-      end_date: `${now.getUTCFullYear() + 1}-01-01`,
+      functional_currency_id: currency.id,
+      timezone: "UTC",
+      account_mappings: mappings,
     },
   })
+  const now = new Date()
+  const year = await command<{ id: string }>(
+    request,
+    api,
+    "POST",
+    "/accounting/fiscal-years",
+    {
+      payload: {
+        start_date: `${now.getUTCFullYear()}-01-01`,
+        end_date: `${now.getUTCFullYear() + 1}-01-01`,
+      },
+    }
+  )
   const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  const next = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
+  )
   await command(request, api, "POST", "/accounting/periods", {
-    payload: { fiscal_year_id: year.id, start_date: ymd(first), end_date: ymd(next) },
+    payload: {
+      fiscal_year_id: year.id,
+      start_date: ymd(first),
+      end_date: ymd(next),
+    },
   })
   expect(api.workspace).toMatch(/^[0-9a-f-]{36}$/)
+  if (!activate) return { currency, mappings }
   // shortcut: activation by SQL until the M8 activate route (mirrors tests/api/accounting.rs).
   execFileSync(
     "docker",

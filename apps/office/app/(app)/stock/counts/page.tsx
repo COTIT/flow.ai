@@ -24,7 +24,8 @@ import {
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { formatDateTime } from "@genesy/ui/lib/format"
-import { Field, selectClass } from "@/components/field"
+import { Field } from "@/components/field"
+import { WarehousePicker } from "@/components/pickers"
 import {
   CardState,
   ListCard,
@@ -87,10 +88,6 @@ export default function CountsPage({
         actions={
           mayCreate ? (
             <NewCountDialog
-              warehouses={(warehouses.data?.data ?? []).map((w) => ({
-                id: w.id,
-                name: w.name,
-              }))}
               onCreated={(id) => router.push(`/stock/counts/${id}`)}
             />
           ) : null
@@ -173,13 +170,7 @@ export default function CountsPage({
 }
 
 /** A new count: warehouse and reason; the draft opens on its own page. */
-function NewCountDialog({
-  warehouses,
-  onCreated,
-}: {
-  warehouses: { id: string; name: string }[]
-  onCreated: (id: string) => void
-}) {
+function NewCountDialog({ onCreated }: { onCreated: (id: string) => void }) {
   const t = useTranslations()
   const reasons = useCountReasons()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
@@ -195,6 +186,7 @@ function NewCountDialog({
     },
   })
   const errors = fieldErrors(create.error)
+  const [warehouse, setWarehouse] = React.useState("")
   return (
     <Shell
       open={a.open}
@@ -230,21 +222,12 @@ function NewCountDialog({
           label={t("stocktakes.warehouse")}
           errors={errors["payload.warehouse_id"]}
         >
-          <select
+          <WarehousePicker
             name="warehouse_id"
-            className={selectClass}
-            required
-            defaultValue=""
-          >
-            <option value="" disabled>
-              {t("stocktakes.chooseWarehouse")}
-            </option>
-            {warehouses.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
+            value={warehouse}
+            onChange={setWarehouse}
+            placeholder={t("stocktakes.chooseWarehouse")}
+          />
         </Field>
         <Field
           id="st-reason"
