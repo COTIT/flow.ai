@@ -168,7 +168,7 @@ export default function AccountsPage({
                 <TableRow key={a.id}>
                   <TableCell className="font-semibold tabular-nums">
                     <Link
-                      className="underline-offset-4 hover:underline max-md:inline-flex max-md:min-h-11 max-md:items-center"
+                      className="underline-offset-4 hover:underline max-md:inline-flex max-md:min-h-11 max-md:min-w-11 max-md:items-center"
                       href={`/accounting/accounts/${a.id}`}
                     >
                       {a.code}
