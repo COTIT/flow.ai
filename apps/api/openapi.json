@@ -3162,6 +3162,12 @@
               "null"
             ]
           },
+          "product_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "quantity": {
             "type": "string"
           },
@@ -3194,6 +3200,26 @@
         ],
         "type": "object"
       },
+      "BillMatchCandidates": {
+        "description": "GET /supplier-bills/{id}/match-candidates.",
+        "properties": {
+          "bill_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/MatchCandidate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "bill_id",
+          "candidates"
+        ],
+        "type": "object"
+      },
       "BillMatchResource": {
         "description": "A match of a bill line.",
         "properties": {
@@ -3221,8 +3247,23 @@
               "null"
             ]
           },
+          "purchase_order_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "quantity": {
             "type": "string"
+          },
+          "receipt_id": {
+            "description": "Receipt and purchase order of a goods match (source links).",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "receipt_line_id": {
             "format": "uuid",
@@ -3453,6 +3494,37 @@
         },
         "required": [
           "net"
+        ],
+        "type": "object"
+      },
+      "BilledReturnCandidate": {
+        "description": "A posted bill match of a receipt line a billed return may name.",
+        "properties": {
+          "bill_allocation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "bill_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "bill_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "returnable": {
+            "type": "string"
+          },
+          "supplier_invoice_number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bill_allocation_id",
+          "bill_id",
+          "bill_number",
+          "supplier_invoice_number",
+          "returnable"
         ],
         "type": "object"
       },
@@ -10978,6 +11050,18 @@
         ],
         "type": "object"
       },
+      "Envelope_BillMatchCandidates": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BillMatchCandidates"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_BillPostReview": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -12941,6 +13025,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/Resubmitted"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_ReturnCandidates": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReturnCandidates"
           }
         },
         "required": [
@@ -21087,6 +21183,56 @@
         ],
         "type": "object"
       },
+      "MatchCandidate": {
+        "description": "A booked receipt line a draft bill's goods line may match.",
+        "properties": {
+          "bill_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "booked_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "matchable": {
+            "description": "B − U − M − D, this bill's own reservations not counted (match replaces them).",
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "purchase_order_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "receipt_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "receipt_number": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bill_line_id",
+          "receipt_line_id",
+          "receipt_id",
+          "receipt_number",
+          "purchase_order_id",
+          "purchase_order_number",
+          "matchable"
+        ],
+        "type": "object"
+      },
       "MatchOpportunityRef": {
         "description": "The opportunity a match already has.",
         "properties": {
@@ -23929,6 +24075,25 @@
         ],
         "type": "object"
       },
+      "Paginated_PaymentTarget": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentTarget"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_PayoutResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -25617,6 +25782,66 @@
           "functional_currency",
           "rate",
           "review_fingerprint"
+        ],
+        "type": "object"
+      },
+      "PaymentTarget": {
+        "description": "An open item a supplier payment (payable) or refund received (supplier credit) may settle.",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issue_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "open_item_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residual": {
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source_kind": {
+            "type": "string"
+          },
+          "source_number": {
+            "description": "Bill, return or payment number of the source, when known.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "supplier_invoice_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "open_item_id",
+          "classification",
+          "source_kind",
+          "source_id",
+          "issue_date",
+          "amount",
+          "residual"
         ],
         "type": "object"
       },
@@ -34216,6 +34441,100 @@
         },
         "type": "object"
       },
+      "ReturnCandidateLine": {
+        "description": "One receipt line's returnable quantities.",
+        "properties": {
+          "billed": {
+            "items": {
+              "$ref": "#/components/schemas/BilledReturnCandidate"
+            },
+            "type": "array"
+          },
+          "booked": {
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receipt_line_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "unbilled_returnable": {
+            "description": "Returnable without naming a bill match.",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "warehouse_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "receipt_line_id",
+          "product_id",
+          "warehouse_id",
+          "booked",
+          "unbilled_returnable",
+          "billed"
+        ],
+        "type": "object"
+      },
+      "ReturnCandidates": {
+        "description": "GET /purchase-returns/candidates.",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyRef"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnCandidateLine"
+            },
+            "type": "array"
+          },
+          "purchase_order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "purchase_order_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "receipt_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "supplier": {
+            "$ref": "#/components/schemas/SupplierRef"
+          }
+        },
+        "required": [
+          "receipt_id",
+          "receipt_number",
+          "purchase_order_id",
+          "purchase_order_number",
+          "supplier",
+          "currency",
+          "lines"
+        ],
+        "type": "object"
+      },
       "ReturnCreatePayload": {
         "description": "Create payload.",
         "properties": {
@@ -34386,6 +34705,16 @@
               "null"
             ]
           },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "quantity": {
             "type": "string"
           },
@@ -34409,6 +34738,12 @@
           "warehouse_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "warehouse_name": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -34417,6 +34752,7 @@
           "receipt_line_id",
           "billed",
           "quantity",
+          "product_id",
           "warehouse_id"
         ],
         "type": "object"
@@ -131576,9 +131912,19 @@
             }
           },
           {
-            "description": "Only this supplier.",
+            "description": "Only adjustments of this supplier's bills.",
             "in": "query",
             "name": "supplier_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only adjustments of this bill.",
+            "in": "query",
+            "name": "bill_id",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -135573,6 +135919,160 @@
           }
         ],
         "summary": "Create a draft purchase return",
+        "tags": [
+          "purchase_returns"
+        ]
+      }
+    },
+    "/workspace/{workspace}/purchase-returns/candidates": {
+      "get": {
+        "operationId": "purchase_returns_candidates",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The booked receipt to return from (required).",
+            "in": "query",
+            "name": "receipt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ReturnCandidates"
+                }
+              }
+            },
+            "description": "Success; unbilled and per posted bill match"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or receipt, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`receipt_id` missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Returnable quantities of one booked receipt",
         "tags": [
           "purchase_returns"
         ]
@@ -151479,6 +151979,150 @@
         ]
       }
     },
+    "/workspace/{workspace}/supplier-bills/{bill}/match-candidates": {
+      "get": {
+        "operationId": "supplier_bills_match_candidates",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Supplier bill id",
+            "in": "path",
+            "name": "bill",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BillMatchCandidates"
+                }
+              }
+            },
+            "description": "Success; matchable left per receipt line, this bill's reservations not counted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or bill, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Booked receipt lines a draft bill's goods lines may match",
+        "tags": [
+          "supplier_bills"
+        ]
+      }
+    },
     "/workspace/{workspace}/supplier-bills/{bill}/post": {
       "post": {
         "operationId": "supplier_bills_post",
@@ -153611,6 +154255,176 @@
           }
         ],
         "summary": "Preview reversing an unapplied payment (no writes)",
+        "tags": [
+          "supplier_payments"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supplier-payments/{payment}/targets": {
+      "get": {
+        "operationId": "supplier_payments_targets",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Supplier payment id",
+            "in": "path",
+            "name": "payment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this supplier.",
+            "in": "query",
+            "name": "supplier_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_PaymentTarget"
+                }
+              }
+            },
+            "description": "Success, oldest due first"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or payment, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Open items a supplier payment or refund may be allocated to",
         "tags": [
           "supplier_payments"
         ]

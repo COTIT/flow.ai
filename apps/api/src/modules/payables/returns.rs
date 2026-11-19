@@ -38,9 +38,10 @@ use crate::{
             bills::{JournalRow, functional, lock_receipt_lines, receipt_facts, require_valued},
             common::{self, dependent, fp32, journal_preview, role_side},
             dto::{
-                ListQuery, PurchaseReturnResource, ReturnInput, ReturnLineResource, ReturnPayload,
-                ReturnPostReview, ReturnReverseBody, ReturnReverseInput, ReturnReviewLine,
-                ReverseReview, ReviewedPayload,
+                BilledReturnCandidate, ListQuery, PurchaseReturnResource, ReturnCandidateLine,
+                ReturnCandidates, ReturnInput, ReturnLineResource, ReturnPayload, ReturnPostReview,
+                ReturnReverseBody, ReturnReverseInput, ReturnReviewLine, ReverseReview,
+                ReviewedPayload,
             },
         },
         purchasing::{
@@ -123,7 +124,10 @@ struct LineRow {
     receipt_line_id: Uuid,
     bill_match_id: Option<Uuid>,
     quantity: Decimal,
+    product_id: Uuid,
+    product_name: Option<String>,
     warehouse_id: Uuid,
+    warehouse_name: Option<String>,
     bin_id: Option<Uuid>,
     lot_id: Option<Uuid>,
     issue_value: Option<i64>,
@@ -143,11 +147,17 @@ async fn resources(
 ) -> Result<Vec<PurchaseReturnResource>, AppError> {
     let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
     let lines: Vec<LineRow> = sqlx::query_as(
-        "SELECT id, return_id, line_no, receipt_line_id, bill_match_id, quantity, warehouse_id,
-                bin_id, lot_id, issue_value, grni_functional, credit_nominal, credit_functional,
-                tax_functional, variance, fx
-         FROM purchase_return_lines WHERE workspace_id = $1 AND return_id = ANY($2)
-         ORDER BY return_id, line_no",
+        "SELECT x.id, x.return_id, x.line_no, x.receipt_line_id, x.bill_match_id, x.quantity,
+                rl.product_id, p.name AS product_name, x.warehouse_id,
+                wh.name AS warehouse_name, x.bin_id, x.lot_id, x.issue_value, x.grni_functional,
+                x.credit_nominal, x.credit_functional, x.tax_functional, x.variance, x.fx
+         FROM purchase_return_lines x
+         JOIN purchase_receipt_lines rl
+              ON rl.workspace_id = x.workspace_id AND rl.id = x.receipt_line_id
+         LEFT JOIN products p ON p.workspace_id = x.workspace_id AND p.id = rl.product_id
+         LEFT JOIN warehouses wh ON wh.workspace_id = x.workspace_id AND wh.id = x.warehouse_id
+         WHERE x.workspace_id = $1 AND x.return_id = ANY($2)
+         ORDER BY x.return_id, x.line_no",
     )
     .bind(ws)
     .bind(&ids)
@@ -195,7 +205,10 @@ async fn resources(
                         bill_match_id: l.bill_match_id,
                         billed: l.bill_match_id.is_some(),
                         quantity: qty(l.quantity),
+                        product_id: l.product_id,
+                        product_name: l.product_name.clone(),
                         warehouse_id: l.warehouse_id,
+                        warehouse_name: l.warehouse_name.clone(),
                         bin_id: l.bin_id,
                         lot_id: l.lot_id,
                         issue_value: f(l.issue_value),
@@ -301,6 +314,136 @@ async fn source(conn: &mut PgConnection, ws: Uuid, line: Uuid) -> Result<Source,
     .fetch_optional(conn)
     .await?
     .ok_or(AppError::NotFound)
+}
+
+#[derive(FromRow)]
+struct CandidateRow {
+    receipt_id: Uuid,
+    receipt_number: i64,
+    purchase_order_id: Uuid,
+    purchase_order_number: i64,
+    supplier_id: Uuid,
+    supplier_name: Option<String>,
+    currency_id: Uuid,
+    currency_code: String,
+    currency_decimals: i16,
+    receipt_line_id: Option<Uuid>,
+    product_id: Option<Uuid>,
+    product_name: Option<String>,
+    warehouse_id: Option<Uuid>,
+    warehouse_name: Option<String>,
+    booked: Option<Decimal>,
+    unbilled_returnable: Option<Decimal>,
+    bill_allocation_id: Option<Uuid>,
+    bill_id: Option<Uuid>,
+    bill_number: Option<i64>,
+    supplier_invoice_number: Option<String>,
+    returnable: Option<Decimal>,
+}
+
+/// GET /purchase-returns/candidates: per booked, valued line of one receipt, what a return may
+/// take unbilled and per posted bill match (the `check_caps` limits, from
+/// `receipt_line_capacity`). Read-only, one query; 404 outside the workspace.
+pub async fn candidates(
+    state: &AppState,
+    ws: Uuid,
+    receipt: Uuid,
+) -> Result<ReturnCandidates, AppError> {
+    let rows: Vec<CandidateRow> = sqlx::query_as(
+        "SELECT r.id AS receipt_id, r.number AS receipt_number, o.id AS purchase_order_id,
+                o.number AS purchase_order_number, o.supplier_id,
+                coalesce(s.company_name, s.alias) AS supplier_name, o.currency_id,
+                upper(cu.asset_type) AS currency_code, cu.decimals AS currency_decimals,
+                x.receipt_line_id, x.product_id, x.product_name, x.warehouse_id,
+                x.warehouse_name, x.booked, x.unbilled_returnable, x.bill_allocation_id,
+                x.bill_id, x.bill_number, x.supplier_invoice_number, x.returnable
+         FROM purchase_receipts r
+         JOIN purchase_orders o ON o.workspace_id = r.workspace_id AND o.id = r.purchase_order_id
+         JOIN relations s ON s.workspace_id = o.workspace_id AND s.id = o.supplier_id
+         JOIN currencies cu ON cu.workspace_id = o.workspace_id AND cu.id = o.currency_id
+         LEFT JOIN LATERAL (
+             SELECT l.id AS receipt_line_id, l.product_id, p.name AS product_name,
+                    l.warehouse_id, wh.name AS warehouse_name, c.booked,
+                    greatest(least(c.matchable, c.booked - c.returned), 0) AS unbilled_returnable,
+                    m.id AS bill_allocation_id, b.id AS bill_id, b.number AS bill_number,
+                    b.supplier_invoice_number,
+                    greatest(least(m.quantity - coalesce((SELECT sum(y.quantity)
+                        FROM purchase_return_lines y
+                        JOIN purchase_returns h ON h.id = y.return_id AND h.state = 'posted'
+                        WHERE y.bill_match_id = m.id), 0), c.booked - c.returned), 0) AS returnable
+             FROM purchase_receipt_lines l
+             JOIN LATERAL receipt_line_capacity(r.workspace_id, l.id, NULL) c ON true
+             LEFT JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+             LEFT JOIN warehouses wh ON wh.workspace_id = l.workspace_id AND wh.id = l.warehouse_id
+             LEFT JOIN supplier_bill_matches m ON m.workspace_id = l.workspace_id
+                  AND m.receipt_line_id = l.id AND m.state = 'posted'
+             LEFT JOIN supplier_bills b ON b.workspace_id = m.workspace_id AND b.id = m.bill_id
+             WHERE l.workspace_id = r.workspace_id AND l.receipt_id = r.id
+         ) x ON true
+         WHERE r.workspace_id = $1 AND r.id = $2
+         ORDER BY x.receipt_line_id, x.bill_number",
+    )
+    .bind(ws)
+    .bind(receipt)
+    .fetch_all(&state.db)
+    .await?;
+    let head = rows.first().ok_or(AppError::NotFound)?;
+    let mut out = ReturnCandidates {
+        receipt_id: head.receipt_id,
+        receipt_number: head.receipt_number,
+        purchase_order_id: head.purchase_order_id,
+        purchase_order_number: head.purchase_order_number,
+        supplier: SupplierRef {
+            id: head.supplier_id,
+            name: head.supplier_name.clone(),
+        },
+        currency: CurrencyRef {
+            id: head.currency_id,
+            code: head.currency_code.clone(),
+            decimals: head.currency_decimals,
+        },
+        lines: Vec::new(),
+    };
+    for c in rows {
+        let (Some(line), Some(product), Some(warehouse), Some(booked), Some(unbilled)) = (
+            c.receipt_line_id,
+            c.product_id,
+            c.warehouse_id,
+            c.booked,
+            c.unbilled_returnable,
+        ) else {
+            continue;
+        };
+        if out.lines.last().is_none_or(|l| l.receipt_line_id != line) {
+            out.lines.push(ReturnCandidateLine {
+                receipt_line_id: line,
+                product_id: product,
+                product_name: c.product_name,
+                warehouse_id: warehouse,
+                warehouse_name: c.warehouse_name,
+                booked: qty(booked),
+                unbilled_returnable: qty(unbilled),
+                billed: Vec::new(),
+            });
+        }
+        if let (Some(m), Some(bill), Some(number), Some(inv), Some(left), Some(l)) = (
+            c.bill_allocation_id,
+            c.bill_id,
+            c.bill_number,
+            c.supplier_invoice_number,
+            c.returnable,
+            out.lines.last_mut(),
+        ) {
+            l.billed.push(BilledReturnCandidate {
+                bill_allocation_id: m,
+                bill_id: bill,
+                bill_number: number,
+                supplier_invoice_number: inv,
+                returnable: qty(left),
+            });
+        }
+    }
+    Ok(out)
 }
 
 /// Capacity checks of every line of a return (create and post, under receipt-line locks).

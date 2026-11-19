@@ -71,6 +71,8 @@ mod numbering;
 mod opening;
 #[path = "api/payables.rs"]
 mod payables;
+#[path = "api/payables_candidates.rs"]
+mod payables_candidates;
 #[path = "api/payments.rs"]
 mod payments;
 #[path = "api/payments_stripe.rs"]

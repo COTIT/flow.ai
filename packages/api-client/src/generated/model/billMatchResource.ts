@@ -20,7 +20,14 @@ export interface BillMatchResource {
   id: string;
   /** @nullable */
   landed_cost_id?: string | null;
+  /** @nullable */
+  purchase_order_id?: string | null;
   quantity: string;
+  /**
+     * Receipt and purchase order of a goods match (source links).
+     * @nullable
+     */
+  receipt_id?: string | null;
   /** @nullable */
   receipt_line_id?: string | null;
   /** draft (reservation), posted or reversed. */

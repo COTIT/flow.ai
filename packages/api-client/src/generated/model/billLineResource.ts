@@ -25,6 +25,8 @@ export interface BillLineResource {
   matches: BillMatchResource[];
   /** @nullable */
   product_id?: string | null;
+  /** @nullable */
+  product_name?: string | null;
   quantity: string;
   /**
      * Posted only (bill currency).

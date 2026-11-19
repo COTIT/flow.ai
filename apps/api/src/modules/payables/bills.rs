@@ -35,10 +35,10 @@ use crate::{
         payables::{
             common::{self, dependent, journal_preview, role_side},
             dto::{
-                BillInput, BillLineResource, BillMatchResource, BillPayload, BillPostReview,
-                BillTotals, LineTarget, ListQuery, MatchInput, MatchPayload, ReverseInput,
-                ReversePayload, ReverseReview, ReviewLine, ReviewMatch, ReviewedPayload,
-                SupplierBillResource, TaxComponent,
+                BillInput, BillLineResource, BillMatchCandidates, BillMatchResource, BillPayload,
+                BillPostReview, BillTotals, LineTarget, ListQuery, MatchCandidate, MatchInput,
+                MatchPayload, ReverseInput, ReversePayload, ReverseReview, ReviewLine, ReviewMatch,
+                ReviewedPayload, SupplierBillResource, TaxComponent,
             },
         },
         purchasing::{
@@ -103,6 +103,7 @@ struct LineRow {
     line_no: i32,
     kind: String,
     product_id: Option<Uuid>,
+    product_name: Option<String>,
     landed_cost_id: Option<Uuid>,
     expense_account_id: Option<Uuid>,
     quantity: Decimal,
@@ -118,6 +119,8 @@ struct MatchRow {
     id: Uuid,
     bill_line_id: Uuid,
     receipt_line_id: Option<Uuid>,
+    receipt_id: Option<Uuid>,
+    purchase_order_id: Option<Uuid>,
     landed_cost_id: Option<Uuid>,
     quantity: Decimal,
     state: String,
@@ -153,10 +156,11 @@ async fn resources(
 ) -> Result<Vec<SupplierBillResource>, AppError> {
     let ids: Vec<Uuid> = rows.iter().map(|b| b.id).collect();
     let lines: Vec<LineRow> = sqlx::query_as(
-        "SELECT l.id, l.bill_id, l.line_no, l.kind, l.product_id, l.landed_cost_id,
-                l.expense_account_id, l.quantity, l.unit_price, l.extension, l.tax_profile_id,
-                l.description, (l.tax_recoverable + l.tax_nonrecoverable) AS tax
+        "SELECT l.id, l.bill_id, l.line_no, l.kind, l.product_id, p.name AS product_name,
+                l.landed_cost_id, l.expense_account_id, l.quantity, l.unit_price, l.extension,
+                l.tax_profile_id, l.description, (l.tax_recoverable + l.tax_nonrecoverable) AS tax
          FROM supplier_bill_lines l
+         LEFT JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
          WHERE l.workspace_id = $1 AND l.bill_id = ANY($2) ORDER BY l.bill_id, l.line_no",
     )
     .bind(ws)
@@ -164,10 +168,14 @@ async fn resources(
     .fetch_all(&mut *conn)
     .await?;
     let matches: Vec<MatchRow> = sqlx::query_as(
-        "SELECT id, bill_line_id, receipt_line_id, landed_cost_id, quantity, state,
-                grni_functional, fx, variance
-         FROM supplier_bill_matches WHERE workspace_id = $1 AND bill_id = ANY($2)
-         ORDER BY id",
+        "SELECT m.id, m.bill_line_id, m.receipt_line_id, rl.receipt_id, r.purchase_order_id,
+                m.landed_cost_id, m.quantity, m.state, m.grni_functional, m.fx, m.variance
+         FROM supplier_bill_matches m
+         LEFT JOIN purchase_receipt_lines rl
+                ON rl.workspace_id = m.workspace_id AND rl.id = m.receipt_line_id
+         LEFT JOIN purchase_receipts r ON r.workspace_id = rl.workspace_id AND r.id = rl.receipt_id
+         WHERE m.workspace_id = $1 AND m.bill_id = ANY($2)
+         ORDER BY m.id",
     )
     .bind(ws)
     .bind(&ids)
@@ -226,6 +234,7 @@ async fn resources(
                         line_no: l.line_no,
                         kind: l.kind.clone(),
                         product_id: l.product_id,
+                        product_name: l.product_name.clone(),
                         landed_cost_id: l.landed_cost_id,
                         expense_account_id: l.expense_account_id,
                         quantity: qty(l.quantity),
@@ -240,6 +249,8 @@ async fn resources(
                             .map(|m| BillMatchResource {
                                 id: m.id,
                                 receipt_line_id: m.receipt_line_id,
+                                receipt_id: m.receipt_id,
+                                purchase_order_id: m.purchase_order_id,
                                 landed_cost_id: m.landed_cost_id,
                                 quantity: qty(m.quantity),
                                 state: m.state.clone(),
@@ -321,6 +332,74 @@ pub async fn list(
     )
     .await?;
     Ok(Paginated::new(data, total, page))
+}
+
+#[derive(FromRow)]
+struct CandidateRow {
+    bill_line_id: Option<Uuid>,
+    receipt_line_id: Option<Uuid>,
+    receipt_id: Option<Uuid>,
+    receipt_number: Option<i64>,
+    purchase_order_id: Option<Uuid>,
+    purchase_order_number: Option<i64>,
+    booked_at: Option<chrono::DateTime<chrono::Utc>>,
+    matchable: Option<Decimal>,
+}
+
+/// GET /supplier-bills/{id}/match-candidates: booked receipt lines of the bill's supplier,
+/// currency and goods-line product with capacity left (`receipt_line_capacity`, this bill's own
+/// reservations excluded). Read-only, one query; 404 outside the workspace.
+// shortcut: first 500 candidates, page when a bill outgrows it.
+pub async fn match_candidates(
+    state: &AppState,
+    ws: Uuid,
+    id: Uuid,
+) -> Result<BillMatchCandidates, AppError> {
+    let rows: Vec<CandidateRow> = sqlx::query_as(
+        "SELECT x.* FROM supplier_bills b
+         LEFT JOIN LATERAL (
+             SELECT bl.id AS bill_line_id, l.id AS receipt_line_id, r.id AS receipt_id,
+                    r.number AS receipt_number, o.id AS purchase_order_id,
+                    o.number AS purchase_order_number, l.booked_at, c.matchable, bl.line_no
+             FROM supplier_bill_lines bl
+             JOIN purchase_orders o ON o.workspace_id = b.workspace_id
+                  AND o.supplier_id = b.supplier_id AND o.currency_id = b.currency_id
+             JOIN purchase_receipts r ON r.workspace_id = o.workspace_id
+                  AND r.purchase_order_id = o.id
+             JOIN purchase_receipt_lines l ON l.workspace_id = r.workspace_id
+                  AND l.receipt_id = r.id AND l.product_id = bl.product_id
+             JOIN LATERAL receipt_line_capacity(b.workspace_id, l.id, b.id) c ON true
+             WHERE bl.workspace_id = b.workspace_id AND bl.bill_id = b.id
+               AND bl.kind = 'goods' AND c.matchable > 0
+             ORDER BY bl.line_no, l.booked_at, l.id
+             LIMIT 500) x ON true
+         WHERE b.workspace_id = $1 AND b.id = $2",
+    )
+    .bind(ws)
+    .bind(id)
+    .fetch_all(&state.db)
+    .await?;
+    if rows.is_empty() {
+        return Err(AppError::NotFound);
+    }
+    Ok(BillMatchCandidates {
+        bill_id: id,
+        candidates: rows
+            .into_iter()
+            .filter_map(|c| {
+                Some(MatchCandidate {
+                    bill_line_id: c.bill_line_id?,
+                    receipt_line_id: c.receipt_line_id?,
+                    receipt_id: c.receipt_id?,
+                    receipt_number: c.receipt_number?,
+                    purchase_order_id: c.purchase_order_id?,
+                    purchase_order_number: c.purchase_order_number?,
+                    booked_at: c.booked_at,
+                    matchable: qty(c.matchable?),
+                })
+            })
+            .collect(),
+    })
 }
 
 fn invoice_taken() -> AppError {

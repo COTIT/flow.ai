@@ -34,7 +34,7 @@ use crate::{
             common::{self, dependent, fp32, journal_preview, role_side},
             dto::{
                 CostAdjustmentInput, CostAdjustmentLineResource, CostAdjustmentPayload,
-                CostAdjustmentResource, CostAdjustmentReview, ListQuery, ReverseInput,
+                CostAdjustmentResource, CostAdjustmentReview, CostListQuery, ReverseInput,
                 ReversePayload, ReverseReview, ReviewedPayload,
             },
         },
@@ -170,18 +170,23 @@ pub async fn get(
 pub async fn list(
     state: &AppState,
     ws: Uuid,
-    q: &ListQuery,
+    q: &CostListQuery,
 ) -> Result<Paginated<CostAdjustmentResource>, AppError> {
     use sqlx::Row;
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let mut conn = state.db.acquire().await?;
     let raw = sqlx::query(sqlx::AssertSqlSafe(format!(
-        "{} ORDER BY a.created_at DESC, a.id DESC LIMIT $2 OFFSET $3",
+        "{} AND ($4::uuid IS NULL OR a.bill_id = $4)
+            AND ($5::uuid IS NULL OR a.bill_id IN (SELECT b.id FROM supplier_bills b
+                 WHERE b.workspace_id = $1 AND b.supplier_id = $5))
+         ORDER BY a.created_at DESC, a.id DESC LIMIT $2 OFFSET $3",
         select()
     )))
     .bind(ws)
     .bind(page.size)
     .bind(page.offset())
+    .bind(q.bill_id)
+    .bind(q.supplier_id)
     .fetch_all(&mut *conn)
     .await?;
     let total = raw

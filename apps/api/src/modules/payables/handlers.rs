@@ -24,9 +24,10 @@ use crate::{
         payables::{
             bills, costs,
             dto::{
-                AllocatePayload, AllocateReview, BillPayload, BillPostReview,
-                CostAdjustmentPayload, CostAdjustmentResource, CostAdjustmentReview, ListQuery,
-                MatchPayload, PaymentPayload, PaymentReview, PurchaseReturnResource, ReturnPayload,
+                AllocatePayload, AllocateReview, BillMatchCandidates, BillPayload, BillPostReview,
+                CostAdjustmentPayload, CostAdjustmentResource, CostAdjustmentReview, CostListQuery,
+                ListQuery, MatchPayload, PaymentPayload, PaymentReview, PaymentTarget,
+                PurchaseReturnResource, ReturnCandidates, ReturnCandidatesQuery, ReturnPayload,
                 ReturnPostReview, ReturnReverseBody, ReverseBody, ReversePayload, ReverseReview,
                 ReviewedPayload, SupplierBillResource, SupplierPaymentResource,
             },
@@ -693,7 +694,7 @@ pub async fn returns_reverse(
     get, path = "/workspace/{workspace}/purchase-cost-adjustments", tag = "purchase_cost_adjustments",
     operation_id = "purchase_cost_adjustments_list",
     summary = "List purchase cost adjustments",
-    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), CostListQuery),
     responses(
         (status = 200, body = Paginated<CostAdjustmentResource>, description = "Success, newest first"),
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
@@ -705,7 +706,7 @@ pub async fn returns_reverse(
 pub async fn costs_list(
     State(state): State<AppState>,
     access: Can<AccRead>,
-    Query(q): Query<ListQuery>,
+    Query(q): Query<CostListQuery>,
 ) -> Result<Json<Paginated<CostAdjustmentResource>>, AppError> {
     Ok(Json(costs::list(&state, access.workspace_id, &q).await?))
 }
@@ -854,4 +855,78 @@ pub async fn costs_reverse(
     cmd: Command<Action<ReversePayload>>,
 ) -> Result<Answer, AppError> {
     costs::reverse(&state, &access, id(&raw)?, cmd).await
+}
+
+/// supplier_bills_match_candidates: Booked receipt lines a draft bill's goods lines may match.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/supplier-bills/{bill}/match-candidates", tag = "supplier_bills",
+    operation_id = "supplier_bills_match_candidates",
+    summary = "Booked receipt lines a draft bill's goods lines may match",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("bill" = Uuid, Path, description = "Supplier bill id")),
+    responses(
+        (status = 200, body = Envelope<BillMatchCandidates>, description = "Success; matchable left per receipt line, this bill's reservations not counted"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or bill, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bills_match_candidates(
+    State(state): State<AppState>,
+    access: Can<BillMatch>,
+    Path((_, raw)): Path<(String, String)>,
+) -> Result<Data<BillMatchCandidates>, AppError> {
+    Ok(Data(
+        bills::match_candidates(&state, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// purchase_returns_candidates: Returnable quantities of one booked receipt.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/purchase-returns/candidates", tag = "purchase_returns",
+    operation_id = "purchase_returns_candidates",
+    summary = "Returnable quantities of one booked receipt",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ReturnCandidatesQuery),
+    responses(
+        (status = 200, body = Envelope<ReturnCandidates>, description = "Success; unbilled and per posted bill match"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or receipt, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`receipt_id` missing"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn returns_candidates(
+    State(state): State<AppState>,
+    access: Can<RetCreate>,
+    Query(q): Query<ReturnCandidatesQuery>,
+) -> Result<Data<ReturnCandidates>, AppError> {
+    let receipt = q
+        .receipt_id
+        .ok_or_else(|| AppError::field("receipt_id", "Choose a receipt."))?;
+    Ok(Data(
+        returns::candidates(&state, access.workspace_id, receipt).await?,
+    ))
+}
+
+/// supplier_payments_targets: Open items a supplier payment or refund may be allocated to.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/supplier-payments/{payment}/targets", tag = "supplier_payments",
+    operation_id = "supplier_payments_targets",
+    summary = "Open items a supplier payment or refund may be allocated to",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("payment" = Uuid, Path, description = "Supplier payment id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<PaymentTarget>, description = "Success, oldest due first"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or payment, or not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn payments_targets(
+    State(state): State<AppState>,
+    access: Can<PayAllocate>,
+    Path((_, raw)): Path<(String, String)>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<PaymentTarget>>, AppError> {
+    Ok(Json(
+        payments::targets(&state, access.workspace_id, id(&raw)?, &q).await?,
+    ))
 }

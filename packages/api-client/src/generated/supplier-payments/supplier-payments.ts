@@ -34,10 +34,12 @@ import type {
   EnvelopeReverseReview,
   EnvelopeSupplierPaymentResource,
   MessageBody,
+  PaginatedPaymentTarget,
   PaginatedSupplierPaymentResource,
   PaymentPayload,
   ReverseBody,
   SupplierPaymentsListParams,
+  SupplierPaymentsTargetsParams,
   ValidationErrorBody
 } from '../model';
 
@@ -675,3 +677,110 @@ export const useSupplierPaymentsReverseReview = <TError = ErrorType<MessageBody 
       > => {
       return useMutation(getSupplierPaymentsReverseReviewMutationOptions(options), queryClient);
     }
+    /**
+ * @summary Open items a supplier payment or refund may be allocated to
+ */
+export const supplierPaymentsTargets = (
+    workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedPaymentTarget>(
+      {url: `/workspace/${workspace}/supplier-payments/${payment}/targets`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getSupplierPaymentsTargetsQueryKey = (workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams,) => {
+    return [
+    `/workspace/${workspace}/supplier-payments/${payment}/targets`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSupplierPaymentsTargetsQueryOptions = <TData = Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError = ErrorType<MessageBody>>(workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSupplierPaymentsTargetsQueryKey(workspace,payment,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof supplierPaymentsTargets>>> = ({ signal }) => supplierPaymentsTargets(workspace,payment,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && payment !== null && payment !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SupplierPaymentsTargetsQueryResult = NonNullable<Awaited<ReturnType<typeof supplierPaymentsTargets>>>
+export type SupplierPaymentsTargetsQueryError = ErrorType<MessageBody>
+
+
+export function useSupplierPaymentsTargets<TData = Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string,
+    params: undefined |  SupplierPaymentsTargetsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierPaymentsTargets>>,
+          TError,
+          Awaited<ReturnType<typeof supplierPaymentsTargets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierPaymentsTargets<TData = Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierPaymentsTargets>>,
+          TError,
+          Awaited<ReturnType<typeof supplierPaymentsTargets>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierPaymentsTargets<TData = Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Open items a supplier payment or refund may be allocated to
+ */
+
+export function useSupplierPaymentsTargets<TData = Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payment: string,
+    params?: SupplierPaymentsTargetsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierPaymentsTargets>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSupplierPaymentsTargetsQueryOptions(workspace,payment,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
