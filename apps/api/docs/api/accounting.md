@@ -24,6 +24,7 @@ Coded errors return `{"message": "...", "code": "..."}`:
 | 422 | `accounting_not_configured` | post/reverse (or their reviews) before the book is active with currency, timezone and all roles mapped |
 | 422 | `accounting_period_closed` | no open period (in an open fiscal year) covers the date |
 | 422 | `unsupported_active_erp_operation` | setup change after activation; edit or generic reverse of a non-manual entry; edit of a posted journal |
+| 422 | `opening_covered_source` | void of a historical payment the reviewed opening covers (use an opening correction) |
 
 ## Workspace gate
 
@@ -112,9 +113,9 @@ The original must be a posted `manual` journal. Any other kind gets 422 `unsuppo
 
 A cash place is a register's drawer (`{kind: "drawer", id: <register id>}`) or a vault (`{kind: "vault", id}`).
 
-**Book cash** of a place = its posted ledger rows: sales, transfers, adjustments (later receipts, payments, refunds). Shift open and close counts are observations and never add cash, so opening a drawer with 50 three times leaves book cash unchanged. A count that differs from book cash changes it only through a reviewed adjustment. Shift `expected`/`difference` stay the physical drawer figures of that shift.
+**Book cash** of a place (active book) = its reviewed opening amount (`cash_place_openings`, written once by the opening) + its posted ledger rows created at or after `cutover_at`: sales, transfers, adjustments, receipts, payments, refunds. Rows before the cutover are covered by the opening. A setup book counts every row. Shift open and close counts are observations and never add cash, so opening a drawer with 50 three times leaves book cash unchanged. A count that differs from book cash changes it only through a reviewed adjustment. Shift `expected`/`difference` stay the physical drawer figures of that shift.
 
-Limit until activation (M8): no opening baseline or cutover filter yet, so every non-count row since the place began counts. The existing Till cash writers (sale, shift open/close, transfer) don't take the book gate yet; both are M8 prerequisites.
+Limit until activation (M8): the existing Till cash writers (sale, shift open/close, transfer) don't take the book gate yet; an M8 prerequisite. Vault lists under `/till/vaults` and shift `expected` stay physical (every row).
 
 ### GET /accounting/cash-places (`accounting_cash_places_list`, `accounting.read`)
 
@@ -316,6 +317,74 @@ A year with no income or expense balance closes with `journal_id` null; its effe
 Reports: P&L leaves out `year_end_close` journals; trial balance and general ledger include them; the balance sheet's `current_earnings` holds only earnings not yet closed, so earnings count once.
 
 Known limits: "unresolved opening controls" is not checked yet (the opening baseline tables arrive in M6). Bank reconciliation is not a close check (§13 doesn't list it).
+
+## Opening conversion (M6-B)
+
+Masterplan §14 OPENING MODES / PAYMENT CONTRACT / CORRECTION / CASH. Activation itself (route, setup → active, audit) is M8.
+
+### Staging: opening import profiles
+
+`opening_inventory`, `opening_receivables`, `opening_payables`, `opening_trial_balance` (see `imports.md`). Setup book with a functional currency only (active: 422 `unsupported_active_erp_operation`; none: 422 `accounting_not_configured`). Native permission `accounting.configure`. Whole batch: every row valid or nothing stages. Apply writes `accounting_opening_lines` only — no stock, value, journal, open item or cash (D11).
+
+| Profile | Row fields | Matching / rules |
+|---|---|---|
+| `opening_inventory` | `warehouse_id`, `product_id`, `quantity` (≥ 0, 2 dp), `value` (functional) | mapping `{mode: existing \| empty}`; one row per product+warehouse |
+| `opening_receivables` | `invoice_number`, `face`, `settled`, `credited`?, `refunded`?, `outstanding` (invoice currency), `carrying` (functional) | exact live non-credit invoice; face − settled − credited + refunded = outstanding; carrying 0 exactly when outstanding 0 |
+| `opening_payables` | `bill_number` + the same amounts | exact supplier bill number, not reversed |
+| `opening_trial_balance` | `account_code`, `debit` \| `credit`, `register_id`? \| `vault_id`? \| `bank_account_id`? | exact account code; a drawer/vault only on the `cash` account, a bank account only on its own GL account |
+
+### POST /accounting/opening/validate (`accounting_opening_validate`, `accounting.configure`)
+
+Body `{batch_ids: [1..4 completed opening batches, one per profile], expected_setup_version}`. Review only, nothing written. 409 `stale_document` on a changed setup version; 422 field `batch_ids` for an unknown, unfinished, foreign or repeated-profile batch.
+
+Response: `inventory {mode, quantity, value}`, `receivables`/`payables {count, face, settled, outstanding, carrying}`, `trial_balance {debit, credit}`, `setup_version`, `issues[] {code, message}`, `ready` (no issues), `opening_fingerprint` (sha256 of setup version, batch revisions and validation fingerprints, schedules, covered payment ids/amounts, place amounts, issues). Same inputs → same fingerprint. Figures and their text come from SQL; `face`/`settled`/`outstanding` are nominal sums.
+
+| Issue `code` | When |
+|---|---|
+| `trial_balance_required` | no `opening_trial_balance` batch |
+| `trial_balance_unbalanced` | Σ debit ≠ Σ credit |
+| `control_difference` | trial-balance net on the `receivables` / `payables` / `inventory` account ≠ Σ receivable carrying / Σ payable carrying / Σ inventory value (no duplicate opening control totals) |
+| `place_required` | a line on the `cash` account or a bank account's GL account names no drawer, vault or bank account |
+| `opening_payment_mismatch` | a receivable's `settled − refunded` ≠ Σ live paid `invoice_payments` of its invoice |
+| `stock_quantity_mismatch` | mode `existing`: staged quantities ≠ stock on hand per product+warehouse (both directions) |
+| `stock_not_empty` | mode `empty`: the workspace has stock on hand |
+| `open_shifts` | a till shift is still open |
+
+### Activation core (`opening::apply`, crate-internal; M8 wraps it)
+
+Exclusive book gate; effect `opening/activated` per book, so a retry returns `false` and writes nothing. Re-runs the review: another fingerprint → 409 `stale_document`; issues → 422 listing them. Book needs `cutover_at` and timezone (accounting date = cutover day). Then once:
+
+- one `opening` journal from the trial balance lines (bank lines carry their bank account);
+- per receivable/payable: an `accounting_opening_baselines` row (face, settled/credited/refunded to cutover, outstanding, carrying, coverage hash) and, when outstanding > 0, an `origin = opening` open item for the outstanding (invoice/bill as source; no revenue, cash or historical payment journal);
+- `opening_covered` source links (no effect) for each live paid `invoice_payment` and each paid/refunded provider `order_payment` of a covered invoice (fingerprint = exact kind/amount/currency); the old rows stay untouched;
+- inventory: `existing` seeds a pool and an `opening` value entry without a movement (quantity locked); `empty` writes the opening stock movement, pool and value entry;
+- `cash_place_openings` per drawer/vault from the trial balance.
+
+The book state is left as is.
+
+### After activation (payment contract)
+
+- **Visible paid** of an invoice = baseline `settled − refunded` + post-cutover applications/rounding (net of reversals) + Σ correction `settled_delta`. Example face 100 / paid 40 / outstanding 60: opening AR 60, paid 40; a 20 payment → paid 60, outstanding 40.
+- **Void** of a covered historical payment → 422 `opening_covered_source`.
+- **Provider callback** for a covered operation with the exact kind/amount/currency → no-op (no observation, no cash). Any other fact (new refund, chargeback, other amount) is a new event.
+
+### POST /accounting/opening-corrections/review and /opening-corrections (`accounting_opening_corrections_review` / `_create`, `accounting.configure` + `accounting.post`)
+
+Body (review: plain; create: C envelope `{client_ref, payload}` + Idempotency-Key, payload adds `review_fingerprint`): `baseline_id`, `accounting_date`, `corrected_nominal_basis`, `corrected_functional_carrying`, `reason`, `evidence_ref`. Active book only (setup: 422 `accounting_not_configured`); unknown or another workspace's baseline: 404.
+
+Review returns `current_outstanding` (baseline + earlier corrections), `corrected_outstanding`, `delta`, `journal` (control vs `opening_equity`), `review_fingerprint`. Refusals: no change; corrected above face − credited + refunded − confirmed provider collections (can't undo confirmed external cash); carrying ≠ nominal.
+
+Create (409 `stale_document` on another review; 422 `accounting_period_closed` outside an open period) appends one effect and journal in the given period, then: increase → a new opening item (`opening_correction`) for the delta; decrease → a customer/supplier credit item applied to an opening item of the baseline that still holds the amount (else 422). Writes an `accounting_opening_corrections` row (`settled_delta = −outstanding_delta`) and refreshes the invoice's paid total. The baseline never changes; no historical period is rewritten; no cash is credited again.
+
+### Decision: no "unresolved opening controls" close check
+
+The close checks get no opening check. Nothing opening-related can stay pending after the core runs: the review refuses mismatched controls before apply (`unready_or_changed_openings_are_never_applied`), the core and each correction commit atomically, and the existing `open_item_control_difference` check already compares opening items with the GL.
+
+### Known limits
+
+- Corrections support functional-currency baselines only (422 `unsupported_active_erp_operation` otherwise); carrying-only FX corrections come with foreign-currency openings.
+- Payables carry no historical payment coverage (supplier payments exist only in active books).
+- Row matching runs one lookup per row (≤ 500 rows).
 
 ## Permissions
 

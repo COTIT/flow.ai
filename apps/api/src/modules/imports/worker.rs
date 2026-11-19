@@ -1,5 +1,5 @@
 //! Apply job: rechecks the applier's grants, then one native write per row transaction
-//! (`bank_statement`: the whole statement in one transaction).
+//! (`bank_statement` and the opening profiles: the whole batch in one transaction).
 use serde_json::{Value, json};
 use sqlx::Row;
 use uuid::Uuid;
@@ -8,7 +8,10 @@ use super::{profiles, service::native_permission};
 use crate::{
     error::AppError,
     jobs::{kinds::Ctx, repo::Claimed, runner::Step},
-    modules::{accounting::banking, permissions},
+    modules::{
+        accounting::{banking, opening},
+        permissions,
+    },
 };
 
 /// Rows per job step; the runner requeues until none are left.
@@ -62,11 +65,18 @@ pub async fn run(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
         return Ok(Step::Done);
     }
     let actor = actor.unwrap_or_default();
-    if profile == banking::PROFILE {
-        // A statement is all or nothing: one transaction for every row.
+    if profile == banking::PROFILE || opening::is_profile(&profile) {
+        // A statement or opening schedule is all or nothing: one transaction for every row.
         let mut tx = ctx.db.begin().await?;
-        match banking::apply(&mut tx, ws, actor, id, &mapping).await {
-            Ok(_) => {
+        let applied = if profile == banking::PROFILE {
+            banking::apply(&mut tx, ws, actor, id, &mapping)
+                .await
+                .map(|_| ())
+        } else {
+            opening::stage(&mut tx, ws, actor, id, &profile, &mapping).await
+        };
+        match applied {
+            Ok(()) => {
                 sqlx::query("UPDATE import_batches SET state = 'completed', updated_at = now() WHERE id = $1 AND state = 'applying'")
                     .bind(id)
                     .execute(&mut *tx)

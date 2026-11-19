@@ -45,6 +45,8 @@ pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
 };
+/// Opening conversion: `opening::apply` is the activation core M8's route wraps (tests drive it).
+pub use modules::accounting::opening;
 pub use modules::gateway;
 pub use modules::invoice_payments;
 pub use modules::invoices::gateway as invoice_gateway;

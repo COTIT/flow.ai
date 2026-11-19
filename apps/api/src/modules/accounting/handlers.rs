@@ -32,7 +32,9 @@ use crate::{
             SetupResource, TrialBalanceResource, ValuationQuery, YearCloseResource, YearPayload,
             YearResource,
         },
-        journals, reports, revaluation, service,
+        journals,
+        opening::{self, CorrectionPayload, ReviewBody},
+        reports, revaluation, service,
     },
 };
 use serde_json::Value;
@@ -997,4 +999,85 @@ pub async fn bank_reconciliations_reverse(
     cmd: Command<Action<UnmatchPayload>>,
 ) -> Result<Answer, AppError> {
     banking::unmatch(&state.db, &access, id(&raw)?, cmd).await
+}
+
+/// accounting_opening_validate: Review staged opening batches (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/opening/validate", tag = "accounting",
+    operation_id = "accounting_opening_validate",
+    summary = "Review staged opening batches (no writes)",
+    request_body = ReviewBody,
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Schedules, issues, ready flag and opening_fingerprint"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document`: setup version changed"),
+        (status = 422, body = UnprocessableBody, description = "Invalid batch_ids, or `accounting_not_configured` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn opening_validate(
+    State(state): State<AppState>,
+    access: Can<Configure>,
+    ValidatedJson(input): ValidatedJson<ReviewBody>,
+) -> Result<Data<Value>, AppError> {
+    Ok(Data(
+        opening::review(&state, access.workspace_id, input).await?,
+    ))
+}
+
+/// accounting_opening_corrections_review: Preview a typed opening correction (no writes).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/opening-corrections/review", tag = "accounting",
+    operation_id = "accounting_opening_corrections_review",
+    summary = "Preview a typed opening correction (no writes)",
+    request_body = CorrectionPayload,
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<Value>, description = "Current and corrected outstanding, journal plan and review_fingerprint"),
+        (status = 403, body = MessageBody, description = "Missing accounting.configure or accounting.post"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or baseline, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, nothing to correct, over confirmed cash, or `accounting_not_configured` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn opening_corrections_review(
+    State(state): State<AppState>,
+    access: Can<Configure>,
+    ValidatedJson(input): ValidatedJson<CorrectionPayload>,
+) -> Result<Data<Value>, AppError> {
+    if !access.allows("accounting.post") {
+        return Err(AppError::Forbidden(crate::http::workspace::NOT_ALLOWED));
+    }
+    Ok(Data(
+        opening::correction_review(&state, access.workspace_id, input).await?,
+    ))
+}
+
+/// accounting_opening_corrections_create: Append a reviewed opening correction in the current period.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/accounting/opening-corrections", tag = "accounting",
+    operation_id = "accounting_opening_corrections_create",
+    summary = "Append a reviewed opening correction in the current period",
+    request_body = Create<CorrectionPayload>,
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("Idempotency-Key" = String, Header, description = "Required; client retry identity")),
+    responses(
+        (status = 201, body = Envelope<Value>, description = "The correction with its journal plan"),
+        (status = 403, body = MessageBody, description = "Missing accounting.configure or accounting.post"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or baseline, or not a member"),
+        (status = 409, body = MessageBody, description = "`stale_document` (review changed) or reused client_ref"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, nothing to correct, over confirmed cash, or `accounting_period_closed` / `accounting_not_configured` / `unsupported_active_erp_operation`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn opening_corrections_create(
+    State(state): State<AppState>,
+    access: Can<Configure>,
+    cmd: Command<Create<CorrectionPayload>>,
+) -> Result<Answer, AppError> {
+    if !access.allows("accounting.post") {
+        return Err(AppError::Forbidden(crate::http::workspace::NOT_ALLOWED));
+    }
+    opening::correction_create(&state, &access, cmd).await
 }

@@ -15,40 +15,40 @@ use genesy_360_api::jobs::{self, kinds::Ctx, runner::Step};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
-impl W {
-    /// Run queued import apply jobs to the end.
-    async fn drain_imports(&self) {
-        let state = common::state(
-            self.pool().clone(),
-            genesy_360_api::mail::Mailer::capture().0,
-        );
-        let ctx = Ctx {
-            invoice_state: Some(state.clone()),
-            assistant_api_key: None,
-            db: state.db.clone(),
-            files: state.files.clone(),
-            http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
-            credentials: state.credentials.clone(),
-            payments: state.payments.clone(),
+/// Run queued import apply jobs to the end.
+pub(crate) async fn drain_imports(pool: &PgPool) {
+    let state = common::state(pool.clone(), genesy_360_api::mail::Mailer::capture().0);
+    let ctx = Ctx {
+        invoice_state: Some(state.clone()),
+        assistant_api_key: None,
+        db: state.db.clone(),
+        files: state.files.clone(),
+        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        credentials: state.credentials.clone(),
+        payments: state.payments.clone(),
+    };
+    for _ in 0..100 {
+        let Some(job) = jobs::repo::claim(&state.db, &[jobs::kinds::IMPORT_APPLY], 2, jobs::LEASE)
+            .await
+            .unwrap()
+        else {
+            return;
         };
-        for _ in 0..100 {
-            let Some(job) =
-                jobs::repo::claim(&state.db, &[jobs::kinds::IMPORT_APPLY], 2, jobs::LEASE)
-                    .await
-                    .unwrap()
-            else {
-                return;
-            };
-            match jobs::kinds::dispatch(&ctx, job.clone()).await.unwrap() {
-                Step::Done => jobs::repo::finish(&state.db, job.id, job.token)
-                    .await
-                    .unwrap(),
-                Step::More => jobs::repo::requeue(&state.db, job.id, job.token)
-                    .await
-                    .unwrap(),
-            };
-        }
-        panic!("import apply did not finish");
+        match jobs::kinds::dispatch(&ctx, job.clone()).await.unwrap() {
+            Step::Done => jobs::repo::finish(&state.db, job.id, job.token)
+                .await
+                .unwrap(),
+            Step::More => jobs::repo::requeue(&state.db, job.id, job.token)
+                .await
+                .unwrap(),
+        };
+    }
+    panic!("import apply did not finish");
+}
+
+impl W {
+    async fn drain_imports(&self) {
+        drain_imports(self.pool()).await;
     }
 
     /// Create, upload and validate a `bank_statement` import; the validated batch.
