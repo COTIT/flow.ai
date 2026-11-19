@@ -38512,6 +38512,12 @@
       "StocktakeLine": {
         "description": "One frozen stock row of a stocktake.",
         "properties": {
+          "bin_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "bin_id": {
             "format": "uuid",
             "type": [
@@ -38528,6 +38534,12 @@
           "expected_quantity": {
             "description": "Level when counting started.",
             "type": "string"
+          },
+          "lot_code": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "lot_id": {
             "format": "uuid",
@@ -38546,6 +38558,16 @@
             "format": "uuid",
             "type": "string"
           },
+          "product_name": {
+            "type": "string"
+          },
+          "product_reference": {
+            "description": "The product's own reference (SKU), when set.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "stock_identity": {
             "description": "The stock row (product, bin, lot) this line counts.",
             "format": "uuid",
@@ -38555,6 +38577,7 @@
         "required": [
           "stock_identity",
           "product_id",
+          "product_name",
           "expected_quantity"
         ],
         "type": "object"
@@ -38588,6 +38611,13 @@
               "string",
               "null"
             ]
+          },
+          "allowed_actions": {
+            "description": "Subset of start, count, post, cancel the state allows.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "cancel_reason": {
             "type": [
@@ -38655,7 +38685,8 @@
           "state",
           "version",
           "reason",
-          "created_at"
+          "created_at",
+          "allowed_actions"
         ],
         "type": "object"
       },

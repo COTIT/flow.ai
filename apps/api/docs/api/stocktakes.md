@@ -59,9 +59,17 @@ Quantities are decimal strings with at most 2 places, ≥ 0. `stock_identity` is
 ## Line
 
 ```json
-{ "stock_identity": "uuid", "product_id": "uuid", "bin_id": null, "lot_id": "uuid",
+{ "stock_identity": "uuid", "product_id": "uuid", "product_name": "Honey",
+  "product_reference": "HNY-1", "bin_id": null, "bin_code": null,
+  "lot_id": "uuid", "lot_code": "L-7",
   "expected_quantity": "5", "counted_quantity": "4", "positive_adjustment_value": null }
 ```
+
+`product_name`, `product_reference` (the product's SKU, null when unset), `bin_code` and `lot_code` are display labels read with the lines in one query, from this workspace only.
+
+## Allowed actions
+
+Every stocktake carries `allowed_actions`, from its state: `draft` → `["start", "cancel"]`, `counting` → `["count", "post", "cancel"]`, `posted` and `cancelled` → `[]`. Clients show buttons from it; the routes still check the state.
 
 ## Limits (v1)
 

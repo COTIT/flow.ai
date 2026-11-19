@@ -11,16 +11,26 @@
  */
 export interface StocktakeLine {
   /** @nullable */
+  bin_code?: string | null;
+  /** @nullable */
   bin_id?: string | null;
   /** @nullable */
   counted_quantity?: string | null;
   /** Level when counting started. */
   expected_quantity: string;
   /** @nullable */
+  lot_code?: string | null;
+  /** @nullable */
   lot_id?: string | null;
   /** @nullable */
   positive_adjustment_value?: string | null;
   product_id: string;
+  product_name: string;
+  /**
+     * The product's own reference (SKU), when set.
+     * @nullable
+     */
+  product_reference?: string | null;
   /** The stock row (product, bin, lot) this line counts. */
   stock_identity: string;
 }

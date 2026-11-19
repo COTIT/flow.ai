@@ -799,6 +799,12 @@
       "created": "Wasifu wa kodi umehifadhiwa kama rasimu.",
       "saved": "Rasimu imehifadhiwa.",
       "verified": "Wasifu wa kodi umethibitishwa."
+    },
+    "stocktakes": {
+      "started": "Hesabu imeanza. Ghala limesimamishwa.",
+      "counted": "Hesabu zimehifadhiwa.",
+      "posted": "Hesabu imewekwa.",
+      "cancelled": "Hesabu imeghairiwa."
     }
   },
   "images": {
@@ -1631,7 +1637,9 @@
       "edit": "Badilisha",
       "editTitle": "Akaunti {code}",
       "editText": "Badilisha jina la akaunti au uizime. Akaunti iliyowekwa kwa jukumu hubaki ikitumika.",
-      "inUse": "Inatumika"
+      "inUse": "Inatumika",
+      "history": "Historia ya akaunti",
+      "under": "chini ya {code} {name}"
     },
     "periods": {
       "title": "Miaka ya fedha na vipindi",
@@ -1912,5 +1920,82 @@
     "select": "Chagua ghala",
     "selectionUnavailable": "Ghala hili halipatikani. Chagua ghala lingine ili kuendelea.",
     "listDenied": "Unahitaji ruhusa ya kuona maghala kabla ya kubadilisha kiasi cha bidhaa."
+  },
+  "stocktakes": {
+    "title": "Hesabu",
+    "one": "Hesabu ya bidhaa",
+    "titleOf": "Hesabu ya {warehouse}",
+    "open": "Fungua hesabu",
+    "count": "{total, plural, one {hesabu #} other {hesabu #}}",
+    "empty": "Bado hakuna hesabu.",
+    "warehouse": "Ghala",
+    "reason": "Sababu",
+    "state": "Hali",
+    "created": "Imeundwa",
+    "startedAt": "Imeanza",
+    "postedAt": "Imewekwa",
+    "cancelledAt": "Imeghairiwa",
+    "new": "Hesabu mpya",
+    "newText": "Chagua ghala la kuhesabu. Hakuna kinachosimamishwa hadi uanze hesabu.",
+    "chooseWarehouse": "Chagua ghala",
+    "create": "Unda hesabu",
+    "states": {
+      "draft": "Rasimu",
+      "counting": "Inahesabiwa",
+      "posted": "Imewekwa",
+      "cancelled": "Imeghairiwa"
+    },
+    "lines": "Bidhaa",
+    "item": "Bidhaa",
+    "expected": "Inayotarajiwa",
+    "counted": "Iliyohesabiwa",
+    "notCounted": "Haijahesabiwa",
+    "countedOf": "Iliyohesabiwa kwa {item}",
+    "foundValue": "Thamani ya bidhaa zilizopatikana",
+    "foundValueOf": "Thamani ya bidhaa zilizopatikana kwa {item}",
+    "foundValueHint": "Jaza thamani tu hesabu ikipata zaidi ya inayotarajiwa na bidhaa haina gharama kwenye ghala hili bado. Hesabu itakuambia ikihitajika.",
+    "save": "Hifadhi hesabu",
+    "noLines": "Ghala hili halikuwa na mistari ya bidhaa hesabu ilipoanza.",
+    "nextStep": "Hatua inayofuata",
+    "details": "Maelezo",
+    "paused": "Ghala hili limesimamishwa: hakuna bidhaa zinazoingia wala kutoka hadi hesabu iwekwe au ighairiwe.",
+    "reallocated": "Bidhaa zilizoshikiliwa kwa oda kwenye makundi yaliyorudishwa, yaliyotengwa au yaliyoisha muda zimehamishiwa kwenye bidhaa zinazouzwa inapowezekana. Iliyoshindwa kuhamishwa inabaki kwenye ukurasa wa kundi lake.",
+    "next": {
+      "start": "Kuanza kunagandisha bidhaa zinazotarajiwa na kusimamisha ghala hili unapohesabu.",
+      "post": "Kila bidhaa ikihesabiwa, weka tofauti kwenye stoo."
+    },
+    "postedInfo": "Hesabu hii imewekwa. Tofauti zake ziko kwenye historia ya stoo.",
+    "cancelledInfo": "Hesabu hii imeghairiwa. Hakuna bidhaa zilizohamishwa.",
+    "nothingToDo": "Hakuna cha kufanya hapa kwa ruhusa zako.",
+    "start": {
+      "action": "Anza hesabu",
+      "title": "Anza hesabu hii?",
+      "text": "Bidhaa zinazotarajiwa zinagandishwa sasa na ghala linasimamishwa hadi hesabu iwekwe au ighairiwe."
+    },
+    "cancel": {
+      "action": "Ghairi hesabu",
+      "title": "Ghairi hesabu hii?",
+      "text": "Hesabu zinabaki kama historia, hakuna bidhaa zinazohamishwa na ghala linaendelea.",
+      "keep": "Iache"
+    },
+    "post": {
+      "action": "Weka hesabu",
+      "title": "Weka hesabu hii",
+      "text": "Chagua tarehe, kagua kila tofauti, kisha weka.",
+      "date": "Tarehe ya kuweka",
+      "review": "Kagua tofauti",
+      "reviewing": "Tofauti zinakaguliwa",
+      "noChanges": "Kila hesabu inalingana na inayotarajiwa. Kuweka kunarudisha ghala tu.",
+      "delta": "Tofauti {delta}",
+      "value": "thamani {value}"
+    },
+    "reasons": {
+      "receipt_booking_required": "Bidhaa zilizopokelewa kwenye ghala hili bado zinasubiri kurekodiwa. Zirekodi kwanza, kisha anza hesabu.",
+      "warehouse_paused": "Hesabu nyingine tayari inaendelea kwenye ghala hili.",
+      "stocktake_value_required": "Bidhaa imepatikana bila gharama kwenye ghala hili. Jaza thamani ya bidhaa zilizopatikana.",
+      "stocktake_value_not_allowed": "Bidhaa hii tayari ina gharama hapa. Acha thamani ya bidhaa zilizopatikana wazi.",
+      "backdated_valuation": "Tarehe hii iko kabla ya thamani ya mwisho ya bidhaa. Chagua tarehe ya baadaye."
+    },
+    "linesAfterStart": "Bidhaa za kuhesabu zinaonekana hesabu ikianza."
   }
 }

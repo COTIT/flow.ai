@@ -20,7 +20,7 @@ pub struct Head {
     pub cancelled_at: Option<DateTime<Utc>>,
 }
 
-/// A frozen line plus its stock row's live hold.
+/// A frozen line plus its stock row's live hold and display labels.
 pub struct Line {
     pub stock_id: Uuid,
     pub product_id: Uuid,
@@ -31,6 +31,10 @@ pub struct Line {
     pub counted: Option<Decimal>,
     pub value: Option<i64>,
     pub reserved: Decimal,
+    pub product_name: String,
+    pub product_reference: Option<String>,
+    pub bin_code: Option<String>,
+    pub lot_code: Option<String>,
 }
 
 /// New draft; its id.
@@ -113,8 +117,14 @@ pub async fn lines(db: impl PgExecutor<'_>, ws: Uuid, id: Uuid) -> Result<Vec<Li
     sqlx::query_as!(
         Line,
         r#"SELECT l.stock_id, l.product_id, l.shelf_id, l.bin_id, l.lot_id, l.expected, l.counted,
-                  l.positive_adjustment_value AS value, s.reserved
+                  l.positive_adjustment_value AS value, s.reserved,
+                  p.name AS product_name, p.reference AS product_reference,
+                  b.bin_code AS "bin_code?", lo.code AS "lot_code?"
            FROM stocktake_lines l JOIN stocks s ON s.id = l.stock_id
+           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+           LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id
+                                                AND b.id = l.bin_id
+           LEFT JOIN lots lo ON lo.workspace_id = l.workspace_id AND lo.id = l.lot_id
            WHERE l.workspace_id = $1 AND l.stocktake_id = $2
            ORDER BY l.product_id, l.bin_id NULLS FIRST, l.lot_id NULLS FIRST, l.stock_id"#,
         ws,

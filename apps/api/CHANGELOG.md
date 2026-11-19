@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Flow ERP M6-C, stocktake display fields (`docs/api/stocktakes.md`; no migration): lines carry `product_name`, `product_reference`, `bin_code`, `lot_code` from one workspace-scoped join; every stocktake carries `allowed_actions` from its state (draft: start, cancel; counting: count, post, cancel; else none).
 - Flow ERP M6-A, one verified tax calculation path (migration `20261119150000_sale_tax`, `docs/api/tax-profiles.md`). Active books tax orders, storefront, Till, `/calculate-items` and invoice drafts through SQL `sale_tax_lines` → `tax_line`, per line and per component. Quote and commit share the query; snapshots in `order_line_taxes` / `item_taxes`; client `vat` ignored; legacy `vat_rate`/`vat` are projections. No covering verified sale profile, or several jurisdictions → 422 `unsupported_active_erp_operation`. Recognition and credits split tax per component; credits freeze their reversal in `sales_return_line_taxes`. Setup books unchanged.
 - Flow ERP M6-B opening conversion (`docs/api/accounting.md` "Opening conversion", `docs/api/imports.md`; migration `20261119160000_opening_conversion`):
   - four opening import profiles (`opening_inventory` existing/empty, `opening_receivables`, `opening_payables`, `opening_trial_balance` with drawer/vault/bank detail) stage typed `accounting_opening_lines` only; every row valid or nothing stages;

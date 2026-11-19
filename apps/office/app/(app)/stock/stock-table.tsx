@@ -21,11 +21,12 @@ import {
   ListPager,
   ListSkeleton,
   PageHead,
-  PillLinks,
 } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
 import { BatchLink, BelowZeroWhy, inlineLink, lotOf } from "@/components/stock"
 import { useCan } from "@/lib/can"
+
+import { StockPills } from "./counts/shared"
 
 /** Stock rows from `stock_list` or `stock_negative`, with the "all / below zero" switch. */
 export function StockTable({
@@ -70,19 +71,7 @@ export function StockTable({
         }
       />
       <ListCard
-        filters={
-          <PillLinks
-            label={t("stock.title")}
-            links={[
-              { href: "/stock", label: t("stock.all"), active: view === "all" },
-              {
-                href: "/stock/negative",
-                label: t("stock.negative"),
-                active: view === "negative",
-              },
-            ]}
-          />
-        }
+        filters={<StockPills view={view} />}
         count={
           query.data ? t("stock.count", { total: query.data.meta.total }) : null
         }

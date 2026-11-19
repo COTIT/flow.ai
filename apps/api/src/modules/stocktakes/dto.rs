@@ -201,8 +201,13 @@ pub struct StocktakeLine {
     /// The stock row (product, bin, lot) this line counts.
     pub stock_identity: Uuid,
     pub product_id: Uuid,
+    pub product_name: String,
+    /// The product's own reference (SKU), when set.
+    pub product_reference: Option<String>,
     pub bin_id: Option<Uuid>,
+    pub bin_code: Option<String>,
     pub lot_id: Option<Uuid>,
+    pub lot_code: Option<String>,
     /// Level when counting started.
     pub expected_quantity: String,
     pub counted_quantity: Option<String>,
@@ -224,6 +229,8 @@ pub struct StocktakeResource {
     pub started_at: Option<DateTime<Utc>>,
     pub posted_at: Option<DateTime<Utc>>,
     pub cancelled_at: Option<DateTime<Utc>>,
+    /// Subset of start, count, post, cancel the state allows.
+    pub allowed_actions: Vec<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lines: Option<Vec<StocktakeLine>>,
 }

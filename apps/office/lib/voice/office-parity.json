@@ -758,6 +758,30 @@
       "sw": ["asali iko wapi stoo, hisa kwa ghala"]
     }
   },
+  "stocktakes_cancel": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_count": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_create": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_get": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_list": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_post": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_post_review": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "stocktakes_start": {
+    "officeOnlyBecause": "Stock counts pause a warehouse and post stock differences after a reviewed check on the Office count screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "storefront_connection_get": {
     "officeOnlyBecause": "The shop connection and its address are managed only in Office Settings."
   },
