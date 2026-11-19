@@ -12,15 +12,15 @@ const BRIDGE: &str = "assistant-mail-recipient-test-secret-at-least-thirty-two-b
 async fn setup(pool: PgPool) -> (Api, String, String, fake_smtp::Inbox) {
     let (port, inbox) = fake_smtp::start().await;
     let mut api = Api::new(pool.clone(), "/send-message").await;
-    let mailer = genesy_360_api::mail::Mailer::capture()
+    let mailer = verzo_360_api::mail::Mailer::capture()
         .0
         .with_trusted_smtp_hosts(&["localhost".to_owned()])
         .with_timeout(std::time::Duration::from_secs(2));
     let mut state = common::state(pool, mailer);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(BRIDGE.to_owned()).unwrap(),
+        verzo_360_api::AssistantSecret::new(BRIDGE.to_owned()).unwrap(),
     ));
-    api.app = genesy_360_api::build_app(state);
+    api.app = verzo_360_api::build_app(state);
     let relation = api
         .with_base("/relations")
         .create(

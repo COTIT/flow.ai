@@ -7,8 +7,8 @@ import {
   farmRecordsHarvestReportsList,
   farmRecordsPlotsGet,
   farmRecordsPlotsList,
-} from '@genesy/api-client/endpoints/farm-records'
-import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-records'
+import type { Provenance as ApiProvenance } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

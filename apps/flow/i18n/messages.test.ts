@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { loadMessages, locales } from "@genesy/i18n/locales"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { loadMessages, locales } from "@verzo/i18n/locales"
+import { voiceMessages } from "@verzo/i18n/voice"
 import { flowMessages } from "./request"
 
 describe("Flow messages", () => {

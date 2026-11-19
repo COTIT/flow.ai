@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 
-import { GenesyOrb } from "./genesy-orb"
+import { VerzoOrb } from "./verzo-orb"
 import { VoiceOrb } from "./voice-orb"
 import { VoiceContext } from "./provider"
 import { stubVoice } from "./stub-voice"
@@ -12,12 +12,12 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
 }))
 
-describe("GenesyOrb on the server", () => {
+describe("VerzoOrb on the server", () => {
   it("draws nothing until the app theme is known, so no wrong palette flashes", () => {
     const html = renderToStaticMarkup(
-      <GenesyOrb state="speaking" label="Speaking" size={120} />
+      <VerzoOrb state="speaking" label="Speaking" size={120} />
     )
-    expect(html).toContain('data-genesy-orb=""')
+    expect(html).toContain('data-verzo-orb=""')
     expect(html).toContain('data-state="speaking"')
     expect(html).toContain("width:120px;height:120px")
     expect(html).not.toContain("<svg")
@@ -26,7 +26,7 @@ describe("GenesyOrb on the server", () => {
 
   it("with a given theme renders the still five-strand SVG orb, decorative", () => {
     const html = renderToStaticMarkup(
-      <GenesyOrb state="thinking" label="Thinking" theme="light" />
+      <VerzoOrb state="thinking" label="Thinking" theme="light" />
     )
     expect(html).toContain('data-still="true"')
     expect(html.match(/<path /g)).toHaveLength(5)
@@ -37,7 +37,7 @@ describe("GenesyOrb on the server", () => {
 
   it("keeps the label as live text whatever the state", () => {
     const html = renderToStaticMarkup(
-      <GenesyOrb state="error" label="Voice error" theme="dark" reducedMotion />
+      <VerzoOrb state="error" label="Voice error" theme="dark" reducedMotion />
     )
     expect(html).toMatch(
       /role="status"[^>]*aria-live="polite"[^>]*>Voice error</

@@ -247,7 +247,7 @@ function keyboardSteps(
       },
     },
     {
-      name: "Genesy proposes a stock change",
+      name: "Verzo proposes a stock change",
       weight: 2,
       run: async () => {
         if (

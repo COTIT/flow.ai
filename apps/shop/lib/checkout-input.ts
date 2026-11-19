@@ -1,4 +1,4 @@
-import type { CheckoutRequest } from "@genesy/api-client/model"
+import type { CheckoutRequest } from "@verzo/api-client/model"
 
 import { isUuid } from "./passport"
 import { COUNTRY_CODES } from "./countries"

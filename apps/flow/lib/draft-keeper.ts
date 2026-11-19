@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 
-import { sessionStore } from "@genesy/api-client/session"
+import { sessionStore } from "@verzo/api-client/session"
 import { flowStore } from "@/lib/flow-store"
 import { useActivityKey } from "@/lib/pills"
 

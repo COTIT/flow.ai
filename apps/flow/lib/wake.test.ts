@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest"
 
 import { parseWake } from "./wake"
 
-describe("typed Hey Genesy", () => {
+describe("typed Hey Verzo", () => {
   it("starts and sends the rest of the instruction", () => {
-    expect(parseWake("Hey Genesy, show my pending orders")).toEqual({
+    expect(parseWake("Hey Verzo, show my pending orders")).toEqual({
       wake: true,
       rest: "show my pending orders",
     })
@@ -12,15 +12,15 @@ describe("typed Hey Genesy", () => {
       wake: true,
       rest: "show sales",
     })
-    expect(parseWake("Hey, Genesy! what can you do?")).toEqual({
+    expect(parseWake("Hey, Verzo! what can you do?")).toEqual({
       wake: true,
       rest: "what can you do?",
     })
   })
 
   it("only starts when nothing follows", () => {
-    expect(parseWake("Hey Genesy")).toEqual({ wake: true, rest: "" })
-    expect(parseWake("Hey Genesy.")).toEqual({ wake: true, rest: "" })
+    expect(parseWake("Hey Verzo")).toEqual({ wake: true, rest: "" })
+    expect(parseWake("Hey Verzo.")).toEqual({ wake: true, rest: "" })
   })
 
   it("leaves other text alone", () => {

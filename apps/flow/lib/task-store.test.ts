@@ -1,6 +1,6 @@
 import { beforeEach, expect, it } from "vitest"
 
-import type { VoiceReview } from "@genesy/voice/lib/client-contract"
+import type { VoiceReview } from "@verzo/voice/lib/client-contract"
 import { approvalOutcome, loadTask, ownerKey, reviewLeft, saveTask, taskFor } from "./task-store"
 
 const review = (ticket: string) => ({ ticket }) as VoiceReview

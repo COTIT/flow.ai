@@ -1,14 +1,14 @@
 //! Demo seed (G15): the RUAHA demo story, built through the API. CLI only
-//! (`genesy-360-api seed-farm-demo`); refuses a non-demo workspace of the same name.
+//! (`verzo-360-api seed-farm-demo`); refuses a non-demo workspace of the same name.
 //! RUAHA ids in docs/ruaha-rls-mapping.md.
 
 use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::{send, signup};
-use genesy_360_api::{farm_demo, mail::Mailer};
 use serde_json::json;
 use sqlx::PgPool;
+use verzo_360_api::{farm_demo, mail::Mailer};
 
 async fn seeded(pool: &PgPool) -> farm_demo::Report {
     farm_demo::run(common::state(pool.clone(), Mailer::capture().0))

@@ -1,4 +1,4 @@
-# Genesy staging: API + own Postgres + Mailpit + the five apps, routed by the VPS's existing Traefik.
+# Verzo staging: API + own Postgres + Mailpit + the five apps, routed by the VPS's existing Traefik.
 # Run from the repo root (see deploy/staging/README.md):
 #   docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d
 # Staging only: fake payments, mail caught by Mailpit, no prod secret anywhere.
@@ -31,14 +31,14 @@ x-api-env: &api-env
   DATABASE_URL_FILE: /run/secrets/database_url
   CREDENTIALS_KEY_FILE: /run/secrets/credentials_key
   BIND_ADDR: 0.0.0.0:8080
-  RUST_LOG: ${RUST_LOG:-genesy_360_api=info,tower_http=info}
+  RUST_LOG: ${RUST_LOG:-verzo_360_api=info,tower_http=info}
   FRONTEND_URL: https://staging-office.genesy.app
   API_PUBLIC_URL: https://staging-api.genesy.app
   SHOP_PUBLIC_URL: https://staging-shop.genesy.app
   # Mailpit catches every mail; nothing leaves the VPS.
   SMTP_URL: smtp://mailpit:1025
   SMTP_ALLOW_INSECURE: "true"
-  MAIL_FROM: Genesy Staging <no-reply@staging.genesy.app>
+  MAIL_FROM: Verzo Staging <no-reply@staging.genesy.app>
   MAIL_TRUSTED_SMTP_HOSTS: mailpit
   # Traefik replaces client-sent X-Forwarded-For, so the first entry is the real client.
   TRUST_PROXY_HEADERS: "true"

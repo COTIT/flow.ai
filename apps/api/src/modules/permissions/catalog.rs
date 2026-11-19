@@ -104,7 +104,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "hourregistration",
         &["create", "delete", "get", "list", "update"],
     ),
-    // import: genesy master-data imports (masterplan §15).
+    // import: Verzo master-data imports (masterplan §15).
     (
         "import",
         &["apply", "create", "get", "list", "upload", "validate"],
@@ -135,7 +135,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ("lead", &["create", "delete", "get", "list", "update"]),
     ("manufacturing", &["manage", "release.compliance_override"]),
     ("order", &["create", "delete", "list", "update", "view"]),
-    // pdftemplate: added by genesy in F5a (Laravel checked it, never catalogued).
+    // pdftemplate: added by Verzo in F5a (Laravel checked it, never catalogued).
     (
         "pdftemplate",
         &["create", "delete", "list", "update", "view"],
@@ -187,7 +187,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         &["create", "delete", "get", "history", "list", "update"],
     ),
     ("reminder", &["create", "delete", "get", "list", "update"]),
-    // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
+    // salesgroup, shipmentmethod, vatgroup: added by Verzo (Laravel checked them, never catalogued).
     ("salesgroup", &["create", "delete", "get", "list", "update"]),
     // salesreturn: Flow ERP M4 customer returns and credits (masterplan §15), not Laravel.
     (
@@ -208,7 +208,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "shipmentmethod",
         &["create", "delete", "get", "list", "update"],
     ),
-    // specialoffer: added by genesy in F3b (Laravel checked it, never catalogued).
+    // specialoffer: added by Verzo in F3b (Laravel checked it, never catalogued).
     (
         "specialoffer",
         &["create", "delete", "list", "update", "view"],

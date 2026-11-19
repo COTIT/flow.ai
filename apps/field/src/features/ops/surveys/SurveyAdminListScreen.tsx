@@ -3,7 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { createColumnHelper } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
-import { formatMoney } from '@genesy/ui/lib/money'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { useSession } from '@/app/session'
 import { useWorkspaceId } from '@/app/workspace'

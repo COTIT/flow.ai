@@ -16,8 +16,8 @@ import {
 } from "@elevenlabs/react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
-import { useSession } from "@genesy/api-client/auth"
-import { sessionStore } from "@genesy/api-client/session"
+import { useSession } from "@verzo/api-client/auth"
+import { sessionStore } from "@verzo/api-client/session"
 import type {
   VoiceAttachmentReceipt,
   VoiceOutcome,
@@ -198,13 +198,13 @@ export const VoiceContext = createContext<VoiceContextValue | null>(null)
 export type { VoiceContextValue }
 export function useVoice() {
   const value = useContext(VoiceContext)
-  if (!value) throw new Error("Voice controls require GenesyVoiceProvider")
+  if (!value) throw new Error("Voice controls require VerzoVoiceProvider")
   return value
 }
 const signOutExpired = () => sessionStore.getState().signOut("expired")
 const sameHref = (href: string) => href
 
-export function GenesyVoiceProvider({
+export function VerzoVoiceProvider({
   children,
   ...host
 }: { children: ReactNode } & VoiceHost) {
@@ -2097,11 +2097,11 @@ function Session({
               ? {
                   shared_sheets: sheets,
                   sheet_instruction:
-                    "You cannot read these sheets. For prices use assistant_import_prices with attachments.sheet set to the handle; Genesy reads and matches the rows.",
+                    "You cannot read these sheets. For prices use assistant_import_prices with attachments.sheet set to the handle; Verzo reads and matches the rows.",
                 }
               : {}),
             instruction:
-              "Use the Genesy handle for business attachment operations. These references do not authorize a business write.",
+              "Use the Verzo handle for business attachment operations. These references do not authorize a business write.",
           })
         )
         if (ids.length)

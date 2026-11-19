@@ -11,11 +11,11 @@ import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { ArrowDown, PanelRight, PanelRightClose, PhoneOff } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
-import { VoiceThinking } from "@genesy/voice/components/activity"
-import { useVoice } from "@genesy/voice/components/provider"
-import { TranscriptRows } from "@genesy/voice/components/transcript"
-import type { SessionPhase } from "@genesy/voice/lib/presentation"
+import { Button } from "@verzo/ui/components/button"
+import { VoiceThinking } from "@verzo/voice/components/activity"
+import { useVoice } from "@verzo/voice/components/provider"
+import { TranscriptRows } from "@verzo/voice/components/transcript"
+import type { SessionPhase } from "@verzo/voice/lib/presentation"
 import { InlineResult, InlineTask } from "@/components/task/inline-task"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import {
@@ -469,7 +469,7 @@ export function ConversationToggle({
   onToggle,
 }: {
   open: boolean
-  /** Genesy replied while the rail was hidden. */
+  /** Verzo replied while the rail was hidden. */
   unread?: boolean
   onToggle: () => void
 }) {

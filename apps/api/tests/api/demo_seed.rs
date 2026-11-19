@@ -7,9 +7,9 @@ use std::sync::{Arc, Mutex};
 
 use axum::http::{Method, StatusCode};
 use common::send;
-use genesy_360_api::{demo, mail::Mailer};
 use serde_json::json;
 use sqlx::PgPool;
+use verzo_360_api::{demo, mail::Mailer};
 
 #[derive(Clone, Default)]
 struct Captured(Arc<Mutex<Vec<u8>>>);
@@ -193,7 +193,7 @@ async fn the_seed_runs_once_and_every_login_works(pool: PgPool) {
 
 #[sqlx::test]
 async fn a_half_seeded_staging_is_refused(pool: PgPool) {
-    genesy_360_api::farm_demo::run(common::state(pool.clone(), Mailer::capture().0))
+    verzo_360_api::farm_demo::run(common::state(pool.clone(), Mailer::capture().0))
         .await
         .unwrap();
     let err = demo::run(common::state(pool, Mailer::capture().0), true)
@@ -930,7 +930,7 @@ async fn cdn(status: StatusCode) -> (demo::photos::Photos, Arc<Mutex<usize>>) {
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     let photos = demo::photos::Photos {
-        http: genesy_360_api::outbound::Outbound::new(&["127.0.0.1".into()]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&["127.0.0.1".into()]).unwrap(),
         origin: format!("http://{addr}"),
         pause: std::time::Duration::ZERO,
     };
@@ -982,7 +982,7 @@ async fn with_images_every_product_gets_its_photos_fetched_once(pool: PgPool) {
     // A reseed reads the cached copy: AFM is never asked twice. The copy sits under `genesy/`,
     // the only prefix staging's and production's uploads keys may write.
     let url = demo::photos::CDN.to_owned() + "/content/v1/x/y.PNG?format=1000w";
-    let root = format!("{}/", genesy_360_api::storage::UPLOADS_ROOT);
+    let root = format!("{}/", verzo_360_api::storage::UPLOADS_ROOT);
     assert!(demo::photos::cache_key(&url).starts_with(&root));
     assert!(demo::photos::cache_key(&url).starts_with("genesy/demo-cache/afm/"));
     let (again, _) = cdn(StatusCode::SERVICE_UNAVAILABLE).await;

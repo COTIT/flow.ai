@@ -5,18 +5,18 @@ import { useParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getImportsGetQueryKey,
   getImportsRowsQueryKey,
   importsApply,
   useImportsGet,
   useImportsRows,
-} from "@genesy/api-client/endpoints/imports"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/imports"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -24,7 +24,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import {
   CardState,
   ListCard,

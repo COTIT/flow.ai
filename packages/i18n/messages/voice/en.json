@@ -15,7 +15,7 @@
     "connecting": "Connecting…",
     "textSession": "Text conversation",
     "muted": "Microphone muted",
-    "speaking": "Genesy is speaking",
+    "speaking": "Assistant is speaking",
     "listening": "Listening",
     "open": "Open conversation",
     "mute": "Mute",
@@ -74,7 +74,7 @@
     "secureBack": "Back to voice assistant",
     "roles": {
       "user": "You",
-      "agent": "Genesy",
+      "agent": "Assistant",
       "action": "Action",
       "link": "Link",
       "result": "Result"
@@ -83,7 +83,7 @@
       "selected": "Ready to send",
       "uploading": "Uploading…",
       "uploaded": "Ready to send",
-      "submitted": "Sent to Genesy",
+      "submitted": "Sent to Verzo",
       "failed": "Couldn't add this file. Try again."
     },
     "fileErrors": {
@@ -133,7 +133,7 @@
     "microphoneMissing": "No microphone was found. Connect one, or keep typing.",
     "offline": "You're offline. Reconnect, then try again.",
     "offlineNotSent": "You're offline. Nothing was sent; approve again when you're back online.",
-    "connectionLost": "Couldn't reach Genesy. Check your connection and try again.",
+    "connectionLost": "Couldn't reach Verzo. Check your connection and try again.",
     "upgradeFailed": "Voice could not start. Your earlier messages remain here.",
     "batchProgress": "Batch progress",
     "batchSteps": "Ordered batch steps",
@@ -305,7 +305,7 @@
       "company_name": "Company name"
     },
     "requestErrors": {
-      "unsupported": "Genesy can't do this yet. Nothing was changed.",
+      "unsupported": "Verzo can't do this yet. Nothing was changed.",
       "invalid": "Check the requested details, then prepare a fresh review. Check any uncertain action in Office before repeating it.",
       "expired": "Your session expired. Sign in again to check the recorded task.",
       "forbidden": "You do not have permission for this action. Check your access in Office.",
@@ -875,7 +875,7 @@
       }
     },
     "sheetRequest": "I shared a spreadsheet. Ask me what to do with it.",
-    "sheetNoPreview": "Genesy reads this spreadsheet when you ask; there is no preview here.",
+    "sheetNoPreview": "Verzo reads this spreadsheet when you ask; there is no preview here.",
     "importRows": "Rows {from}–{to} of {total}",
     "moreParts": "{count} more changes after this review. Each part gets its own review.",
     "notIncluded": {

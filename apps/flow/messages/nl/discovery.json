@@ -4,10 +4,10 @@
     "next": "Dit kun je nu doen",
     "hint": {
       "lead": "Weet je niet waar te beginnen?",
-      "text": "Genesy helpt je {areas}.",
-      "textGeneral": "Genesy helpt je je bedrijf te runnen met spraak of tekst.",
+      "text": "Verzo helpt je {areas}.",
+      "textGeneral": "Verzo helpt je je bedrijf te runnen met spraak of tekst.",
       "explore": "Ontdek wat ik kan",
-      "whatCanDo": "Wat kan Genesy?",
+      "whatCanDo": "Wat kan Verzo?",
       "dismiss": "Tip sluiten",
       "areas": {
         "stock": "je voorraad te beheren",
@@ -17,7 +17,7 @@
       }
     },
     "explorer": {
-      "title": "Ontdek wat Genesy kan",
+      "title": "Ontdek wat Verzo kan",
       "text": "Kies een soort taak. Alles hier gebruikt jouw echte rechten.",
       "groups": {
         "understand": "Overzicht",
@@ -128,7 +128,7 @@
       },
       "explore": {
         "label": "Mogelijkheden ontdekken",
-        "description": "Alles wat Genesy voor je kan doen, per soort taak.",
+        "description": "Alles wat Verzo voor je kan doen, per soort taak.",
         "example": "Waarmee kun je me helpen?"
       },
       "compare_sales_periods": {

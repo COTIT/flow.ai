@@ -10,11 +10,11 @@ use axum::{
     extract::ConnectInfo,
     http::{HeaderMap, Request, StatusCode},
 };
-use genesy_360_api::{RateLimit, build_app, mail::Mailer};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use tower::ServiceExt;
+use verzo_360_api::{RateLimit, build_app, mail::Mailer};
 
 fn limited_app(pool: PgPool, burst: u32, trust_forwarded: bool) -> Router {
     let mut state = common::state(pool, Mailer::capture().0);

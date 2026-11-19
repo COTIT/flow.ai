@@ -1,11 +1,11 @@
 import "server-only"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { VoiceError } from "./server"
 import { timingWords, type ScheduleTiming } from "../scheduled-reports"
 import en from "../../messages/en.json"
 import nl from "../../messages/nl.json"
 import sw from "../../messages/sw.json"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { voiceMessages } from "@verzo/i18n/voice"
 
 const scheduledText: Record<string, typeof en.scheduled> = {
   en: en.scheduled,

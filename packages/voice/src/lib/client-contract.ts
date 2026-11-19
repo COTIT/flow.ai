@@ -52,7 +52,7 @@ export type VoiceOutcome = {
 }
 export type VoiceAttachmentReceipt =
   | { id: string; fileId: string; status: "uploaded"; kind?: undefined }
-  /** Price-list sheet: kept by the browser, read by Genesy, never sent to the model. */
+  /** Price-list sheet: kept by the browser, read by Verzo, never sent to the model. */
   | {
       id: string
       kind: "sheet"
@@ -79,7 +79,7 @@ export function failureReason(status: number) {
   return reasons[status] ?? "unverified"
 }
 
-/** Monitoring bucket: something Genesy may not cover, a refusal the user can fix, or a platform fault. */
+/** Monitoring bucket: something Verzo may not cover, a refusal the user can fix, or a platform fault. */
 export function failureCategory(reason: string) {
   if (reason === "unsupported") return "out_of_scope_candidate"
   if (

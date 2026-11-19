@@ -241,7 +241,7 @@ async fn o_new_refund_of_a_covered_receipt_is_a_new_event(pool: PgPool) {
     o.go_active(&batches, &fp).await;
     let o = &o;
     let find = |id: Uuid| async move {
-        genesy_360_api::gateway::repo::find(&o.w.pool, ws, id)
+        verzo_360_api::gateway::repo::find(&o.w.pool, ws, id)
             .await
             .unwrap()
             .unwrap()
@@ -249,7 +249,7 @@ async fn o_new_refund_of_a_covered_receipt_is_a_new_event(pool: PgPool) {
     let collect = || async {
         let op = find(paid).await;
         let mut tx = o.w.pool.begin().await.unwrap();
-        genesy_360_api::invoice_gateway::apply_collection(
+        verzo_360_api::invoice_gateway::apply_collection(
             &o.f.delivery_state,
             &mut tx,
             ws,
@@ -271,7 +271,7 @@ async fn o_new_refund_of_a_covered_receipt_is_a_new_event(pool: PgPool) {
     insert(back, Some(paid), 1_000).await.unwrap();
     let op = find(back).await;
     let mut tx = o.w.pool.begin().await.unwrap();
-    genesy_360_api::invoice_gateway::apply_refund(&o.f.delivery_state, &mut tx, ws, &op, "r-1")
+    verzo_360_api::invoice_gateway::apply_refund(&o.f.delivery_state, &mut tx, ws, &op, "r-1")
         .await
         .unwrap();
     tx.commit().await.unwrap();

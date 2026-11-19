@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import {
   bulkRequest,
   templateFields,
@@ -50,7 +50,7 @@ export function TemplateDownloads({
     setError(null)
     try {
       const { templateCsv, templateXlsx } =
-        await import("@genesy/voice/lib/product-template")
+        await import("@verzo/voice/lib/product-template")
       const fields = templateFields(template.data)
       if (format === "csv")
         download(

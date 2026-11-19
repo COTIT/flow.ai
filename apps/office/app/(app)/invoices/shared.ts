@@ -1,5 +1,5 @@
-import type { InvoiceMoney } from "@genesy/api-client/model"
-import { formatMoney } from "@genesy/ui/lib/money"
+import type { InvoiceMoney } from "@verzo/api-client/model"
+import { formatMoney } from "@verzo/ui/lib/money"
 
 /**
  * Minor units from the API's `money` (computed in SQL) in that currency. Display only: the

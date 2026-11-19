@@ -16,7 +16,7 @@ import {
   BATCH_PREPARE_OPERATION,
 } from "./batches"
 import { createReview, verifyReview } from "./workflow"
-import { confirmationPhrase } from "@genesy/voice/lib/confirmation"
+import { confirmationPhrase } from "@verzo/voice/lib/confirmation"
 import type { PreparedAction } from "./catalog"
 const context = {
   token: "private-bearer",

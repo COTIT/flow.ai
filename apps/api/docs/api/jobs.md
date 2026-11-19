@@ -2,7 +2,7 @@
 
 No HTTP routes. This is the contract for code that runs work in the background: batch 7's imports, exports, feeds and webhooks, the final batch's F8 (webhook inbox, Mollie), and batch 8's due-date reminders. Code: `src/jobs/`.
 
-Laravel ran this on Redis queues under Horizon. Two problems there: `retry_after` (90 s) was below the job timeouts, so long jobs ran twice, and a nightly `FlushRedis` wiped whatever was queued. Genesy keeps jobs in Postgres.
+Laravel ran this on Redis queues under Horizon. Two problems there: `retry_after` (90 s) was below the job timeouts, so long jobs ran twice, and a nightly `FlushRedis` wiped whatever was queued. Verzo keeps jobs in Postgres.
 
 ## How a job runs
 

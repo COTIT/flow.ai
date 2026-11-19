@@ -24,7 +24,7 @@
     "newsletterBody": "Hadithi za wakulima, mavuno mapya na tarehe za masoko. Tuandikie barua pepe tukuongeze kwenye orodha.",
     "newsletterCta": "Jiunge kwa barua pepe",
     "newsletterSubject": "Tafadhali niongeze kwenye orodha yenu",
-    "tracedWith": "Makundi yanafuatiliwa kwa Genesy"
+    "tracedWith": "Makundi yanafuatiliwa kwa Verzo"
   },
   "catalog": {
     "title": "Duka",
@@ -408,6 +408,6 @@
     "expires": "Linaisha {time} UTC",
     "expiredTitle": "Onyesho hili limeisha muda",
     "expiredBody": "Toleo la duka ambalo halijachapishwa bado lipo kwenye eneo lako la kazi.",
-    "backToFlow": "Rudi kwenye Genesy Flow"
+    "backToFlow": "Rudi kwenye Verzo Flow"
   }
 }

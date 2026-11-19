@@ -5,18 +5,18 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { ChevronRight } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   usePurchaseOrdersEvents,
   usePurchaseOrdersGet,
-} from "@genesy/api-client/endpoints/purchase-orders"
+} from "@verzo/api-client/endpoints/purchase-orders"
 import {
   usePurchaseReceiptsList,
-} from "@genesy/api-client/endpoints/purchase-receipts"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/purchase-receipts"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime, formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDateTime, formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

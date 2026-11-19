@@ -7,7 +7,7 @@ const changePassword = vi.fn()
 const sessionFetch = vi.fn()
 const navigate = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-logins', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-logins', () => ({
   farmLoginsChangePassword: (a: unknown) => changePassword(a),
 }))
 vi.mock('@/app/session', () => ({

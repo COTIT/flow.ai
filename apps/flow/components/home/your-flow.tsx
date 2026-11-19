@@ -9,11 +9,11 @@ import {
   getFlowScenesListQueryKey,
   useFlowScenesReset,
   useFlowScenesUpdate,
-} from "@genesy/api-client/endpoints/flow-scenes"
-import type { FlowPeriod, FlowScene } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { formatMoney } from "@genesy/ui/lib/money"
+} from "@verzo/api-client/endpoints/flow-scenes"
+import type { FlowPeriod, FlowScene } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { useSceneTitle, useScenes } from "@/components/scenes/scene-view"
 import { hiddenScenes, homeScenes, sceneLayout } from "@/lib/scenes"
 import {

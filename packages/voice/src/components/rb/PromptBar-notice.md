@@ -5,7 +5,7 @@ Copyright (c) 2026 David Haz. MIT + Commons Clause License Condition v1.0.
 Full license in LICENSE.md. Product embedding is allowed; selling or redistributing the components themselves is not.
 
 Office compatibility header `// @ts-nocheck` as on every file here.
-Edits, all marked `// Genesy edit:` in the file:
+Edits, all marked `// Verzo edit:` in the file:
 
 1. `@hugeicons` replaced by a small lucide-react shim at the top (no new dependency; same call sites).
 2. Four optional props, upstream behaviour unchanged when they are left out:

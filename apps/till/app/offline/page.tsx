@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { cn } from "@genesy/ui/lib/utils"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { cn } from "@verzo/ui/lib/utils"
 
 /** Shown by the service worker for an address it doesn't have, with no connection (POS panel). */
 export default async function Offline() {

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { voiceMessages } from "@verzo/i18n/voice"
 import { rightFor } from "../routes"
 import { PAGES, openPage, pageTool, PAGE_TOOL } from "./pages"
 

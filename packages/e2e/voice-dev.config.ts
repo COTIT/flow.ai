@@ -11,7 +11,7 @@ export default defineConfig({
   }),
   webServer: {
     command:
-      "pnpm --filter @genesy/office exec next dev --webpack --port 3262 --hostname 127.0.0.1",
+      "pnpm --filter @verzo/office exec next dev --webpack --port 3262 --hostname 127.0.0.1",
     url: "http://127.0.0.1:3262/login",
     timeout: 150000,
     reuseExistingServer: false,

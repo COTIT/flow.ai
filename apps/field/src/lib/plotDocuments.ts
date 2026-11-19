@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { farmDocumentsCreate, farmDocumentsGet, farmDocumentsList } from '@genesy/api-client/endpoints/farm-documents'
+import { farmDocumentsCreate, farmDocumentsGet, farmDocumentsList } from '@verzo/api-client/endpoints/farm-documents'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

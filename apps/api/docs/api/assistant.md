@@ -149,7 +149,7 @@ Rows are deleted 90 days after `created_at` by the hourly prune. Deleting a work
 
 ### Component demand (developers only)
 
-SQL function `assistant_gap_demand(days int, min_workspaces int DEFAULT 3)` (migration `assistant_gap_demand`) is the only cross-workspace demand export. Staff run `psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql` (`-v k=5` raises the threshold) and pipe it to `pnpm --filter @genesy/office voice:demand`.
+SQL function `assistant_gap_demand(days int, min_workspaces int DEFAULT 3)` (migration `assistant_gap_demand`) is the only cross-workspace demand export. Staff run `psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql` (`-v k=5` raises the threshold) and pipe it to `pnpm --filter @verzo/office voice:demand`.
 
 - One row per cluster: `domain`, `outcome`, `words` (sorted distinct intent words, the same key as Office `clusterGaps`), `intent` (most frequent), `gaps`, `workspaces` (distinct), `languages`, `rephrased`, `used_ui`, `route` (usual page pattern), `tool` (usual last tool), `http_status` (usual), `last_seen` (day).
 - A cluster appears only when at least 3 workspaces hit it. `greatest(min_workspaces, 3)`: callers may raise the floor, never lower it. One busy workspace never makes demand alone.

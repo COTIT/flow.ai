@@ -5200,7 +5200,7 @@
             "type": "string"
           },
           "products_count": {
-            "description": "Live products of any status in this category (Genesy addition).",
+            "description": "Live products of any status in this category (Verzo addition).",
             "format": "int64",
             "type": "integer"
           },
@@ -6491,7 +6491,7 @@
         "type": "object"
       },
       "Conversion": {
-        "description": "A converted amount. Always say it uses the workspace's own rate as of `rate_effective_on`; Genesy fetches no market rates.",
+        "description": "A converted amount. Always say it uses the workspace's own rate as of `rate_effective_on`; Verzo fetches no market rates.",
         "properties": {
           "amount_minor": {
             "format": "int64",
@@ -28714,7 +28714,7 @@
             "type": "string"
           },
           "category_id": {
-            "description": "Main category (`/erp/product-categories`), same workspace; null = none (Genesy addition).",
+            "description": "Main category (`/erp/product-categories`), same workspace; null = none (Verzo addition).",
             "format": "uuid",
             "type": [
               "string",
@@ -29089,7 +29089,7 @@
             "type": "array"
           },
           "store_only": {
-            "description": "Sold at the till only; the web shop never lists it (Genesy addition).",
+            "description": "Sold at the till only; the web shop never lists it (Verzo addition).",
             "type": "boolean"
           },
           "supplier_discount_code": {
@@ -47321,11 +47321,11 @@
     }
   },
   "info": {
-    "description": "One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.",
+    "description": "One backend for the Verzo shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.",
     "license": {
       "name": "Proprietary"
     },
-    "title": "Genesy API",
+    "title": "Verzo API",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",

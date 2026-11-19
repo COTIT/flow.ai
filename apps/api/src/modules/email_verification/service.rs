@@ -110,9 +110,9 @@ fn verification_mail(api_public_url: &str, to: &str, token: &str) -> Outgoing {
     // shortcut: English plain text only; add NL + HTML template when mail templates are ported.
     Outgoing {
         to: to.to_owned(),
-        subject: "Verify your email for Genesy".into(),
+        subject: "Verify your email for Verzo".into(),
         body: format!(
-            "Someone created a Genesy account with this email address.\n\n\
+            "Someone created a Verzo account with this email address.\n\n\
              If that was you, confirm the address here:\n\
              {api_public_url}/v1/verify-email/{token}\n\n\
              If you didn't create this account, don't open the link. Ignore this email and the \

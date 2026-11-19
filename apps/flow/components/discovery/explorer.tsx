@@ -3,19 +3,19 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 
-import { useRights } from "@genesy/api-client/rights"
-import { Button } from "@genesy/ui/components/button"
+import { useRights } from "@verzo/api-client/rights"
+import { Button } from "@verzo/ui/components/button"
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@genesy/ui/components/tabs"
+} from "@verzo/ui/components/tabs"
 import {
   FLOW_CAPABILITIES,
   statusOf,
   type FlowGroup,
-} from "@genesy/voice/lib/capabilities"
+} from "@verzo/voice/lib/capabilities"
 import { resetActivity } from "@/lib/activity"
 import {
   activityVersion,
@@ -27,7 +27,7 @@ import { CapabilityCard } from "./capability-card"
 
 const GROUPS: FlowGroup[] = ["understand", "operate", "automate", "create"]
 
-/** "Explore what Genesy can do": the registry by kind of task, with this role's real status. */
+/** "Explore what Verzo can do": the registry by kind of task, with this role's real status. */
 export function Explorer() {
   const t = useTranslations("discovery.explorer")
   const rights = useRights()

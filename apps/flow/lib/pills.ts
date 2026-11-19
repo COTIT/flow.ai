@@ -6,18 +6,18 @@ import { useTranslations } from "next-intl"
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAttentionPriorities } from "@genesy/api-client/endpoints/attention"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import { useRights } from "@genesy/api-client/rights"
-import { useVoice } from "@genesy/voice/components/provider"
+import { useSession } from "@verzo/api-client/auth"
+import { useAttentionPriorities } from "@verzo/api-client/endpoints/attention"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import { useRights } from "@verzo/api-client/rights"
+import { useVoice } from "@verzo/voice/components/provider"
 import {
   FLOW_CAPABILITIES,
   sceneKey,
   statusOf,
   type FlowCapability,
-} from "@genesy/voice/lib/capabilities"
-import { nextActions, rankPills } from "@genesy/voice/lib/rank"
+} from "@verzo/voice/lib/capabilities"
+import { nextActions, rankPills } from "@verzo/voice/lib/rank"
 import { activityKey, readActivity, recordUse } from "./activity"
 
 /** A suggestion: a capability id (stable key) and what it does. */
@@ -47,7 +47,7 @@ export function useActivityKey() {
 
 /**
  * Runs a capability like the equivalent instruction: a screen opens directly (no AI, no
- * session); an instruction goes to Genesy through the dock (`ask`), as typing it would.
+ * session); an instruction goes to Verzo through the dock (`ask`), as typing it would.
  */
 export function useRunCapability(ask: (text: string) => void) {
   const t = useTranslations("discovery.capabilities")

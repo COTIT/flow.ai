@@ -29,7 +29,7 @@ use crate::{
     },
 };
 
-// Laravel checked `warehouse.view` for one row; genesy uses the catalog's `get`.
+// Laravel checked `warehouse.view` for one row; Verzo uses the catalog's `get`.
 permissions! {
     WarehouseCreate => "warehouse.create",
     WarehouseList => "warehouse.list",

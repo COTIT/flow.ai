@@ -5,15 +5,15 @@
 use std::time::Duration;
 
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{build_app, mail::Mailer, outbound::Outbound, pdf::Renderer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer, outbound::Outbound, pdf::Renderer};
 
 use super::{Api, fake_pdf, fake_smtp};
 
 pub struct F {
     pub api: Api,
-    pub delivery_state: genesy_360_api::AppState,
+    pub delivery_state: verzo_360_api::AppState,
     pub inbox: fake_smtp::Inbox,
     pub smtp_port: u16,
     pub rel: String,

@@ -4,11 +4,11 @@ import {
   farmSupplyDispatchOptions,
   farmSupplyOptions,
   farmSupplyRawProduct,
-} from '@genesy/api-client/endpoints/farm-supply'
-import { lotsStock } from '@genesy/api-client/endpoints/lots'
-import { supplyChainDispatch, supplyChainList } from '@genesy/api-client/endpoints/supply-chain'
-import { supplyLinksGrant, supplyLinksList, supplyLinksRevoke } from '@genesy/api-client/endpoints/supply-links'
-import type { CreateBatchRequest, LinkResource, SupplyTransferResource } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-supply'
+import { lotsStock } from '@verzo/api-client/endpoints/lots'
+import { supplyChainDispatch, supplyChainList } from '@verzo/api-client/endpoints/supply-chain'
+import { supplyLinksGrant, supplyLinksList, supplyLinksRevoke } from '@verzo/api-client/endpoints/supply-links'
+import type { CreateBatchRequest, LinkResource, SupplyTransferResource } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 

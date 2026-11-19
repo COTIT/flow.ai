@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
-import { useMotionAllowed } from "@genesy/ui/components/island"
+import { useMotionAllowed } from "@verzo/ui/components/island"
 import {
   createOrb,
   orbFps,
@@ -46,7 +46,7 @@ const stillLevel = (state: OrbState) =>
   state === "speaking" ? 0.55 : state === "listening" ? 0.4 : 0
 const n = (v: number) => +v.toFixed(3)
 
-export type GenesyOrbProps = {
+export type VerzoOrbProps = {
   state: OrbState
   /** Voice level 0–1, read by the orb on each of its own frames (no re-render of the parent). */
   level?: () => number
@@ -60,8 +60,8 @@ export type GenesyOrbProps = {
   className?: string
 }
 
-/** The Genesy voice orb: one spring-driven light that morphs between ten states. */
-export function GenesyOrb({
+/** The Verzo voice orb: one spring-driven light that morphs between ten states. */
+export function VerzoOrb({
   state,
   level,
   size = 256,
@@ -69,7 +69,7 @@ export function GenesyOrb({
   reducedMotion = false,
   label,
   className = "",
-}: GenesyOrbProps) {
+}: VerzoOrbProps) {
   const appTheme = useSyncExternalStore(
     themeStore.subscribe,
     themeStore.read,
@@ -141,11 +141,11 @@ export function GenesyOrb({
   return (
     <div
       ref={element}
-      data-genesy-orb=""
+      data-verzo-orb=""
       data-state={state}
       data-still={still}
       data-reduced={reducedMotion}
-      className={`genesy-orb relative shrink-0 ${className}`.trim()}
+      className={`verzo-orb relative shrink-0 ${className}`.trim()}
       style={{ width: size, height: size }}
     >
       {f && look ? (
@@ -153,7 +153,7 @@ export function GenesyOrb({
           <OrbSvg f={f} id={id} soft={soft} />
         </div>
       ) : null}
-      <span role="status" aria-live="polite" className="genesy-orb-label">
+      <span role="status" aria-live="polite" className="verzo-orb-label">
         {label}
       </span>
     </div>

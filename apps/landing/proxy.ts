@@ -1,4 +1,4 @@
-import { cspProxy } from "@genesy/security/proxy"
+import { cspProxy } from "@verzo/security/proxy"
 
 // shortcut: frames refused everywhere; the landing page is never embedded.
 export const proxy = cspProxy()

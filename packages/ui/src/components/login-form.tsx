@@ -3,9 +3,9 @@
 import * as React from "react"
 import { cn } from "cn"
 
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
 
 export type LoginFormLabels = {
   title: string

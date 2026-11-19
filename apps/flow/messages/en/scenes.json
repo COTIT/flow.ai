@@ -67,11 +67,11 @@
     "available": "Available",
     "minimum": "Minimum",
     "shortfall": "Short by",
-    "selected": "Picked · tell Genesy what to do",
+    "selected": "Picked · tell Verzo what to do",
     "invoices": "Invoices",
     "noInvoices": "No unpaid invoices.",
     "reports": "Scheduled reports",
-    "noReports": "No routines yet. Ask Genesy to schedule a report, for example \"Send me a weekly sales summary\".",
+    "noReports": "No routines yet. Ask Verzo to schedule a report, for example \"Send me a weekly sales summary\".",
     "pause": "Pause",
     "resume": "Resume",
     "delete": "Delete",
@@ -142,7 +142,7 @@
       },
       "routines": {
         "title": "Scheduled reports",
-        "lead": "Reports Genesy sends you on a schedule."
+        "lead": "Reports Verzo sends you on a schedule."
       },
       "studio": {
         "title": "Storefront Studio",
@@ -201,7 +201,7 @@
     },
     "routines": {
       "emptyTitle": "No reports yet",
-      "emptyText": "Genesy can email you a sales summary every week.",
+      "emptyText": "Verzo can email you a sales summary every week.",
       "setUp": "Set up a weekly report"
     }
   }

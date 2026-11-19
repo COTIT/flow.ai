@@ -4,10 +4,10 @@
     "next": "Here's what you can do next",
     "hint": {
       "lead": "Not sure where to begin?",
-      "text": "Genesy can help you {areas}.",
-      "textGeneral": "Genesy can help you run your business by voice or text.",
+      "text": "Verzo can help you {areas}.",
+      "textGeneral": "Verzo can help you run your business by voice or text.",
       "explore": "Explore what I can do",
-      "whatCanDo": "What can Genesy do?",
+      "whatCanDo": "What can Verzo do?",
       "dismiss": "Dismiss tip",
       "areas": {
         "stock": "manage inventory",
@@ -17,7 +17,7 @@
       }
     },
     "explorer": {
-      "title": "Explore what Genesy can do",
+      "title": "Explore what Verzo can do",
       "text": "Pick a kind of task. Everything here uses your real permissions.",
       "groups": {
         "understand": "Overview",
@@ -128,7 +128,7 @@
       },
       "explore": {
         "label": "Explore possibilities",
-        "description": "Everything Genesy can do for you, by kind of task.",
+        "description": "Everything Verzo can do for you, by kind of task.",
         "example": "What can you help me with?"
       },
       "compare_sales_periods": {

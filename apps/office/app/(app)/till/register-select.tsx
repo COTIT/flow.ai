@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
+} from "@verzo/ui/components/select"
 import { useTillMoney } from "@/lib/till-money"
 
 /** The till lists' register filter ("" = all registers), in the card header. */

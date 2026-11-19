@@ -24,7 +24,7 @@
     "newsletterBody": "Verhalen van boeren, nieuwe oogsten en marktdata. Mail ons en we zetten je op de lijst.",
     "newsletterCta": "Aanmelden per e-mail",
     "newsletterSubject": "Zet me op jullie lijst",
-    "tracedWith": "Partijen herleidbaar met Genesy"
+    "tracedWith": "Partijen herleidbaar met Verzo"
   },
   "catalog": {
     "title": "Winkel",
@@ -408,6 +408,6 @@
     "expires": "Verloopt {time} UTC",
     "expiredTitle": "Deze preview is verlopen",
     "expiredBody": "De niet-gepubliceerde winkelrevisie staat nog in je werkruimte.",
-    "backToFlow": "Terug naar Genesy Flow"
+    "backToFlow": "Terug naar Verzo Flow"
   }
 }

@@ -4,19 +4,19 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getWarehousesListQueryKey,
   useWarehousesCreate,
   useWarehousesDelete,
   useWarehousesList,
   useWarehousesUpdate,
-} from "@genesy/api-client/endpoints/warehouses"
-import type { WarehouseResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/warehouses"
+import type { WarehouseResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -33,8 +33,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/ui/components/table"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Field } from "@/components/field"
 import { GeneralStock } from "@/components/general-stock"
 import {

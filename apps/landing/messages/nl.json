@@ -1,39 +1,32 @@
 {
   "landing": {
-    "title": "Genesy",
-    "description": "Genesy legt de oogst vast, volgt de partij, drukt een paspoort voor elke pot en betaalt de boer zodra die verkocht is.",
+    "title": "Verzo",
+    "description": "Koppel uw bestaande software, maak workflows in gewone taal en automatiseer werk over meerdere systemen heen.",
     "skip": "Naar de inhoud",
     "nav": {
       "label": "Hoofdmenu",
-      "how": "Hoe het werkt",
+      "how": "Bekijk een praktijkvoorbeeld",
       "who": "Voor wie",
       "passport": "Het paspoort",
       "contact": "Contact",
       "language": "Taal",
       "theme": "Wissel licht of donker",
-      "home": "Genesy home"
+      "home": "Verzo home"
     },
     "cta": "Neem contact op",
     "hero": {
-      "tag": "Van boer tot keuken, voor iedereen zichtbaar",
-      "title": "Elke pot heeft een verhaal. Elke boer krijgt zijn deel.",
-      "lead": "Genesy legt de oogst vast, volgt de partij, drukt een paspoort voor elke pot en betaalt de boer zodra die verkocht is. Eén systeem, van het veld tot de kassa.",
-      "how": "Hoe het werkt",
-      "scene": "Illustratie: een bijenkorf in de heuvels, een stippelroute naar een pot honing",
-      "rotating": {
-        "prefix": "Gevolgd vanaf de",
-        "words": [
-          "korf",
-          "oogst",
-          "partij",
-          "paspoort",
-          "winkel",
-          "spaarboekje"
-        ]
-      }
+      "tag": "Het AI-native bedrijfsplatform",
+      "title": "Zet uw intenties om in acties.",
+      "lead": "Koppel uw bestaande software, maak workflows in gewone taal en automatiseer werk over meerdere systemen heen.",
+      "how": "Bekijk een praktijkvoorbeeld",
+      "steps": [
+        "Koppel uw software",
+        "Beschrijf een workflow",
+        "Automatiseer over meerdere systemen heen"
+      ]
     },
     "journey": {
-      "tag": "Hoe het werkt",
+      "tag": "Praktijkvoorbeeld van boer tot winkel",
       "title": "Volg één pot op reis — en het geld terug.",
       "steps": {
         "hive": {
@@ -136,12 +129,12 @@
     },
     "contact": {
       "tag": "Neem contact op",
-      "title": "Kweekt, verpakt of verkoopt u iets wat het volgen waard is? Laten we praten.",
+      "title": "Wat wilt u automatiseren?",
       "button": "Mail ons",
       "note": "Engels, Nederlands of Swahili. We antwoorden binnen twee werkdagen."
     },
     "footer": {
-      "tagline": "Van boer tot schap, voor iedereen zichtbaar — en de boer onderweg betaald.",
+      "tagline": "Zet uw intenties om in acties.",
       "shop": "Winkel",
       "buy": "Honing kopen",
       "check": "Een paspoort bekijken",
@@ -151,11 +144,11 @@
       "till": "Kassa",
       "about": "Over",
       "contact": "Contact",
-      "copyright": "© {year} Genesy",
+      "copyright": "© {year} Verzo",
       "languages": "Talen"
     },
     "features": {
-      "label": "Wat Genesy doet",
+      "label": "Mogelijkheden van boer tot winkel",
       "items": [
         "Werkt offline in het veld",
         "Kiswahili · English · Nederlands",
@@ -166,7 +159,7 @@
         "Geld tot op de cent"
       ]
     },
-    "seoTitle": "Genesy — elke pot heeft een verhaal, elke boer krijgt zijn deel",
-    "ogAlt": "Genesy: van de korf tot uw keuken, en de boer onderweg betaald"
+    "seoTitle": "Verzo | Het AI-native bedrijfsplatform",
+    "ogAlt": "Verzo. Zet uw intenties om in acties."
   }
 }

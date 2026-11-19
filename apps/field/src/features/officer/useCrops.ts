@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { farmCropsList } from '@genesy/api-client/endpoints/farm-crops'
-import type { CropResource } from '@genesy/api-client/model'
+import { farmCropsList } from '@verzo/api-client/endpoints/farm-crops'
+import type { CropResource } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import type { Enums } from '@/lib/enums'

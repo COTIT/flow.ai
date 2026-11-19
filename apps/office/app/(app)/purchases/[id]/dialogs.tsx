@@ -3,20 +3,20 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   usePurchaseOrdersCancel,
   usePurchaseOrdersCloseLines,
   usePurchaseOrdersConfirm,
   usePurchaseOrdersConfirmReview,
-} from "@genesy/api-client/endpoints/purchase-orders"
+} from "@verzo/api-client/endpoints/purchase-orders"
 import {
   usePurchaseReceiptsCreate,
-} from "@genesy/api-client/endpoints/purchase-receipts"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import type { PurchaseOrderResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+} from "@verzo/api-client/endpoints/purchase-receipts"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import type { PurchaseOrderResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogClose,
@@ -26,12 +26,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatQty } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { useIdempotencyKey } from "@/lib/idempotency"
 

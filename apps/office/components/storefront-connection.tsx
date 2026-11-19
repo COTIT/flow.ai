@@ -3,19 +3,19 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
-import { sessionStore } from "@genesy/api-client/session"
+import { sessionStore } from "@verzo/api-client/session"
 import {
   getStorefrontConnectionGetQueryKey,
   useStorefrontConnectionGet,
   useStorefrontConnectionUpdate,
-} from "@genesy/api-client/endpoints/storefront-connection"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/storefront-connection"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { Done, LoadError, useDone } from "@/components/states"

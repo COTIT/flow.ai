@@ -1,5 +1,5 @@
 /* Assistant parts shared by Office and Flow (components in ../components). Unlayered like the
-   glass rules in @genesy/ui, so they win over the components' utility classes. */
+   glass rules in @verzo/ui, so they win over the components' utility classes. */
 
 /* StrandsStatus orb. */
 .voice-orb > span {
@@ -40,8 +40,8 @@
   }
 }
 
-/* GenesyOrb: the state text is screen-reader only while the orb moves, shown under the still orb. */
-.genesy-orb-label {
+/* VerzoOrb: the state text is screen-reader only while the orb moves, shown under the still orb. */
+.verzo-orb-label {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -49,7 +49,7 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.genesy-orb[data-reduced="true"] > .genesy-orb-label {
+.verzo-orb[data-reduced="true"] > .verzo-orb-label {
   inset: 100% 0 auto;
   width: auto;
   height: auto;
@@ -61,7 +61,7 @@
   text-align: center;
 }
 @media (prefers-reduced-motion: reduce) {
-  .genesy-orb > .genesy-orb-label {
+  .verzo-orb > .verzo-orb-label {
     inset: 100% 0 auto;
     width: auto;
     height: auto;

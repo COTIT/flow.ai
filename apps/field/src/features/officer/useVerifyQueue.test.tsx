@@ -19,7 +19,7 @@ const verify = {
   cycles: vi.fn(),
   harvests: vi.fn(),
 }
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsPersonsList: (...args: unknown[]) => list.persons(...args),
   farmRecordsHouseholdsList: (...args: unknown[]) => list.households(...args),
   farmRecordsFarmsList: (...args: unknown[]) => list.farms(...args),

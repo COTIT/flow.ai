@@ -226,7 +226,7 @@ async fn every_eligible_bearer_capability_requires_authentication(pool: PgPool) 
         .map(|id| id.as_str().unwrap())
         .collect();
     assert_eq!(selected.len(), 467, "reviewed capability count changed");
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let app = common::app(pool);
     let mut exercised = BTreeSet::new();
     for CapabilityRequest {
@@ -259,7 +259,7 @@ async fn every_effectful_capability_refuses_its_exact_unapproved_action(pool: Pg
         .map(|id| id.as_str().unwrap())
         .collect();
     assert_eq!(selected.len(), 233, "reviewed effect count changed");
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let app = common::app(pool.clone());
     let (owner, workspace) =
         common::signup(&app, "approval-matrix@example.test", "approval-matrix").await;
@@ -405,7 +405,7 @@ async fn every_permission_protected_capability_refuses_an_active_member_without_
     let membership: uuid::Uuid = sqlx::query_scalar(
         "SELECT id FROM farm_memberships WHERE workspace_id=$1 AND user_id=$2 AND role='admin' AND revoked_at IS NULL"
     ).bind(workspace).bind(owner).fetch_one(&pool).await.unwrap();
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let mut exercised = BTreeSet::new();
     for mut case in requests(&spec, &selected, &f.ws) {
         let body = if case.id == "farm_memberships_create" {
@@ -586,7 +586,7 @@ async fn reviewed_collection_capabilities_refuse_a_real_outsider_on_a_live_works
         roles, 0,
         "outsider must not hold a target-workspace farm role"
     );
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let mut exercised = BTreeSet::new();
     for case in requests(&spec, &selected, &f.ws) {
         let (template, _) =
@@ -640,7 +640,7 @@ async fn reviewed_object_body_capabilities_reject_boolean_json_before_domain_wor
     assert_eq!(selected.len(), 10, "reviewed object-body count changed");
     assert_eq!(fixture["probe"], false);
     let f = common::farm::Farm::new(pool.clone()).await;
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let snapshot = "SELECT (SELECT count(*) FROM farm_cash_ledger WHERE workspace_id=$1::uuid),(SELECT count(*) FROM cash_vaults WHERE workspace_id=$1::uuid),(SELECT count(*) FROM email_send_logs WHERE workspace_id=$1::uuid)";
     let before: (i64, i64, i64) = sqlx::query_as(snapshot)
         .bind(&f.ws)
@@ -729,7 +729,7 @@ async fn reviewed_bodyless_uuid_capabilities_reject_malformed_resource_identifie
     assert!(uuid::Uuid::parse_str(malformed).is_err());
     let f = common::farm::Farm::new(pool).await;
     assert_ne!(f.ws, ID, "resource sample must never replace workspace");
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let mut exercised = BTreeSet::new();
     for case in requests(&spec, &selected, &f.ws) {
         assert!(
@@ -817,7 +817,7 @@ async fn reviewed_no_business_input_capabilities_reject_malformed_bound_workspac
     let malformed = fixture["malformed"].as_str().unwrap();
     assert!(uuid::Uuid::parse_str(malformed).is_err());
     let f = common::farm::Farm::new(pool).await;
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let mut exercised = BTreeSet::new();
     for case in requests(&spec, &selected, &f.ws) {
         assert!(

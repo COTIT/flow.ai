@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from "react"
 
-import type { SessionPhase } from "@genesy/voice/lib/presentation"
+import type { SessionPhase } from "@verzo/voice/lib/presentation"
 import { Dock } from "./dock"
 
 /**

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
-import { formatMoney } from '@genesy/ui/lib/money'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { AuditTimeline } from '@/components/AuditTimeline'
 import { ConfirmDialog } from '@/components/ConfirmDialog'

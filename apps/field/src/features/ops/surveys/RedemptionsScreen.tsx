@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { createColumnHelper } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
-import { formatMoney } from '@genesy/ui/lib/money'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { DataTable } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'

@@ -21,7 +21,7 @@
       "waitingConfirmation": "Waiting for your OK.",
       "executing": "Making the change.",
       "paused": "Paused. Nothing more runs until you decide.",
-      "completed": "Confirmed by Genesy.",
+      "completed": "Confirmed by Verzo.",
       "partial": "Only part of it was done.",
       "failed": "It was not done.",
       "cancelled": "Nothing was changed.",
@@ -58,8 +58,8 @@
       "readFailed": "Completed; couldn't load the current value.",
       "unconfirmed": "Completed; couldn't confirm the current value.",
       "refresh": "Refresh",
-      "unknownText": "Don't repeat it: it may already have happened. Genesy checks the recorded outcome.",
-      "check": "Ask Genesy to check",
+      "unknownText": "Don't repeat it: it may already have happened. Verzo checks the recorded outcome.",
+      "check": "Ask Verzo to check",
       "checkMessage": "Check whether my last approved change completed. Don't repeat it.",
       "next": "Next",
       "approved": "Approved: {value}"
@@ -90,7 +90,7 @@
       "exceptions": "{count, plural, =0 {no exceptions} one {# exception not included: nothing is written for it} other {# exceptions not included: nothing is written for them}}",
       "result": "{done} updated · {failed} failed · {notRun} not run · {unknown} need checking",
       "continue": "Prepare the rest",
-      "continueText": "Paused work does not resume by itself. Genesy prepares a new review for the changes that did not run.",
+      "continueText": "Paused work does not resume by itself. Verzo prepares a new review for the changes that did not run.",
       "continueMessage": "Prepare a new review for the {count} changes that did not run."
     },
     "resume": {

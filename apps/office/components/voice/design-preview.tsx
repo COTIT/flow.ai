@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { VoiceConversation } from "./conversation"
-import { VoiceContext, type VoiceContextValue } from "@genesy/voice/components/provider"
-import type { VoiceReview } from "@genesy/voice/lib/client-contract"
+import { VoiceContext, type VoiceContextValue } from "@verzo/voice/components/provider"
+import type { VoiceReview } from "@verzo/voice/lib/client-contract"
 
 /** Fake conversation states so the real voice screen can be reviewed without a provider session. */
 const STATES = [

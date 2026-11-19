@@ -1,8 +1,8 @@
-# Ruaha 360 (`@genesy/field`)
+# Ruaha 360 (`@verzo/field`)
 
-> Ported from the RUAHA repository into the Genesy monorepo (Vite app, port 3002). It runs on the Genesy API
-> (`apps/api`, the `/v1/farm/*` endpoints) through `@genesy/api-client`; there is no other backend. Run with
-> `pnpm --filter @genesy/field dev`. The product notes below are RUAHA's own.
+> Ported from the RUAHA repository into the Verzo monorepo (Vite app, port 3002). It runs on the Verzo API
+> (`apps/api`, the `/v1/farm/*` endpoints) through `@verzo/api-client`; there is no other backend. Run with
+> `pnpm --filter @verzo/field dev`. The product notes below are RUAHA's own.
 
 Rural economic development platform for Ruaha Energy. First deployment:
 Ilundo, Tanzania.
@@ -26,16 +26,16 @@ that is a view over what the officer wrote:
   the records underneath it
 
 The specifications are `docs/schema.md`, `docs/business-rules.md` and
-`docs/screens-and-components.md`; the rules themselves live in the Genesy API.
+`docs/screens-and-components.md`; the rules themselves live in the Verzo API.
 
 ---
 
 ## Running it
 
 ```bash
-pnpm --filter @genesy/field dev     # needs the Genesy API running (see the root README)
-pnpm --filter @genesy/field test    # vitest
-pnpm --filter @genesy/field typecheck
+pnpm --filter @verzo/field dev     # needs the Verzo API running (see the root README)
+pnpm --filter @verzo/field test    # vitest
+pnpm --filter @verzo/field typecheck
 ```
 
 `.env.local` needs only `VITE_DATA_MODE=demo` and `VITE_FEATURE_RESOURCES` (see
@@ -102,7 +102,7 @@ and none should be guessed at.
 
 ## Where the numbers come from
 
-Every figure on a screen is read from the Genesy API. The client does not
+Every figure on a screen is read from the Verzo API. The client does not
 aggregate — see `docs/business-rules.md` §7 and §11. The seeded demo figures
 are part of the specification and are asserted by the test suite:
 

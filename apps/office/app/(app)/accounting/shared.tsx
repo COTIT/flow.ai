@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAccountingSetupGet } from "@genesy/api-client/endpoints/accounting"
+import { useSession } from "@verzo/api-client/auth"
+import { useAccountingSetupGet } from "@verzo/api-client/endpoints/accounting"
 import { PillLinks } from "@/components/list"
 
 export {

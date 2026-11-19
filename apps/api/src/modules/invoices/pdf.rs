@@ -712,7 +712,7 @@ async fn custom(
                             html.push_str(&format!("<div class=\"{class}\">{h}</div>"));
                         }
                     }
-                    // shortcut: products have no images in genesy yet; print them once they do.
+                    // shortcut: products have no images in Verzo yet; print them once they do.
                     "product.image" | "product.images" => {}
                     _ => {
                         let FieldValue::Text(text) = value else {

@@ -4,18 +4,18 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getProductVariantsListQueryKey,
   useProductVariantsDelete,
   useProductVariantsGenerate,
   useProductVariantsList,
   useProductVariantsUpdate,
-} from "@genesy/api-client/endpoints/product-variants"
-import type { ProductVariantResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/product-variants"
+import type { ProductVariantResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogContent,
@@ -23,9 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { ListPager } from "@/components/list"

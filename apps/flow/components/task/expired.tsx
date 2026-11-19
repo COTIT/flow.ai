@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { useVoice } from "@genesy/voice/components/provider"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { useVoice } from "@verzo/voice/components/provider"
 import { useOnceIntent } from "@/lib/use-once-intent"
 
 /**

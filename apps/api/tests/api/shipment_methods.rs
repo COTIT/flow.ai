@@ -56,7 +56,7 @@ async fn create_keeps_every_field_in_laravel_shape(pool: PgPool) {
     assert_eq!(s["price_impact_consumer"], "-5.00000000");
     assert_eq!(s["min_weight"], 1.0);
     assert_eq!(s["max_weight"], 2.5);
-    // Laravel's create dropped these three; genesy keeps them.
+    // Laravel's create dropped these three; Verzo keeps them.
     assert_eq!(s["can_be_selected"], true);
     assert_eq!(s["countries"], dhl()["countries"]);
     assert_eq!(

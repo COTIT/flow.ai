@@ -111,7 +111,7 @@ test("three datasets survive; selected results download as real PDF and Excel", 
   expect(cells).toContain("Wild honey")
   expect(cells).toContain("120050")
   expect(cells).toContain("135000")
-  expect(cells).toContain("GENESY")
+  expect(cells).toContain("VERZO")
   expect(cells).toContain("Ilundo Honey Co.")
   const JSZip = require("jszip")
   const archive = await JSZip.loadAsync(readFileSync(xlsxPath))

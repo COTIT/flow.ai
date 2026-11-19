@@ -11,7 +11,7 @@ import {
   createReview,
   verifyReview,
 } from "./workflow"
-import { confirmationPhrase } from "@genesy/voice/lib/confirmation"
+import { confirmationPhrase } from "@verzo/voice/lib/confirmation"
 import { withVoiceTracing } from "./tracing"
 import { workspaceTimeZone } from "./time-zone"
 import { reviewTarget } from "./review-target"
@@ -25,7 +25,7 @@ import type {
   VoiceOutcome,
   VoiceReview,
   VoiceReviewStep,
-} from "@genesy/voice/lib/client-contract"
+} from "@verzo/voice/lib/client-contract"
 import type { MultipartReview } from "./multipart"
 
 export type StoredAction = {

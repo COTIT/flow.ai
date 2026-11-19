@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useInvoicesList } from "@genesy/api-client/endpoints/invoices"
-import { Input } from "@genesy/ui/components/input"
+import { useSession } from "@verzo/api-client/auth"
+import { useInvoicesList } from "@verzo/api-client/endpoints/invoices"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -16,8 +16,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDate } from "@verzo/ui/lib/format"
 import {
   CardState,
   ListCard,

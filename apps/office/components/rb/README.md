@@ -4,7 +4,7 @@ Copied unchanged from apps/landing/components/rb (itself from [React Bits](https
 TypeScript + Tailwind variant, fetched 2026-11-02). Licence: MIT + Commons Clause, see `LICENSE.md`:
 use in our product is allowed; selling or redistributing the components themselves is not.
 
-The overview imports its components through `island` from @genesy/ui, so the code is fetched lazily
+The overview imports its components through `island` from @verzo/ui, so the code is fetched lazily
 and only when the user allows motion. The only change is a first line `// @ts-nocheck` (assistant-screen files: see below). Do not edit
 them otherwise; wrap them instead, so a later copy can replace them.
 
@@ -21,4 +21,4 @@ notice and a copy of `LICENSE.md`), `AnimatedList` and `PromptBar` now live in
 `packages/voice/src/components/rb`, shared by Office and Flow. PromptBar carries a few
 more edits than the others (translated labels, hint, `ready`, keep the draft on a refused send,
 "+" menu focus order), marked
-`// Genesy edit:` in the file. Their palettes are overridden in `packages/voice/src/styles/voice.css`.
+`// Verzo edit:` in the file. Their palettes are overridden in `packages/voice/src/styles/voice.css`.

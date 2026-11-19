@@ -15,16 +15,16 @@ test("one orb moves home → conversation → scene → conversation → home, n
   const header = page.locator("[data-flow-header]")
   await orbAt(page, "ambient")
   await expect(orb(page)).toHaveCount(1)
-  // The Genesy orb, its state in words for assistive tech only (the caption shows it on screen).
-  const genesy = orb(page).locator("[data-genesy-orb]")
-  await expect(genesy).toHaveCount(1)
-  await expect(genesy).toHaveAttribute("data-state", "idle")
+  // The Verzo orb, its state in words for assistive tech only (the caption shows it on screen).
+  const verzo = orb(page).locator("[data-verzo-orb]")
+  await expect(verzo).toHaveCount(1)
+  await expect(verzo).toHaveAttribute("data-state", "idle")
   // On home the orb is drawn over its keyboard button (named by its words), so this picture is
   // hidden from assistive tech there; its state words are still in the drawing.
-  await expect(genesy.locator('[role="status"]')).toHaveText(s.orb.idle)
+  await expect(verzo.locator('[role="status"]')).toHaveText(s.orb.idle)
   // The approved design orb at every size: five SVG strands in a glass body, never the WebGL sheets.
-  await expect(genesy.locator("svg path")).toHaveCount(5)
-  await expect(genesy.locator("canvas")).toHaveCount(0)
+  await expect(verzo.locator("svg path")).toHaveCount(5)
+  await expect(verzo.locator("canvas")).toHaveCount(0)
   await expectOrbClear(page, [
     header,
     dock(page),
@@ -78,8 +78,8 @@ test.describe("reduced motion", () => {
     expect(await orb(page).evaluate((el) => el.getAnimations().length)).toBe(0)
     expect(await orb(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe("0s")
     // The still orb's words stay off screen: nothing spills over the caption below the slot.
-    await expect(orb(page).locator("[data-genesy-orb]")).toHaveAttribute("data-still", "true")
-    const words = (await orb(page).locator(".genesy-orb-label").boundingBox())!
+    await expect(orb(page).locator("[data-verzo-orb]")).toHaveAttribute("data-still", "true")
+    const words = (await orb(page).locator(".verzo-orb-label").boundingBox())!
     expect(words.width).toBeLessThanOrEqual(1)
   })
 })

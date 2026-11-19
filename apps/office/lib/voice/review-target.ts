@@ -8,7 +8,7 @@ import {
   type PreparedAction,
 } from "./catalog"
 import { callBackend, VoiceError, type VoiceContext } from "./server"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { voiceMessages } from "@verzo/i18n/voice"
 
 const resources: Record<string, Record<string, string>> = {
   en: voiceMessages.en.voice.resources,

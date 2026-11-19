@@ -5,8 +5,8 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import { createStore } from "zustand/vanilla"
 import { useStore } from "zustand"
 
-import { tillCatalog } from "@genesy/api-client/endpoints/till"
-import type { TillProduct } from "@genesy/api-client/model"
+import { tillCatalog } from "@verzo/api-client/endpoints/till"
+import type { TillProduct } from "@verzo/api-client/model"
 import { useTill } from "@/lib/till-store"
 
 /** One thing the till can sell: a product, or one variant of it. */

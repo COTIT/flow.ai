@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
 import {
   bulkPollInterval,
   bulkRequest,

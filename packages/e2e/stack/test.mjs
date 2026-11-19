@@ -1,4 +1,4 @@
-// `pnpm --filter @genesy/e2e stack:test [playwright args]`: up, the stack specs, down (CI runs this).
+// `pnpm --filter @verzo/e2e stack:test [playwright args]`: up, the stack specs, down (CI runs this).
 // A stack that was already up stays up afterwards.
 import console from "node:console"
 import { spawnSync } from "node:child_process"

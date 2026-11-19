@@ -11,14 +11,14 @@ Shared rules (guard order, 404s, patch updates, list `meta`, money printing) are
 | list / get / create / update / delete | `productbrand.{list,get,create,update,delete}` (Laravel checked `.view` for one; the catalog has `get`) |
 | same for categories | `productcategory.*` |
 
-- **Laravel never saved these writes.** No listener handled them: create answered 500, and update and delete answered 200 without changing anything. genesy stores them. No screen writes them today; special offers and discounts read them through `/searches`.
+- **Laravel never saved these writes.** No listener handled them: create answered 500, and update and delete answered 200 without changing anything. Verzo stores them. No screen writes them today; special offers and discounts read them through `/searches`.
 - **Brand:** `{id, product_brand_id, name, description, logo, website, meta, created_at, updated_at}`.
   - `name` is required, ≤255.
   - `logo` and `website` must be valid URLs, ≤2048. Laravel validated 2048 but stored 255.
   - `meta` is an object.
 - **Category:** `{id, product_category_id, name, description, meta, products_count, created_at, updated_at, relationships}`.
-  - `products_count` (Genesy addition): live products of any status whose `category_id` is this category. Office shows it before a remove.
-  - `name` is unique among the workspace's live categories, compared trimmed and case-insensitive (Genesy addition; Laravel allowed duplicates). Create and rename answer 422 `The name has already been taken.` for a taken name. Renaming to its own name, or another case of it, is allowed; a removed category's name is free again; names stored before the rule stay as they are.
+  - `products_count` (Verzo addition): live products of any status whose `category_id` is this category. Office shows it before a remove.
+  - `name` is unique among the workspace's live categories, compared trimmed and case-insensitive (Verzo addition; Laravel allowed duplicates). Create and rename answer 422 `The name has already been taken.` for a taken name. Renaming to its own name, or another case of it, is allowed; a removed category's name is free again; names stored before the rule stay as they are.
   - On GET one, `relationships` holds `parent` and `children`. Lists print `[]`, because Laravel loaded nothing there.
   - `parent_id` must be a live category of this workspace, and never the category itself or one of its descendants. Laravel had no cycle guard. The error text is "The parent id is an invalid id for the product_category domain."
 - **List:**
@@ -49,9 +49,9 @@ The last three answer every product page's automatic calls. Without them the pag
 The product resource follows Laravel `ProductResource`; see `src/modules/products/resource.rs` for every key.
 
 - **One shape for list and detail:** list rows also carry the detail-only keys.
-- **`labels`** (Genesy addition, migration `product_labels`; set on create/update): short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`. At most 8, each 1 to 32 characters after trimming, no repeats in any case (422 on `labels` or `labels.N`). Absent keeps them; `[]` or null clears them. Duplicating a product copies them.
-- **`category_id`** (Genesy addition, migration `product_category_link`; set on create/update, returned on show and list): the product's main category, a live `/erp/product-categories` id of the same workspace (422 `The category id is an invalid id for the product_category domain.` otherwise, including another workspace's id). Null or absent on create = none; null on update clears it. Deleting the category clears it on every product (the soft delete and the foreign key's `ON DELETE SET NULL (category_id)` both do). Duplicating a product copies it. The storefront shows it as `category` and filters by it (`storefront.md`).
-- **`store_only`** (Genesy addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
+- **`labels`** (Verzo addition, migration `product_labels`; set on create/update): short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`. At most 8, each 1 to 32 characters after trimming, no repeats in any case (422 on `labels` or `labels.N`). Absent keeps them; `[]` or null clears them. Duplicating a product copies them.
+- **`category_id`** (Verzo addition, migration `product_category_link`; set on create/update, returned on show and list): the product's main category, a live `/erp/product-categories` id of the same workspace (422 `The category id is an invalid id for the product_category domain.` otherwise, including another workspace's id). Null or absent on create = none; null on update clears it. Deleting the category clears it on every product (the soft delete and the foreign key's `ON DELETE SET NULL (category_id)` both do). Duplicating a product copies it. The storefront shows it as `category` and filters by it (`storefront.md`).
+- **`store_only`** (Verzo addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
 - **`default_warehouse`:** the full warehouse resource on GET one and search, the compact form in lists.
 - **`currency` / `decimals`:** the product's currency at top level (upper-case ISO 4217 code, minor-unit exponent), the same one as `relationships.currency`. Both null only when that currency was deleted. Price strings below stay major units; `decimals` says how many places to show.
 - **Prices are strings, printed by `money::format_decimals` the way Laravel's `MoneyHelper` did:**
@@ -132,11 +132,11 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
 - **Filters:**
   - `status` (default `active`)
   - `q`, or `search` (the RN app's name): ILIKE on name, reference, vendor reference, EAN, barcode and product number
-  - `category_id` (uuid, Genesy addition): only products of this category. Another workspace's id finds nothing; a malformed one is 422 `The category id must be a valid UUID.`
+  - `category_id` (uuid, Verzo addition): only products of this category. Another workspace's id finds nothing; a malformed one is 422 `The category id must be a valid UUID.`
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
   - `exclude_ids` (comma-separated, at most 100)
-  - `available_lte` (decimal text, Genesy addition): only stock-tracked products whose sellable stock is at most this. Sellable = the storefront `available_stock` rule: default warehouse, dispatch rows (no bin), each row `stock_lvl` − `reserved` never below 0, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
+  - `available_lte` (decimal text, Verzo addition): only stock-tracked products whose sellable stock is at most this. Sellable = the storefront `available_stock` rule: default warehouse, dispatch rows (no bin), each row `stock_lvl` − `reserved` never below 0, lots that are held, recalled or expired left out: the shop's "sold out" rule. `available_lte=0` lists products out of stock (one empty lot beside a full one is not). Untracked products never match. Not a number: 422 `The available lte must be a number.` Note `total_available_stock` in the resource is Σ level without that subtraction.
 - **Paging:** `limit` / `per_page` / `page_size`, max 100.
 - **Order:** newest first.
 - **Laravel differences:** Laravel ignored `ean13`, `search`, `per_page` and `exclude_ids`. The RN app's barcode fallback `?ean13=X` relied on them and got an arbitrary product.

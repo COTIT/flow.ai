@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const api = { person: vi.fn(), holdings: vi.fn(), verifyPlot: vi.fn(), verifyFarm: vi.fn(), verifyPerson: vi.fn() }
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsPersonsGet: (...args: unknown[]) => api.person(...args),
   farmRecordsPersonsHoldings: (...args: unknown[]) => api.holdings(...args),
   farmRecordsPersonsVerify: (...args: unknown[]) => api.verifyPerson(...args),

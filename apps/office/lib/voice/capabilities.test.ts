@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import catalog from "./catalog.generated.json"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { voiceMessages } from "@verzo/i18n/voice"
 import {
   CAPABILITIES,
   allowedFor,
@@ -8,7 +8,7 @@ import {
   moduleFor,
   pickSuggestions,
   type Available,
-} from "@genesy/voice/lib/capabilities"
+} from "@verzo/voice/lib/capabilities"
 import {
   availableCapabilities,
   describeCapabilities,

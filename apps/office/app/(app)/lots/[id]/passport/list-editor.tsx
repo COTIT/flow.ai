@@ -4,8 +4,8 @@ import * as React from "react"
 import { ChevronDownIcon, ChevronUpIcon, Trash2Icon } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
 import { SubTile, Tile, type Tone } from "@/components/bento"
 
 /**

@@ -1,4 +1,4 @@
-import type { VoiceReview } from "@genesy/voice/lib/client-contract"
+import type { VoiceReview } from "@verzo/voice/lib/client-contract"
 
 /**
  * The stock totals a review proposed, per warehouse, named from the review's own snapshot. What

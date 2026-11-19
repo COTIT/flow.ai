@@ -8,11 +8,11 @@ permissions, cross-app flows and seed gaps.
 ## Run it
 
 ```bash
-pnpm --filter @genesy/e2e stack:up       # Postgres + API + 6 apps, then leaves them running
-pnpm --filter @genesy/e2e exec playwright test -c playwright.stack.config.ts   # as often as you like
-pnpm --filter @genesy/e2e stack:reset    # back to the freshly seeded data (seconds; apps keep running)
-pnpm --filter @genesy/e2e stack:down     # stops everything, removes the container
-pnpm --filter @genesy/e2e stack:test     # up → specs → down in one go (what CI runs)
+pnpm --filter @verzo/e2e stack:up       # Postgres + API + 6 apps, then leaves them running
+pnpm --filter @verzo/e2e exec playwright test -c playwright.stack.config.ts   # as often as you like
+pnpm --filter @verzo/e2e stack:reset    # back to the freshly seeded data (seconds; apps keep running)
+pnpm --filter @verzo/e2e stack:down     # stops everything, removes the container
+pnpm --filter @verzo/e2e stack:test     # up → specs → down in one go (what CI runs)
 ```
 
 Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/till-sale.spec.ts --project=stack-desktop`.

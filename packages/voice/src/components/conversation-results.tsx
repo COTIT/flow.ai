@@ -12,17 +12,17 @@ import {
   type SetStateAction,
 } from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
+import { useSession } from "@verzo/api-client/auth"
+import { useUsersWorkspaces } from "@verzo/api-client/endpoints/users"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
+} from "@verzo/ui/components/dialog"
 import { fieldName, type TranscriptRow } from "../lib/helpers"
 import {
   answerResultIds,
@@ -266,7 +266,7 @@ export function ConversationResults({
   }
   const labels: ReportLabels = {
     locale,
-    brand: "GENESY",
+    brand: "VERZO",
     businessName: workspaces.data?.data.find(
       (workspace) => workspace.id === workspaceId
     )?.display_name,

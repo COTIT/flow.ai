@@ -4,12 +4,12 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiRequest } from "@genesy/api-client/mutator"
-import { sessionStore } from "@genesy/api-client/session"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+import { apiRequest } from "@verzo/api-client/mutator"
+import { sessionStore } from "@verzo/api-client/session"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   bulkPath,
   bulkPollInterval,

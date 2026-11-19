@@ -5,9 +5,9 @@ use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::Api;
-use genesy_360_api::{build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer};
 
 const MASK: &str = "********";
 

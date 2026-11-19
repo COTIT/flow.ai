@@ -4,11 +4,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { useTillLogout } from "@genesy/api-client/endpoints/till"
-import { Button } from "@genesy/ui/components/button"
-import { Logo } from "@genesy/ui/components/logo"
+import { useTillLogout } from "@verzo/api-client/endpoints/till"
+import { Button } from "@verzo/ui/components/button"
+import { Logo } from "@verzo/ui/components/logo"
 import { QueueRunner } from "@/components/queue-runner"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { ThemeToggle } from "@verzo/ui/components/theme-toggle"
 import { tillStore, useTill } from "@/lib/till-store"
 
 const nav = [

@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'

@@ -5,21 +5,21 @@ import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAppKeysListQueryKey,
   useAppKeysCreate,
   useAppKeysList,
   useAppKeysRevoke,
-} from "@genesy/api-client/endpoints/app-keys"
+} from "@verzo/api-client/endpoints/app-keys"
 import {
   AppKeyIssuableScope,
   AppKeyKind,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogContent,
@@ -27,9 +27,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import {
   Table,
   TableBody,
@@ -37,7 +37,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { Choices, Field, selectClass } from "@/components/field"
 import {
   CardState,

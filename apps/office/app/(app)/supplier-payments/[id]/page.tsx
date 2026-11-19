@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getSupplierPaymentsGetQueryKey,
   getSupplierPaymentsListQueryKey,
@@ -16,12 +16,12 @@ import {
   supplierPaymentsReverseReview,
   useSupplierPaymentsGet,
   useSupplierPaymentsTargets,
-} from "@genesy/api-client/endpoints/supplier-payments"
-import type { SupplierPaymentResource } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/supplier-payments"
+import type { SupplierPaymentResource } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -29,8 +29,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { PageHead } from "@/components/list"

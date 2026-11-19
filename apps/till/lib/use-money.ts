@@ -2,7 +2,7 @@
 
 import { useLocale } from "next-intl"
 
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { useTill } from "@/lib/till-store"
 
 /** Formats minor units in the register's currency (from the login); "—" until there is one. */

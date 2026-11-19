@@ -37,20 +37,20 @@ Rules:
 - Gold is never text on a light ground (use it as fill, rule, or on navy). Dark mode: gold is the primary button.
 - `Notice` and `EmptyState` keep their API; under `theme-glass` they get the new shape and coloured icon chip.
 
-## 2. Components in `@genesy/ui/components/*`
+## 2. Components in `@verzo/ui/components/*`
 
 Existing: `button`, `input`, `label`, `textarea`, `table`, `badge`, `dialog`, `alert-dialog`, `confirm-dialog`, `notice`, `empty-state`, `api-error`, `pager`, `logo`, `theme-toggle`, `passport-view`, `login-form`.
 
-New (shadcn base-nova on `@base-ui/react`, no new packages): `card`, `tabs`, `select`, `sheet`, `skeleton`, `separator`, `dropdown-menu`, `checkbox`, `switch`, `toggle`, `toggle-group`, `tooltip`, `avatar`, `scroll-area`, `sidebar` (+ hook `@genesy/ui/hooks/use-mobile`).
+New (shadcn base-nova on `@base-ui/react`, no new packages): `card`, `tabs`, `select`, `sheet`, `skeleton`, `separator`, `dropdown-menu`, `checkbox`, `switch`, `toggle`, `toggle-group`, `tooltip`, `avatar`, `scroll-area`, `sidebar` (+ hook `@verzo/ui/hooks/use-mobile`).
 - `tooltip` needs a `TooltipProvider` in the layout; a tooltip only labels, it is never the only way to an action.
 - `sidebar` needs `SidebarProvider`; on phones it opens as a sheet.
 - Loading = `Skeleton` blocks in the final shape (no layout shift), not a "Loading…" line.
 
-## 3. Animations: `island` (`@genesy/ui/components/island`)
+## 3. Animations: `island` (`@verzo/ui/components/island`)
 
 ```tsx
 "use client"
-import { island } from "@genesy/ui/components/island"
+import { island } from "@verzo/ui/components/island"
 
 // module level, once:
 const CountUp = island(() => import("../rb/CountUp"))
@@ -64,10 +64,10 @@ const CountUp = island(() => import("../rb/CountUp"))
 - **`motion` 12.43.0 is approved (exact pin, same as landing) for office and shop only.** Each of those two apps adds it to its own `package.json` when it copies in a React Bits piece that needs it (CountUp, BlurText). `packages/ui` and the till never depend on it; `island` works with any component. Copy React Bits files into the app (e.g. `apps/office/components/rb/`) with the licence note, like `apps/landing/components/rb/README.md`.
 - Where: office = CountUp on overview numbers (once). Shop = BlurText headline, GlareHover on product photos (pointer: fine only), passport tiles fade in. **Till = none, ever**; no animation code in its bundle, and no transitions on sale actions.
 
-## 4. E2E (`@genesy/e2e`)
+## 4. E2E (`@verzo/e2e`)
 
 - Projects: every app has `<app>-desktop` (1280×800) and `<app>-mobile` (375×812). The till also has `till-ipad-landscape` (1024×768) and `till-ipad-portrait` (834×1194), both touch (`projectsFor(app, { tablets: true })`).
-- From `@genesy/e2e/test`, next to `expectNoHorizontalScroll`:
+- From `@verzo/e2e/test`, next to `expectNoHorizontalScroll`:
   - `expectTapTargets(page, { min = 44, within? })` — every visible control is at least 44×44 px.
   - `expectNoLayoutShift(page, max = 0.01)` — call when the page has settled.
   - `expectNoMotion(page)` — with `test.use({ reducedMotion: "reduce" })`.

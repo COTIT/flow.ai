@@ -1,4 +1,4 @@
-import type { RegistrationRequest } from '@genesy/api-client/model'
+import type { RegistrationRequest } from '@verzo/api-client/model'
 
 import type { Enums } from '@/lib/enums'
 
@@ -17,7 +17,7 @@ export interface CycleForm {
 }
 
 /**
- * The register form, as strings. A blank is sent as null (Genesy refuses `''` for a decimal or a
+ * The register form, as strings. A blank is sent as null (Verzo refuses `''` for a decimal or a
  * date); counts go as whole numbers.
  *
  * `cycles` holds one entry per crop ticked. A plot carries several concurrent

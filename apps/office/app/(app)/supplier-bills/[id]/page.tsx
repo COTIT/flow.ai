@@ -5,18 +5,18 @@ import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getPurchaseCostAdjustmentsListQueryKey,
   usePurchaseCostAdjustmentsList,
-} from "@genesy/api-client/endpoints/purchase-cost-adjustments"
+} from "@verzo/api-client/endpoints/purchase-cost-adjustments"
 import {
   getSupplierBillsGetQueryKey,
   getSupplierBillsListQueryKey,
   useSupplierBillsGet,
-} from "@genesy/api-client/endpoints/supplier-bills"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/supplier-bills"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { Fact, SideCard, usePayWord } from "@/components/payables"

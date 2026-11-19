@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const api = { lookup: vi.fn(), redeem: vi.fn(), timeline: vi.fn() }
 
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({
   farmVouchersLookup: (...args: unknown[]) => api.lookup(...args),
   farmVouchersRedeem: (...args: unknown[]) => api.redeem(...args),
   farmVouchersTimeline: (...args: unknown[]) => api.timeline(...args),

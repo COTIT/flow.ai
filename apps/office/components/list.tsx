@@ -5,9 +5,9 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { ArrowLeft } from "lucide-react"
 
-import { Card } from "@genesy/ui/components/card"
-import { Pager } from "@genesy/ui/components/pager"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+import { Card } from "@verzo/ui/components/card"
+import { Pager } from "@verzo/ui/components/pager"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -15,8 +15,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/ui/components/table"
+import { cn } from "@verzo/ui/lib/utils"
 
 /**
  * Title row of a page (OfficeProducts `.page-head`): small caps eyebrow, 26 px title, actions

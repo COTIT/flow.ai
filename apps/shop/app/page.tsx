@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { StorefrontPage } from "@genesy/ui/components/storefront-page"
+import { StorefrontPage } from "@verzo/ui/components/storefront-page"
 import LegacyHomePage from "@/components/legacy-home"
 import { ShopJsonLd } from "@/components/shop-json-ld"
 import { TraceForm } from "@/components/trace-form"

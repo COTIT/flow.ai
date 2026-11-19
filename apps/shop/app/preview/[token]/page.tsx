@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
-import { StorefrontPage } from "@genesy/ui/components/storefront-page"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
+import { StorefrontPage } from "@verzo/ui/components/storefront-page"
 import { card } from "@/lib/look"
 import { getPreviewDesign } from "@/lib/storefront-design"
 

@@ -13,7 +13,7 @@ describe("Flow capability registry vs the voice tool catalog", () => {
         expect(ops.get(id), `${cap.id} → ${id}`).toBeDefined()
   })
 
-  it("asks Genesy only for operations voice can run", () => {
+  it("asks Verzo only for operations voice can run", () => {
     for (const cap of FLOW_CAPABILITIES.filter((c) => "prompt" in c.entry))
       for (const id of cap.ops) {
         const op = ops.get(id)!

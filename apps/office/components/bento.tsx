@@ -4,10 +4,10 @@ import * as React from "react"
 import Link from "next/link"
 import type { LucideIcon } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { cn } from "@genesy/ui/lib/utils"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { cn } from "@verzo/ui/lib/utils"
 
 // Bento pieces from the detail mockups (OfficeOverview, OfficeProduct, OfficeLot, OfficeOrder).
 

@@ -8,10 +8,10 @@ use axum::{
     http::{Method, StatusCode},
 };
 use common::send;
-use genesy_360_api::{AppState, bootstrap, build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{AppState, bootstrap, build_app, mail::Mailer};
 
 const NEW: &str = "N3w!Passw0rd-xyz";
 

@@ -112,7 +112,7 @@ One query per request each (`discounts::repo`):
 
 Prices can differ from Laravel for the same data. Cutover QA compares a few customers' invoice previews on both sides.
 
-| Genesy | Laravel |
+| Verzo | Laravel |
 |---|---|
 | Highest applicable percentage, on both paths | Relation path: the first attached group of the supplier, then its first matching discount (collection order) |
 | Group `active` is respected on both paths | Relation path ignored group `active` |

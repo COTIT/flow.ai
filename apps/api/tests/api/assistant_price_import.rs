@@ -22,11 +22,11 @@ struct World {
 }
 
 async fn world(pool: PgPool) -> World {
-    let mut state = common::state(pool.clone(), genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(pool.clone(), verzo_360_api::mail::Mailer::capture().0);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(KEY.into()).unwrap(),
+        verzo_360_api::AssistantSecret::new(KEY.into()).unwrap(),
     ));
-    let app = genesy_360_api::build_app(state);
+    let app = verzo_360_api::build_app(state);
     let (owner, ws) = signup(&app, "prices@example.test", "prices").await;
     let session = session(&app, &ws, &owner).await;
     World {

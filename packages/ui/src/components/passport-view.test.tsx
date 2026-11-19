@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
-import type { PublicLot } from "@genesy/api-client/model"
+import type { PublicLot } from "@verzo/api-client/model"
 
 import en from "../../../i18n/messages/en.json"
 import { PassportView } from "./passport-view"

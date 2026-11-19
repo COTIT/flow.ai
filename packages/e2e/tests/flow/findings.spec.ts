@@ -194,7 +194,7 @@ test("SW6: a refused microphone says so in plain words, never the browser's raw 
   await fakeAgent(page)
   await page.goto("/")
   await tapOrb(page) // orb-first home: the orb starts voice
-  const dock = page.getByRole("region", { name: "Ask Genesy" })
+  const dock = page.getByRole("region", { name: "Ask the Assistant" })
   await expect(dock.getByRole("alert")).toContainText(
     /Microphone access was refused/
   )

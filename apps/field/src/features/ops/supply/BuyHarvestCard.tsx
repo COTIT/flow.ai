@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'

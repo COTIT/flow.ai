@@ -1,13 +1,13 @@
 //! Gateway receipts use the invoice ledger exactly once, including late collections.
 use crate::common::{self, invoicing::*};
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{
-    gateway::repo::Operation, invoice_gateway as gateway, invoice_payments,
-    payments::GlobadymeEnvironment,
-};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{
+    gateway::repo::Operation, invoice_gateway as gateway, invoice_payments,
+    payments::GlobadymeEnvironment,
+};
 
 async fn sent_invoice(f: &F, amount: &str) -> Uuid {
     let id = draft(
@@ -131,7 +131,7 @@ async fn operation(
         .bind(id).bind(f.api.ws.parse::<Uuid>().unwrap()).bind(invoice).bind(note).bind(parent)
         .bind(if note.is_some() { "refund" } else { "payment" }).bind(amount).bind(id.to_string())
         .execute(&f.api.pool).await.unwrap();
-    genesy_360_api::gateway::repo::find(&f.api.pool, f.api.ws.parse().unwrap(), id)
+    verzo_360_api::gateway::repo::find(&f.api.pool, f.api.ws.parse().unwrap(), id)
         .await
         .unwrap()
         .unwrap()
@@ -161,7 +161,7 @@ async fn collection_ledger_rejects_disabled_or_wrong_realm_and_preserves_booked_
         let mut tx = f.api.pool.begin().await.unwrap();
         assert!(matches!(
             gateway::apply_collection(&state, &mut tx, ws, &source, "captured-source").await,
-            Err(genesy_360_api::AppError::Unavailable(_))
+            Err(verzo_360_api::AppError::Unavailable(_))
         ));
         tx.commit().await.unwrap();
         let values:(i64,i64)=sqlx::query_as("SELECT paid_total,(SELECT count(*) FROM invoice_payments WHERE id=$2) FROM invoices WHERE id=$1")
@@ -180,7 +180,7 @@ async fn collection_ledger_rejects_disabled_or_wrong_realm_and_preserves_booked_
     let mut tx = f.api.pool.begin().await.unwrap();
     assert!(matches!(
         gateway::apply_collection(&production, &mut tx, ws, &source, "replacement-capture").await,
-        Err(genesy_360_api::AppError::Unavailable(_))
+        Err(verzo_360_api::AppError::Unavailable(_))
     ));
     tx.commit().await.unwrap();
     let values:(i64,i64,String)=sqlx::query_as("SELECT i.paid_total,p.amount,p.provider_id FROM invoices i JOIN invoice_payments p ON p.invoice_id=i.id WHERE i.id=$1 AND p.id=$2")
@@ -229,7 +229,7 @@ async fn refund_ledger_checks_its_parent_realm_without_releasing_reserved_money(
         let mut tx = f.api.pool.begin().await.unwrap();
         assert!(matches!(
             gateway::apply_refund(&state, &mut tx, ws, &refund, "source-capture").await,
-            Err(genesy_360_api::AppError::Unavailable(_))
+            Err(verzo_360_api::AppError::Unavailable(_))
         ));
         tx.commit().await.unwrap();
     }
@@ -237,7 +237,7 @@ async fn refund_ledger_checks_its_parent_realm_without_releasing_reserved_money(
     let mut tx = f.api.pool.begin().await.unwrap();
     assert!(matches!(
         gateway::apply_refund(&f.delivery_state, &mut tx, ws, &refund, "source-capture").await,
-        Err(genesy_360_api::AppError::Unavailable(_))
+        Err(verzo_360_api::AppError::Unavailable(_))
     ));
     tx.commit().await.unwrap();
     let before:(i64,i64,i64)=sqlx::query_as("SELECT (SELECT paid_total FROM invoices WHERE id=$1),(SELECT count(*) FROM invoice_payments WHERE id=$2),(SELECT coalesce(sum(amount),0)::bigint FROM order_payments WHERE parent_id=$3 AND kind='refund' AND status NOT IN ('failed','canceled'))")
@@ -265,7 +265,7 @@ async fn refund_ledger_checks_its_parent_realm_without_releasing_reserved_money(
     let mut tx = f.api.pool.begin().await.unwrap();
     assert!(matches!(
         gateway::apply_refund(&production, &mut tx, ws, &refund, "different-capture").await,
-        Err(genesy_360_api::AppError::Unavailable(_))
+        Err(verzo_360_api::AppError::Unavailable(_))
     ));
     tx.commit().await.unwrap();
     let totals:(i64,i64,i64)=sqlx::query_as("SELECT (SELECT paid_total FROM invoices WHERE id=$1),(SELECT paid_total FROM invoices WHERE id=$2),(SELECT amount FROM invoice_payments WHERE id=$3)")
@@ -844,15 +844,13 @@ async fn paid_shop_invoice_credits_refund_the_original_order_owned_capture(pool:
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
-    let mut production = common::state(
-        w.api.pool.clone(),
-        genesy_360_api::mail::Mailer::capture().0,
-    );
+    let mut production =
+        common::state(w.api.pool.clone(), verzo_360_api::mail::Mailer::capture().0);
     production.payments = production.payments.with_globadyme_environment(Some(
-        genesy_360_api::payments::GlobadymeEnvironment::Production,
+        verzo_360_api::payments::GlobadymeEnvironment::Production,
     ));
     let (status, blocked) = common::send(
-        &genesy_360_api::build_app(production),
+        &verzo_360_api::build_app(production),
         Method::POST,
         &format!("/v1/workspace/{}/orders/{order}/invoice", w.api.ws),
         None,

@@ -4,9 +4,9 @@ import {
   farmEquipmentCategoriesCreate,
   farmEquipmentCategoriesList,
   farmEquipmentCreate,
-} from '@genesy/api-client/endpoints/farm-equipment'
-import { farmLoansCreate } from '@genesy/api-client/endpoints/farm-loans'
-import type { EquipmentCategoryRequest, EquipmentRequest, LoanProductRequest } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-equipment'
+import { farmLoansCreate } from '@verzo/api-client/endpoints/farm-loans'
+import type { EquipmentCategoryRequest, EquipmentRequest, LoanProductRequest } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

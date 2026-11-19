@@ -1,17 +1,17 @@
-# RUAHA assertions → genesy tests
+# RUAHA assertions → Verzo tests
 
-Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/api/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
+Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where Verzo proves the same rule, or why it does not apply. `tests/api/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
 **Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **264**. N/A: **16**.
 
-**How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
+**How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". Verzo enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
-**Beyond RUAHA** (rules genesy adds or changes, with their tests):
-- Joining a household that already has a head: RUAHA's `ON CONFLICT DO NOTHING` silently dropped the new member; genesy makes them a member (`is_head` false) and refuses a second head — `tests/api/farm_registration.rs::joining_a_household_with_a_head_does_not_drop_the_new_member`.
+**Beyond RUAHA** (rules Verzo adds or changes, with their tests):
+- Joining a household that already has a head: RUAHA's `ON CONFLICT DO NOTHING` silently dropped the new member; Verzo makes them a member (`is_head` false) and refuses a second head — `tests/api/farm_registration.rs::joining_a_household_with_a_head_does_not_drop_the_new_member`.
 - Harvest revisions accept only `farmer_reported` or `field_verified` as source (RUAHA accepted all five). RUAHA's app only ever wrote `field_verified` (`useOfficerEdit.ts`) and no assertion uses another; the other three are machine sources nothing writes yet — `tests/api/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history`.
 - Cross-workspace denial on every route group, farm-only users shut out of the rest of the workspace, phone and GPS only for village staff, voucher lookup rate limit, redeem under a 5-way race, temporary passwords never logged — see `tests/farm_*.rs`.
 
-| # | RUAHA assertion | What it checks | genesy test, or why not |
+| # | RUAHA assertion | What it checks | Verzo test, or why not |
 |---|---|---|---|
 | 1 | rls_test.sql #1 | farmer Neema sees exactly her own farm | `tests/api/farm_records.rs::a_farmer_reads_her_own_farm_and_household_only` |
 | 2 | rls_test.sql #2 | farmer Neema cannot see the Kimaro farm | `tests/api/farm_records.rs::a_farmer_reads_her_own_farm_and_household_only` |
@@ -52,9 +52,9 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 37 | rls_test.sql #37 | harvest correction leaves exactly one current row | `tests/api/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
 | 38 | rls_test.sql #38 | harvest correction preserves the old row | `tests/api/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
 | 39 | rls_test.sql #39 | exactly one current expected figure survives per cycle | `tests/api/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
-| 40 | mvp_security_test.sql #1 | RPC writer cannot login or bypass RLS | N/A because genesy has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
-| 41 | mvp_security_test.sql #2 | RPC writer owns no tables | N/A because genesy has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
-| 42 | mvp_security_test.sql #3 | client cannot assume writer | N/A because genesy has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
+| 40 | mvp_security_test.sql #1 | RPC writer cannot login or bypass RLS | N/A because Verzo has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
+| 41 | mvp_security_test.sql #2 | RPC writer owns no tables | N/A because Verzo has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
+| 42 | mvp_security_test.sql #3 | client cannot assume writer | N/A because Verzo has no client database access: there is no writer role to guard; every write is a service call behind the farm guard |
 | 43 | mvp_security_test.sql #4 | full account profile is self-only | `tests/api/farm_records.rs::a_farm_only_user_cannot_read_workspace_users` |
 | 44 | mvp_security_test.sql #5 | identity reassignment denied | `tests/api/farm_records.rs::correction_rules` |
 | 45 | mvp_security_test.sql #6 | farmer verification spoof denied | `tests/api/farm_records.rs::correction_rules` |
@@ -235,12 +235,12 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 220 | register_cycles_test.sql #1 | two crops register as two cycles on the same plot | `tests/api/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 221 | register_cycles_test.sql #2 | each crop carries its own expected harvest | `tests/api/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 222 | register_cycles_test.sql #3 | the result names every cycle it created | `tests/api/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
-| 223 | register_cycles_test.sql #4 | crop_cycle_id stays the first cycle, for older clients | N/A because the legacy single-`cycle` payload and first-id fields served drafts typed before 5 Oct 2026 on the old app; genesy has no such clients |
+| 223 | register_cycles_test.sql #4 | crop_cycle_id stays the first cycle, for older clients | N/A because the legacy single-`cycle` payload and first-id fields served drafts typed before 5 Oct 2026 on the old app; Verzo has no such clients |
 | 224 | register_cycles_test.sql #5 | each cycle keeps its own measure | `tests/api/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 225 | register_cycles_test.sql #6 | the same crop twice on one plot is refused | `tests/api/farm_registration.rs::crop_rules_refuse_the_whole_registration` |
 | 226 | register_cycles_test.sql #7 | a second crop without its measure refuses the registration | `tests/api/farm_registration.rs::crop_rules_refuse_the_whole_registration` |
 | 227 | register_cycles_test.sql #8 | a refused registration leaves no person behind | `tests/api/farm_registration.rs::crop_rules_refuse_the_whole_registration` |
-| 228 | register_cycles_test.sql #9 | a single cycle + harvest payload still registers | N/A because the legacy single-`cycle` payload and first-id fields served drafts typed before 5 Oct 2026 on the old app; genesy has no such clients |
+| 228 | register_cycles_test.sql #9 | a single cycle + harvest payload still registers | N/A because the legacy single-`cycle` payload and first-id fields served drafts typed before 5 Oct 2026 on the old app; Verzo has no such clients |
 | 229 | plot_documents_test.sql #1 | an officer files a title document against a plot in their village | `tests/api/farm_documents.rs::an_officer_files_a_title_document_and_reads_it_back` |
 | 230 | plot_documents_test.sql #2 | and can read the file back | `tests/api/farm_documents.rs::an_officer_files_a_title_document_and_reads_it_back` |
 | 231 | plot_documents_test.sql #3 | an upload cannot be attributed to someone else | `tests/api/farm_documents.rs::an_upload_cannot_name_its_uploader_or_any_other_field` |
@@ -271,7 +271,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
 | 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | `tests/api/farm_pue.rs::the_pipeline_adds_rent_per_day_apart_from_purchase_prices` |
 | 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | `tests/api/farm_demo.rs::the_demo_seeds_energy_and_the_market` |
-| 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because genesy has no name lookup: an account's name appears only embedded on a row the caller may read, so before a line is attached there is nothing to resolve |
+| 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because Verzo has no name lookup: an account's name appears only embedded on a row the caller may read, so before a line is attached there is nothing to resolve |
 | 260 | supply_attached_by_test.sql #2 | a supply line records who attached it, not who the client claims | `tests/api/farm_market.rs::ops_attaches_supply_and_the_server_sums_it` |
 | 261 | supply_attached_by_test.sql #3 | an update cannot rewrite who attached a line, or when | `tests/api/farm_market.rs::a_supply_line_is_never_rewritten` |
 | 262 | supply_attached_by_test.sql #4 | staff who can read the supply line resolve who attached it | `tests/api/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
@@ -287,7 +287,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 272 | bug_report_test.sql #8 | a client cannot change a report's status | `tests/api/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
 | 273 | bug_report_test.sql #9 | a client cannot delete a report | `tests/api/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
 | 274 | bug_report_test.sql #10 | an image cannot be uploaded into someone else's folder | `tests/api/farm_bug_reports.rs::a_farmer_files_a_report_under_their_own_name` |
-| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because genesy has no storage policy layer: no route writes, replaces or deletes a stored image, and every upload gets a fresh server-made key in the reporter's folder |
+| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because Verzo has no storage policy layer: no route writes, replaces or deletes a stored image, and every upload gets a fresh server-made key in the reporter's folder |
 | 276 | bug_report_test.sql #12 | an officer cannot read bug reports | `tests/api/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
 | 277 | bug_report_test.sql #13 | ops cannot read bug reports | `tests/api/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
 | 278 | bug_report_test.sql #14 | admin reads every bug report | `tests/api/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |

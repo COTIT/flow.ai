@@ -9,7 +9,7 @@ const api = {
   plot: vi.fn(),
   harvests: vi.fn(),
 }
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesGet: (...args: unknown[]) => api.cycle(...args),
   farmRecordsFarmsGet: (...args: unknown[]) => api.farm(...args),
   farmRecordsPlotsList: (...args: unknown[]) => api.plots(...args),

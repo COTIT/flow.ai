@@ -1,4 +1,4 @@
-// Reads what `genesy-360-api seed-demo` prints once (its logins exist nowhere else).
+// Reads what `verzo-360-api seed-demo` prints once (its logins exist nowhere else).
 
 /**
  * `app | role | login | secret | path` rows become `credentials`; `label: value` lines after

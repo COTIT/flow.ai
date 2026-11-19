@@ -10,12 +10,12 @@ import {
   useTillShiftClose,
   useTillShiftCurrent,
   useTillShiftOpen,
-} from "@genesy/api-client/endpoints/till"
-import type { ShiftResource } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/api-client/endpoints/till"
+import type { ShiftResource } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { cn } from "@verzo/ui/lib/utils"
 import { CountForm } from "@/components/count-form"
 import { useLock } from "@/components/till-top"
 import { pendingHere, useQueue } from "@/lib/sale-queue"

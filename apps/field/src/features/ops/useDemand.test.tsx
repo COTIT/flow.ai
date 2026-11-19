@@ -13,7 +13,7 @@ const api = {
   farmCropsList: vi.fn(),
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
-vi.mock('@genesy/api-client/endpoints/farm-market', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-market', () => ({
   farmMarketDemandsList: forward('farmMarketDemandsList'),
   farmMarketDemandsGet: forward('farmMarketDemandsGet'),
   farmMarketDemandsCreate: forward('farmMarketDemandsCreate'),
@@ -21,7 +21,7 @@ vi.mock('@genesy/api-client/endpoints/farm-market', () => ({
   farmMarketOpportunitiesCreate: forward('farmMarketOpportunitiesCreate'),
   farmMarketBuyersList: forward('farmMarketBuyersList'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({ farmCropsList: forward('farmCropsList') }))
+vi.mock('@verzo/api-client/endpoints/farm-crops', () => ({ farmCropsList: forward('farmCropsList') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/ops/useDemand')

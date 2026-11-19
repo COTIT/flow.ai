@@ -2,9 +2,9 @@
 
 import { useId, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { formatDate, formatShare } from "@genesy/ui/lib/format"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { formatDate, formatShare } from "@verzo/ui/lib/format"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { fieldName, formatPrice, formatQuantity } from "../../lib/helpers"
 import { drawnAs, shapeOf, type Kind, type ResultView } from "../../lib/views"
 import { ResultPlot, type PlotKind } from "./plot"

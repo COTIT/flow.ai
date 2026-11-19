@@ -4,7 +4,7 @@ import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getFarmSupplyCorrectionListQueryKey,
   useFarmSupplyCorrectionApprove,
@@ -12,12 +12,12 @@ import {
   useFarmSupplyCorrectionReject,
   useFarmSupplyCorrectionRequest,
   useFarmSupplyList,
-} from "@genesy/api-client/endpoints/farm-supply"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import type { Money, SupplyCorrectionResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/farm-supply"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import type { Money, SupplyCorrectionResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Dialog,
   DialogClose,
@@ -27,8 +27,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -36,8 +36,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
+} from "@verzo/ui/components/table"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

@@ -127,7 +127,7 @@ export async function POST(request: Request) {
   }
 }
 
-/** Price-list sheet: checked and kept by the browser; Genesy records only size and sha256. */
+/** Price-list sheet: checked and kept by the browser; Verzo records only size and sha256. */
 async function shareSheet(
   request: Request,
   context: Awaited<ReturnType<typeof authorizeVoice>>,

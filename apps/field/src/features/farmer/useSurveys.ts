@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { farmSurveysAnswer, farmSurveysGet } from '@genesy/api-client/endpoints/farm-surveys'
-import type { Money, QuestionOption, Submitted } from '@genesy/api-client/model'
+import { farmSurveysAnswer, farmSurveysGet } from '@verzo/api-client/endpoints/farm-surveys'
+import type { Money, QuestionOption, Submitted } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { useSurveyEligibility, type SurveyEligibility } from '@/features/farmer/useSurveyEligibility'

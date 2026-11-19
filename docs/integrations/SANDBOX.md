@@ -99,26 +99,26 @@ Never print or commit these values. Put them in a local file outside the repo an
 Commands (one per gate; `--nocapture` shows the observed blocks). If the local database is behind the latest migrations, the sqlx macros fail to compile; export `SQLX_OFFLINE=true` to build from the committed `.sqlx` cache:
 
 ```bash
-cargo test -p genesy-360-api --lib live_l1 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l1 -- --ignored --nocapture
 ```
 ```bash
-cargo test -p genesy-360-api --lib live_l2 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l2 -- --ignored --nocapture
 ```
 ```bash
-cargo test -p genesy-360-api --lib live_l3 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l3 -- --ignored --nocapture
 ```
 ```bash
-cargo test -p genesy-360-api --lib live_l4 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l4 -- --ignored --nocapture
 ```
 ```bash
-cargo test -p genesy-360-api --lib live_l5 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l5 -- --ignored --nocapture
 ```
 ```bash
-cargo test -p genesy-360-api --lib live_l6 -- --ignored --nocapture
+cargo test -p verzo-360-api --lib live_l6 -- --ignored --nocapture
 ```
 All six:
 ```bash
-cargo test -p genesy-360-api --lib live_ -- --ignored --nocapture --test-threads=1
+cargo test -p verzo-360-api --lib live_ -- --ignored --nocapture --test-threads=1
 ```
 
 What each test asserts (documented) and only observes (docs silent):

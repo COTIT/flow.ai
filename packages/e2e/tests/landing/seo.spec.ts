@@ -29,16 +29,29 @@ for (const [path, canonical] of [
     await expect(page.locator('meta[name="robots"]')).toHaveCount(0)
   })
 
-test("the share image is a real image", async ({ page, request }) => {
-  await page.goto("/")
-  const og = await page
-    .locator('meta[property="og:image"]')
-    .getAttribute("content")
-  expect(og).toBeTruthy()
-  const response = await request.get(og!)
-  expect(response.status()).toBe(200)
-  expect(response.headers()["content-type"]).toBe("image/png")
-})
+for (const [path, alt] of [
+  ["/", "Verzo. Turn your intentions into actions."],
+  ["/nl", "Verzo. Zet uw intenties om in acties."],
+  ["/sw", "Verzo. Geuza nia zako kuwa vitendo."],
+] as const) {
+  test(`${path} serves its localized Verzo share image`, async ({
+    page,
+    request,
+  }) => {
+    await page.goto(path)
+    await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute(
+      "content",
+      alt
+    )
+    const url = await page
+      .locator('meta[property="og:image"]')
+      .getAttribute("content")
+    expect(url).toBeTruthy()
+    const response = await request.get(url!)
+    expect(response.status()).toBe(200)
+    expect(response.headers()["content-type"]).toBe("image/png")
+  })
+}
 
 test("sitemap and robots point search engines at the three languages", async ({
   request,

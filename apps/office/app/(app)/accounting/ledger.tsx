@@ -3,10 +3,10 @@
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAccountingGeneralLedger } from "@genesy/api-client/endpoints/accounting"
-import type { CurrencyRef } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
+import { useSession } from "@verzo/api-client/auth"
+import { useAccountingGeneralLedger } from "@verzo/api-client/endpoints/accounting"
+import type { CurrencyRef } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
 import {
   Table,
   TableBody,
@@ -14,8 +14,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay } from "@verzo/ui/lib/format"
 import { CardState, ListPager, ListSkeleton } from "@/components/list"
 import { Empty } from "@/components/states"
 

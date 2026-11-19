@@ -29,7 +29,7 @@ import { useIdempotencyKey } from "./idempotency"
  * (docs/integrations/contracts.md §5). The API decides everything; these only fetch and send.
  * Calls go through the generated endpoints. The generated models type every enum as `string`,
  * so callers pass their narrower view type (`T`) and the reply is read as that
- * (@genesy/ui business-approvals/types.ts, checked against the generated models there).
+ * (@verzo/ui business-approvals/types.ts, checked against the generated models there).
  */
 
 type List<T> = {

@@ -2,8 +2,8 @@
 
 import * as React from "react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useStockNegative } from "@genesy/api-client/endpoints/stock"
+import { useSession } from "@verzo/api-client/auth"
+import { useStockNegative } from "@verzo/api-client/endpoints/stock"
 
 import { StockTable } from "../stock-table"
 

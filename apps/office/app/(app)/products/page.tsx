@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Package, Search } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
+import { useSession } from "@verzo/api-client/auth"
+import { useProductCategoriesList } from "@verzo/api-client/endpoints/product-categories"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import {
   CardState,
   ListCard,

@@ -5,18 +5,18 @@ import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useInvoicePaymentsVoid } from "@genesy/api-client/endpoints/invoice-payments"
+import { useSession } from "@verzo/api-client/auth"
+import { useInvoicePaymentsVoid } from "@verzo/api-client/endpoints/invoice-payments"
 import {
   getInvoicesGetQueryKey,
   getInvoicesListQueryKey,
   useInvoicesGet,
   useInvoicesPreview,
-} from "@genesy/api-client/endpoints/invoices"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/invoices"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDate } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

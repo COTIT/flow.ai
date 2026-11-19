@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest'
 
 const list = { persons: vi.fn(), households: vi.fn(), farms: vi.fn(), plots: vi.fn(), cycles: vi.fn(), harvests: vi.fn() }
-vi.mock('@genesy/api-client/endpoints/farm-records', async (original) => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', async (original) => ({
   ...(await original<object>()),
   farmRecordsPersonsList: (...args: unknown[]) => list.persons(...args),
   farmRecordsHouseholdsList: (...args: unknown[]) => list.households(...args),

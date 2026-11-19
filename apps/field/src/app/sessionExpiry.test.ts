@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { returnToSignInWhenExpired } from '@/app/sessionExpiry'

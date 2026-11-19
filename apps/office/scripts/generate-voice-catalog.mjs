@@ -295,7 +295,7 @@ async function main() {
     if (process.argv.includes("--check")) {
       if ((await readFile(target, "utf8")) !== output)
         throw new Error(
-          "Voice tool contracts are stale. Run pnpm --filter @genesy/office voice:generate."
+          "Voice tool contracts are stale. Run pnpm --filter @verzo/office voice:generate."
         )
     } else await writeFile(target, output)
   }

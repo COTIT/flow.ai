@@ -1,4 +1,4 @@
-import type { Money } from '@genesy/api-client/model'
+import type { Money } from '@verzo/api-client/model'
 
 import { amountToMinor, minorToAmount } from '@/features/ops/surveys/figures'
 import { closesOnToTimestamp, timestampToDarDate } from '@/features/ops/surveys/surveyDates'

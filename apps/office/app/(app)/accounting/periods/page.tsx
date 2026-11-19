@@ -4,7 +4,7 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingPeriodsListQueryKey,
   getAccountingYearsListQueryKey,
@@ -12,12 +12,12 @@ import {
   useAccountingPeriodsList,
   useAccountingYearsCreate,
   useAccountingYearsList,
-} from "@genesy/api-client/endpoints/accounting"
-import type { YearResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/api-client/endpoints/accounting"
+import type { YearResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -25,8 +25,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

@@ -1,5 +1,5 @@
 {
-  "name": "@genesy/security",
+  "name": "@verzo/security",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -13,8 +13,8 @@
     "next": "^16"
   },
   "devDependencies": {
-    "@genesy/eslint-config": "workspace:*",
-    "@genesy/typescript-config": "workspace:*",
+    "@verzo/eslint-config": "workspace:*",
+    "@verzo/typescript-config": "workspace:*",
     "@types/node": "^20",
     "eslint": "^10",
     "next": "16.4.6",

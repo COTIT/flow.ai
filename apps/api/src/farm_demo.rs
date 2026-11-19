@@ -1,6 +1,6 @@
 //! Demo seed (G15): the RUAHA demo story in workspace `ruaha-demo`, built through the API's own
 //! routes in-process, so every rule, provenance stamp and audit row applies. CLI only
-//! (`genesy-360-api seed-farm-demo`), never an HTTP route. Runs once: a workspace of that name
+//! (`verzo-360-api seed-farm-demo`), never an HTTP route. Runs once: a workspace of that name
 //! that isn't flagged as demo is refused; a demo one is left alone.
 //!
 //! The story: Salima registers the Ilundo households, ops (Asha) verifies them, Juma (a second

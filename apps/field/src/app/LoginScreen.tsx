@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 
 import { BrandLockup } from '@/app/BrandLockup'
 import { CONTROL_FIELD } from '@/components/controlStyles'
@@ -19,16 +19,16 @@ import { holdTempPassword } from '@/app/tempPassword'
 import { apiErrorMessage, apiStatus } from '@/lib/apiError'
 import { errorText } from '@/lib/errors'
 import { normalizePhone } from '@/lib/phone'
-import { authLogin } from '@genesy/api-client/endpoints/auth'
-import { farmLoginsLogin } from '@genesy/api-client/endpoints/farm-logins'
-import { sessionStore } from '@genesy/api-client/session'
+import { authLogin } from '@verzo/api-client/endpoints/auth'
+import { farmLoginsLogin } from '@verzo/api-client/endpoints/farm-logins'
+import { sessionStore } from '@verzo/api-client/session'
 
 // By route id rather than by importing the route, which would be circular.
 const route = getRouteApi('/(auth)/login')
 
 // Messages are i18n keys, resolved at render. Validation is client-side only
 // because it costs a round trip to learn an empty field is empty — it is not a
-// copy of any server rule. Staff type an email (Genesy sign-in); farmers type
+// copy of any server rule. Staff type an email (Verzo sign-in); farmers type
 // the phone their officer registered (farm sign-in, which normalises it).
 const schema = z.object({
   email: z

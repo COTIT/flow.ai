@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { LOCALE_COOKIE, pickLocale } from "@genesy/i18n/locales"
-import { securityHeaders } from "@genesy/security/headers"
-import { cspProxy } from "@genesy/security/proxy"
+import { LOCALE_COOKIE, pickLocale } from "@verzo/i18n/locales"
+import { securityHeaders } from "@verzo/security/headers"
+import { cspProxy } from "@verzo/security/proxy"
 
 import en from "./messages/en.json"
 import nl from "./messages/nl.json"

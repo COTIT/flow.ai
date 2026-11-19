@@ -4,16 +4,16 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getUsersListQueryKey,
   useUsersList,
   useUsersMe,
   useUsersRemove,
-} from "@genesy/api-client/endpoints/users"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/users"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import {
   CardState,
   ListCard,

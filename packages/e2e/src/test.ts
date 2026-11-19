@@ -242,7 +242,7 @@ export async function expectNoLayoutShift(page: Page, max = 0.01) {
 }
 
 /**
- * No animated island is on the page (see `island` in @genesy/ui). Use with
+ * No animated island is on the page (see `island` in @verzo/ui). Use with
  * `test.use({ reducedMotion: "reduce" })` to prove nothing animates, or is fetched, there.
  */
 export async function expectNoMotion(page: Page) {

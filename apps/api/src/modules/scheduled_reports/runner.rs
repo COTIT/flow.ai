@@ -92,7 +92,7 @@ async fn deliver(state: &AppState, d: &Due, granted: &Granted) -> Result<Outcome
     // shortcut: English plain text only (as invite mail); send in the user's language once
     // mail templates are ported.
     let body = format!(
-        "{text}\n--\nYou asked Genesy to send you this report from {workspace} {when}.\n\
+        "{text}\n--\nYou asked Verzo to send you this report from {workspace} {when}.\n\
          Manage your scheduled reports: {url}/settings/scheduled-reports\n\
          Stop this report: {url}/unsubscribe?token={token}\n",
         text = r.text,
@@ -103,7 +103,7 @@ async fn deliver(state: &AppState, d: &Due, granted: &Granted) -> Result<Outcome
         .mailer
         .send(Outgoing {
             to,
-            subject: format!("Genesy report: {} – {workspace}", r.title),
+            subject: format!("Verzo report: {} – {workspace}", r.title),
             body,
         })
         .await?;

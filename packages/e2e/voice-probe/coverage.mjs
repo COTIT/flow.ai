@@ -44,10 +44,10 @@ export function verbOf(id) {
 
 const snake = (camel) => camel.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 
-/** Operation ids Office imports from `@genesy/api-client/endpoints/*` (orval names: opId camelCased). */
+/** Operation ids Office imports from `@verzo/api-client/endpoints/*` (orval names: opId camelCased). */
 export function officeOperations(sources) {
   const ops = new Set()
-  const block = /import\s*\{([^}]*)\}\s*from\s*"@genesy\/api-client\/endpoints\/[^"]+"/g
+  const block = /import\s*\{([^}]*)\}\s*from\s*"@verzo\/api-client\/endpoints\/[^"]+"/g
   for (const src of sources)
     for (const [, names] of src.matchAll(block))
       for (const raw of names.split(",")) {

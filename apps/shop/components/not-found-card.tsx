@@ -1,7 +1,7 @@
 import Link from "@/components/shop-link"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
 
 import { card } from "@/lib/look"
 

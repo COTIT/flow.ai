@@ -4,12 +4,12 @@ import * as React from "react"
 import { ShieldCheck } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { authLogin, authLogout } from "@genesy/api-client/endpoints/auth"
-import { tillPrivilegedSession } from "@genesy/api-client/endpoints/till"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
+import { authLogin, authLogout } from "@verzo/api-client/endpoints/auth"
+import { tillPrivilegedSession } from "@verzo/api-client/endpoints/till"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   approvalStore,
   holds,

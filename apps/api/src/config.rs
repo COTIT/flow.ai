@@ -104,7 +104,7 @@ pub struct Config {
     /// `GENESY_ALLOW_DEMO_SEED`: `seed-demo` may run. Only the staging compose sets it.
     pub allow_demo_seed: bool,
     /// `SKIP_BOOT_MIGRATIONS`: boot without migrating. The VPS composes set it; their deploy
-    /// runs `genesy-360-api migrate` as its own step. Off by default, so dev and tests migrate.
+    /// runs `verzo-360-api migrate` as its own step. Off by default, so dev and tests migrate.
     pub skip_boot_migrations: bool,
 }
 
@@ -185,7 +185,7 @@ impl Config {
         Self::from_lookup(|key| files.get(key).cloned().or_else(|| env(key)))
     }
 
-    /// Only `DATABASE_URL` (or `DATABASE_URL_FILE`), for `genesy-360-api migrate`: the deploy's
+    /// Only `DATABASE_URL` (or `DATABASE_URL_FILE`), for `verzo-360-api migrate`: the deploy's
     /// migrate step and CI's template DB need no other config.
     pub fn database_url_from_env() -> Result<String, String> {
         database_url(
@@ -633,7 +633,7 @@ mod tests {
         ("FRONTEND_URL", "https://app.test"),
         ("API_PUBLIC_URL", "https://api.test"),
         ("SMTP_URL", "smtps://smtp.test:465"),
-        ("MAIL_FROM", "Genesy <no-reply@genesy.test>"),
+        ("MAIL_FROM", "Verzo <no-reply@genesy.test>"),
     ];
 
     /// `pairs` win over REQUIRED defaults; pair value "" means unset.

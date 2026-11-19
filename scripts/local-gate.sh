@@ -36,7 +36,7 @@ if [[ -z "${SKIP_API:-}" ]]; then
   run cargo fmt --check
   run cargo clippy --all-targets -- -D warnings
   run cargo test --tests -- migrations_fill_an_empty_database migrate_fills_an_empty_database
-  run env DATABASE_URL="${DATABASE_URL%/*}/template1" target/debug/genesy-360-api migrate
+  run env DATABASE_URL="${DATABASE_URL%/*}/template1" target/debug/verzo-360-api migrate
   run cargo test --no-fail-fast -- --skip migrations_fill_an_empty_database --skip migrate_fills_an_empty_database
   run cargo test --test openapi committed_spec
   [ "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0 ] || { echo "FAILED: internal names in spec"; fail=1; }
@@ -48,18 +48,18 @@ if [[ -z "${SKIP_WEB:-}" ]]; then
   step "web"
   cd "$ROOT"
   run pnpm install --frozen-lockfile
-  run pnpm turbo run generate:check --filter=@genesy/api-client --only --output-logs=errors-only
-  run pnpm --filter @genesy/office voice:check
-  run pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
-  run pnpm turbo run typecheck lint test build --filter='!@genesy/api' --output-logs=errors-only
+  run pnpm turbo run generate:check --filter=@verzo/api-client --only --output-logs=errors-only
+  run pnpm --filter @verzo/office voice:check
+  run pnpm --filter @verzo/office exec node scripts/check-voice-schema.mjs
+  run pnpm turbo run typecheck lint test build --filter='!@verzo/api' --output-logs=errors-only
 fi
 
 if [[ -z "${SKIP_E2E:-}" ]]; then
   step "e2e (fake API)"
   cd "$ROOT"
   run env E2E_PORT_OFFSET=95 VITE_FEATURE_RESOURCES=on NEXT_PUBLIC_SHOP_URL=https://shop.genesy.app pnpm turbo run e2e --output-logs=errors-only -- --workers=3
-  run env E2E_PORT_OFFSET=95 pnpm --filter @genesy/e2e exec playwright test -c storefront-design.config.ts
-  run pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
+  run env E2E_PORT_OFFSET=95 pnpm --filter @verzo/e2e exec playwright test -c storefront-design.config.ts
+  run pnpm --filter @verzo/e2e exec playwright test -c voice-dev.config.ts --workers=1
 fi
 
 if [[ -z "${SKIP_STACK:-}" ]]; then

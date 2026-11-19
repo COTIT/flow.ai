@@ -13,7 +13,7 @@ export const openViewTool =
     if (!host)
       return JSON.stringify({
         status: "unavailable",
-        message: "Screens open by voice in Genesy Flow, not here.",
+        message: "Screens open by voice in Verzo Flow, not here.",
       })
     try {
       return JSON.stringify(host(typeof view === "string" ? view : ""))

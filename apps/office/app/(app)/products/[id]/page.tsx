@@ -6,29 +6,29 @@ import { Package } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getProductsGetQueryKey,
   useProductsGet,
   useProductsImagesList,
   useProductsUpdate,
-} from "@genesy/api-client/endpoints/products"
+} from "@verzo/api-client/endpoints/products"
 import {
   getStockMovementsQueryKey,
   getStockWithBinsQueryKey,
   useStockMovements,
   useStockMutate,
   useStockWithBins,
-} from "@genesy/api-client/endpoints/stock"
-import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
+} from "@verzo/api-client/endpoints/stock"
+import { useProductCategoriesList } from "@verzo/api-client/endpoints/product-categories"
 import {
   getWarehousesListQueryKey,
   useWarehousesList,
-} from "@genesy/api-client/endpoints/warehouses"
-import type { StockWithBins } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+} from "@verzo/api-client/endpoints/warehouses"
+import type { StockWithBins } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogContent,
@@ -36,9 +36,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -46,10 +46,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDateTime, formatQty } from "@genesy/ui/lib/format"
-import { Badge } from "@genesy/ui/components/badge"
+} from "@verzo/ui/components/table"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatDateTime, formatQty } from "@verzo/ui/lib/format"
+import { Badge } from "@verzo/ui/components/badge"
 import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { GeneralStock } from "@/components/general-stock"

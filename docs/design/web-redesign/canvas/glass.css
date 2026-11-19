@@ -1,4 +1,4 @@
-/* Genesy glass system — shared by every artboard. Maps 1:1 to packages/ui tokens under body.theme-glass. */
+/* Verzo glass system — shared by every artboard. Maps 1:1 to packages/ui tokens under body.theme-glass. */
 .g {
   --blur: 12px;
   --r-card: 20px; --r-tile: 16px; --r-ctl: 12px; --r-key: 20px;

@@ -4,12 +4,12 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
-import { sessionStore } from "@genesy/api-client/session"
+import { useSession } from "@verzo/api-client/auth"
+import { sessionStore } from "@verzo/api-client/session"
 import {
-  GenesyVoiceProvider,
+  VerzoVoiceProvider,
   useVoice,
-} from "@genesy/voice/components/provider"
+} from "@verzo/voice/components/provider"
 import { HistoryContinuity } from "@/components/history-continuity"
 import { Shell } from "@/components/shell"
 import { useDraftKeeper } from "@/lib/draft-keeper"
@@ -55,7 +55,7 @@ export function SignedIn({
 
   if (!hydrated || !token) return null
   return (
-    <GenesyVoiceProvider
+    <VerzoVoiceProvider
       resolveHref={resolveHref}
       openView={openView}
       historyEnabled
@@ -63,7 +63,7 @@ export function SignedIn({
       <HistoryContinuity />
       <BulkOutcomeRefresh />
       <Shell>{children}</Shell>
-    </GenesyVoiceProvider>
+    </VerzoVoiceProvider>
   )
 }
 

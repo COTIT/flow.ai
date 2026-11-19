@@ -256,7 +256,7 @@ pub enum Direction {
 #[derive(Serialize, ToSchema)]
 #[schema(
     description = "A converted amount. Always say it uses the workspace's own rate as of \
-                        `rate_effective_on`; Genesy fetches no market rates."
+                        `rate_effective_on`; Verzo fetches no market rates."
 )]
 pub struct Conversion {
     pub amount_minor: i64,

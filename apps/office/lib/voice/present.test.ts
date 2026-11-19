@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { ResultView } from "@genesy/voice/lib/views"
+import type { ResultView } from "@verzo/voice/lib/views"
 import { present, viewChoice } from "./present"
 import { VoiceError } from "./server"
 

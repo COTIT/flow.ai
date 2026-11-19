@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 test("lists the workspace's products", async ({ page }) => {
   await mockApi(page, officeApi())
   await page.goto("/products")
-  await expect(page.getByRole("img", { name: "Genesy" })).toBeVisible()
+  await expect(page.getByRole("img", { name: "Verzo" })).toBeVisible()
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "Beeswax Block" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "14.99" })).toBeVisible()

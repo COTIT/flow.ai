@@ -26,7 +26,7 @@ Under `/v1/workspace/{workspace}/deal-pipelines`:
 
 A status route names a column of the board in its path. If the column belongs to another board, the answer is 404.
 
-**Permissions:** Laravel checked only `dealpipeline.create`, `dealpipeline.list` and `dealpipelinestatus.create`. Every other route was open to any member. Genesy checks the catalog name on every route (user decision 2026-10-23). The owner and `workspace_admin` pass every check. A team that uses the deal board needs `dealpipeline.list` and `dealpipeline.get` too: the board and the deal edit modal load the pipelines.
+**Permissions:** Laravel checked only `dealpipeline.create`, `dealpipeline.list` and `dealpipelinestatus.create`. Every other route was open to any member. Verzo checks the catalog name on every route (user decision 2026-10-23). The owner and `workspace_admin` pass every check. A team that uses the deal board needs `dealpipeline.list` and `dealpipeline.get` too: the board and the deal edit modal load the pipelines.
 
 Not ported, because no vimdesk-web screen reaches them:
 

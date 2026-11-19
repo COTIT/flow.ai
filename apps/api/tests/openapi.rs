@@ -5,9 +5,9 @@ mod common;
 
 use axum::http::{Method, StatusCode};
 use common::{app_with_mail, contract, member_with, send, signup};
-use genesy_360_api::openapi;
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::openapi;
 
 /// The matcher behind `send`'s automatic check: literal segments beat `{params}`,
 /// query strings are ignored, non-/v1 and unknown paths are skipped.
@@ -2301,8 +2301,8 @@ fn assistant_coverage_record_contains_only_operation_status_and_test_identity() 
 /// Boot fills the assistant operation inventory: first proposal after deploy skips the spec build.
 #[tokio::test]
 async fn boot_warm_up_builds_assistant_operation_inventory() {
-    genesy_360_api::warm_up().await;
-    assert!(genesy_360_api::assistant_operations_ready());
+    verzo_360_api::warm_up().await;
+    assert!(verzo_360_api::assistant_operations_ready());
 }
 
 #[test]

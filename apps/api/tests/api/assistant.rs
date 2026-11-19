@@ -86,11 +86,11 @@ async fn unsigned_approval_and_conversation_attachment_are_refused(pool: PgPool)
 pub(crate) const BRIDGE: &str = "assistant-test-bridge-secret-at-least-thirty-two-bytes";
 
 pub(crate) fn signed_app(pool: PgPool) -> Router {
-    let mut state = common::state(pool, genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(pool, verzo_360_api::mail::Mailer::capture().0);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(BRIDGE.to_owned()).unwrap(),
+        verzo_360_api::AssistantSecret::new(BRIDGE.to_owned()).unwrap(),
     ));
-    genesy_360_api::build_app(state)
+    verzo_360_api::build_app(state)
 }
 
 pub(crate) async fn signed(
@@ -296,7 +296,7 @@ async fn failure_after_business_commit_keeps_claim_consumed(pool: PgPool) {
     .unwrap();
     assert_eq!(count, 1);
     sqlx::query("UPDATE assistant_actions SET dispatched_at=now()-interval '11 minutes' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&ws).bind(&id).execute(&pool).await.unwrap();
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let (_, body) = send(
         &app,
         Method::GET,
@@ -322,7 +322,7 @@ async fn drafts_restore_then_expire_without_retaining_business_arguments(pool: P
     let (_, body) = send(&app, Method::GET, &history, None, Some(&owner)).await;
     assert!(body["data"][0]["proposal"].is_null());
     assert_eq!(body["data"][0]["state"], "expired");
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let remains:bool=sqlx::query_scalar("SELECT proposal IS NOT NULL FROM assistant_actions WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&ws).bind(&id).fetch_one(&pool).await.unwrap();
     assert!(!remains);
 }
@@ -714,9 +714,9 @@ async fn handler_timeout_keeps_durable_claim_and_never_redispatches(pool: PgPool
         .0,
         StatusCode::OK
     );
-    let mut state = common::state(pool.clone(), genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(pool.clone(), verzo_360_api::mail::Mailer::capture().0);
     state.request_timeout = std::time::Duration::from_millis(100);
-    let short = genesy_360_api::build_app(state);
+    let short = verzo_360_api::build_app(state);
     let mut holder = pool.begin().await.unwrap();
     sqlx::query(
         "SELECT pg_advisory_xact_lock(hashtextextended('relations.relation_number|' || $1,0))",
@@ -838,7 +838,7 @@ async fn resolved_audit_expires_after_ninety_days_but_unknown_is_retained(pool: 
     let (unknown, _, _) = approved_team(&app, &ws, &owner, &sid, "Old unknown").await;
     sqlx::query("UPDATE assistant_actions SET finished_at=now()-interval '91 days' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&ws).bind(&done).execute(&pool).await.unwrap();
     sqlx::query("UPDATE assistant_actions SET state='unknown',proposal=NULL,dispatched_at=now()-interval '100 days' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&ws).bind(&unknown).execute(&pool).await.unwrap();
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let ids:Vec<String>=sqlx::query_scalar("SELECT id::text FROM assistant_actions WHERE workspace_id=$1::uuid AND session_id=$2::uuid").bind(&ws).bind(&sid).fetch_all(&pool).await.unwrap();
     assert_eq!(ids, vec![unknown]);
 }
@@ -928,13 +928,13 @@ async fn cleanup_waits_for_inflight_upload_and_never_revives_cleaned_session(poo
 #[sqlx::test]
 async fn receipt_profile_get_requires_approval_and_dispatches_one_email(pool: PgPool) {
     let (port, inbox) = common::fake_smtp::start().await;
-    let (mailer, _) = genesy_360_api::mail::Mailer::capture();
+    let (mailer, _) = verzo_360_api::mail::Mailer::capture();
     let mailer = mailer.with_trusted_smtp_hosts(&["localhost".to_owned()]);
     let mut state = common::state(pool, mailer);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(BRIDGE.into()).unwrap(),
+        verzo_360_api::AssistantSecret::new(BRIDGE.into()).unwrap(),
     ));
-    let app = genesy_360_api::build_app(state);
+    let app = verzo_360_api::build_app(state);
     let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
     let sid = session(&app, &ws, &owner).await;
     let(status,body)=send(&app,Method::POST,&format!("/v1/workspace/{ws}/email-profiles"),Some(json!({"name":"Guarded profile","sender_name":"Test","email":"test@example.com","default":true,"smtp":{"host":"localhost","port":port}})),Some(&owner)).await;

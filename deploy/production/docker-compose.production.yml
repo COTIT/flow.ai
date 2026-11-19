@@ -1,4 +1,4 @@
-# Genesy production: API + own Postgres + the five apps, routed by the VPS's existing Traefik.
+# Verzo production: API + own Postgres + the five apps, routed by the VPS's existing Traefik.
 # Run from the repo root (see deploy/production/README.md):
 #   docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d
 # Its own project: never touches control360 or genesy-prod-green. No Mailpit, no fake payments,
@@ -26,7 +26,7 @@ x-api-env: &api-env
   CREDENTIALS_KEY_FILE: /run/secrets/credentials_key
   SMTP_URL_FILE: /run/secrets/smtp_url
   BIND_ADDR: 0.0.0.0:8080
-  RUST_LOG: ${RUST_LOG:-genesy_360_api=info,tower_http=info}
+  RUST_LOG: ${RUST_LOG:-verzo_360_api=info,tower_http=info}
   FRONTEND_URL: https://office.genesy.app
   API_PUBLIC_URL: https://api.genesy.app
   SHOP_PUBLIC_URL: https://shop.genesy.app

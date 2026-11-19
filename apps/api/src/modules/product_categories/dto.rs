@@ -34,7 +34,7 @@ pub struct CategoryResource {
     description: Option<String>,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
-    /// Live products of any status in this category (Genesy addition).
+    /// Live products of any status in this category (Verzo addition).
     products_count: i64,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,

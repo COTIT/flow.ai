@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { Card, CardContent } from "@genesy/ui/components/card"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { Card, CardContent } from "@verzo/ui/components/card"
+import { Notice } from "@verzo/ui/components/notice"
 
 /** A signed-in screen that crashed while rendering: the shell stays, the card offers a retry. */
 export default function AppErrorPage({

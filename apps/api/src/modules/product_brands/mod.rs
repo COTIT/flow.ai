@@ -1,5 +1,5 @@
 //! Product brands (Laravel ERP/ProductBrand): a workspace picklist, read by special offers
-//! and discounts. Laravel's writes never persisted (no listener); genesy stores them.
+//! and discounts. Laravel's writes never persisted (no listener); Verzo stores them.
 
 pub mod dto;
 pub mod handlers;

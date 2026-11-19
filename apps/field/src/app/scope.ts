@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { farmVillagesList } from '@genesy/api-client/endpoints/farm-villages'
+import { farmVillagesList } from '@verzo/api-client/endpoints/farm-villages'
 
 import { fetchSession } from '@/app/session'
 import { queryKeys } from '@/lib/queryKeys'
 
 export interface ScopeNames {
   villages: Record<string, string>
-  /** Genesy workspaces (RUAHA projects). */
+  /** Verzo workspaces (RUAHA projects). */
   projects: Record<string, string>
 }
 

@@ -3,7 +3,7 @@ import type {
   FlowPeriod,
   FlowScene,
   FlowSceneConfig,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 /** Built-in scenes (B1's keys); custom `sales_*` / `stock_*` reuse the Sales / Stock layout. */
 export const BUILT_IN = [

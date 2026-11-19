@@ -12,7 +12,7 @@ Every workspace CRUD module follows these rules. Batch 4 (reference data) set th
   - update and delete: exactly `{"message": "ok"}`. vimdesk-web closes its modals only on that body; a `data` key breaks it.
 - Guard order: 401 (no token), then 404 (outsider, or an unknown, malformed or deleted workspace), then 403 (inactive member, or missing permission via `Can<P>`), then 422. The permission check runs before body parsing, as Laravel's FormRequest `authorize()` did.
 - A malformed, unknown, soft-deleted or other-workspace `{id}` is 404 with `The requested resource could not be found.` Laravel answered 422 or 500 for some of these.
-- Permission names come from the catalog (`src/modules/permissions/catalog.rs`). Where Laravel checked `x.view` and the catalog only grants `x.get`, genesy checks `x.get`.
+- Permission names come from the catalog (`src/modules/permissions/catalog.rs`). Where Laravel checked `x.view` and the catalog only grants `x.get`, Verzo checks `x.get`.
 
 ## Tables
 
@@ -61,7 +61,7 @@ Every workspace CRUD module follows these rules. Batch 4 (reference data) set th
 
 - Each ported domain is one match arm calling the module's `service::list` with `q`. It answers in that module's list shape.
 - A domain that isn't ported, or no domain at all (Laravel's global search), is 404.
-- A new module adds its arm. Laravel searched Meilisearch; genesy uses ILIKE in insertion order, which is fine for reference lists.
+- A new module adds its arm. Laravel searched Meilisearch; Verzo uses ILIKE in insertion order, which is fine for reference lists.
 
 ## Money and decimals
 

@@ -2,9 +2,9 @@
 
 import { useTranslations } from "next-intl"
 
-import { VoiceActivity } from "@genesy/voice/components/activity"
-import { useVoice } from "@genesy/voice/components/provider"
-import { sessionPhase } from "@genesy/voice/lib/presentation"
+import { VoiceActivity } from "@verzo/voice/components/activity"
+import { useVoice } from "@verzo/voice/components/provider"
+import { sessionPhase } from "@verzo/voice/lib/presentation"
 import { useFlow } from "@/lib/flow-store"
 
 /** Short state words under the orb: never colour or motion alone. */

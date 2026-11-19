@@ -4,17 +4,17 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getLotsEventsQueryKey,
   getLotsStockQueryKey,
   useLotsStock,
   useLotsStockMutate,
-} from "@genesy/api-client/endpoints/lots"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
+} from "@verzo/api-client/endpoints/lots"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -23,10 +23,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/ui/components/dialog"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { SubTile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { Capped, LoadError } from "@/components/states"

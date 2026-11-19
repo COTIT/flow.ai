@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import { dockAsk, usePills, type Pill } from "@/lib/pills"
 
 const EXIT_MS = 150

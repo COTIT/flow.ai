@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { island, useMotionAllowed } from "@genesy/ui/components/island"
+import { island, useMotionAllowed } from "@verzo/ui/components/island"
 import { useVoice } from "./provider"
 import { voiceMotionActive } from "../lib/motion"
 

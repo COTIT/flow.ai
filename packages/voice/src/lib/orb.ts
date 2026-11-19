@@ -1,4 +1,4 @@
-// The Genesy orb's motion, typed from the approved design's orb-core (Claude Design "The Genesy orb").
+// The Verzo orb's motion, typed from the approved design's orb-core (Claude Design "The Verzo orb").
 // Every visual setting is a number on a critically damped spring, so a state change morphs in
 // ~0.6 s instead of switching; the voice level has its own faster spring (~0.1 s attack).
 

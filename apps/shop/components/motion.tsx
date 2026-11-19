@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore, type ReactNode } from "react"
 
-import { island } from "@genesy/ui/components/island"
+import { island } from "@verzo/ui/components/island"
 
 import FadeTile from "./fade-tile"
 

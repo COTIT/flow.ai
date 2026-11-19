@@ -10,13 +10,13 @@ import {
   storefrontOrdersPayment,
   storefrontProductsGet,
   storefrontProductsList,
-} from "@genesy/api-client/endpoints/storefront"
-import { apiRequest } from "@genesy/api-client/mutator"
+} from "@verzo/api-client/endpoints/storefront"
+import { apiRequest } from "@verzo/api-client/mutator"
 import type {
   CheckoutRequest,
   StorefrontOrder,
   StorefrontProduct,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 import "./api"
 import { isUuid, isPublicCode } from "./passport"

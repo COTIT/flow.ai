@@ -153,13 +153,13 @@ export function apiEnv(state) {
     ...process.env,
     DATABASE_URL,
     BIND_ADDR: `127.0.0.1:${PORTS.api}`,
-    RUST_LOG: process.env.RUST_LOG ?? "genesy_360_api=info,tower_http=warn",
+    RUST_LOG: process.env.RUST_LOG ?? "verzo_360_api=info,tower_http=warn",
     FRONTEND_URL: URLS.office,
     API_PUBLIC_URL: URLS.api,
     // The stack's own mail sink: mail lands in MAIL as files, none leaves the machine.
     SMTP_URL: `smtp://127.0.0.1:${PORTS.mail}`,
     SMTP_ALLOW_INSECURE: "true",
-    MAIL_FROM: "Genesy e2e <no-reply@e2e.test>",
+    MAIL_FROM: "Verzo e2e <no-reply@e2e.test>",
     PAYMENTS_PROVIDER: "fake",
     // WF-01: Odoo and NetSuite answer from the in-process fake (debug builds only); nothing leaves.
     INTEGRATIONS_PROVIDERS: "fake",
@@ -263,7 +263,7 @@ export const apiBin = () =>
   join(
     process.env.CARGO_TARGET_DIR ?? join(API_DIR, "target"),
     "debug",
-    "genesy-360-api"
+    "verzo-360-api"
   )
 
 /** The mail sink the API sends to (before the seed: signups mail a verification link). */

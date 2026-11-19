@@ -1,4 +1,4 @@
-// `pnpm --filter @genesy/e2e stack:up`: throwaway Postgres, migrated + seeded, the API and all
+// `pnpm --filter @verzo/e2e stack:up`: throwaway Postgres, migrated + seeded, the API and all
 // six apps pointed at it (STACK.md). Anything that fails tears down what was started.
 import console from "node:console"
 import { randomBytes } from "node:crypto"
@@ -22,7 +22,7 @@ const lap = (what) => console.log(`stack: ${what} (${((Date.now() - t0) / 1000).
 
 /** Office and Flow need package build preparation; other stack builds retain their isolated entrypoints. */
 export function nextBuildArgs(name) {
-  return ["--filter", `@genesy/${name}`, ...(["office", "flow"].includes(name) ? ["build"] : ["exec", "next", "build"])]
+  return ["--filter", `@verzo/${name}`, ...(["office", "flow"].includes(name) ? ["build"] : ["exec", "next", "build"])]
 }
 
 export async function up() {
@@ -68,7 +68,7 @@ export async function up() {
   const field = { ...process.env, API_URL: api, VITE_FEATURE_RESOURCES: "on" }
   const builds = [
     ...Object.keys(apps).map((name) => [name, nextBuildArgs(name), nextEnv(name)]),
-    ["field", ["--filter", "@genesy/field", "exec", "vite", "build", "--outDir", "dist-stack"], field],
+    ["field", ["--filter", "@verzo/field", "exec", "vite", "build", "--outDir", "dist-stack"], field],
   ]
   // Two at a time, beside the cargo build and the seed: a 2-core runner gains nothing from more.
   // Logs go to logs/build-<app>.log.
@@ -125,7 +125,7 @@ export async function up() {
   lap("files up")
 
   // CI's settings (ci.yml env): no debug info, no incremental cache. Differing ones rebuild everything.
-  await exec("cargo", ["build", "--bin", "genesy-360-api"], {
+  await exec("cargo", ["build", "--bin", "verzo-360-api"], {
     cwd: API_DIR,
     env: { ...process.env, SQLX_OFFLINE: "true", CARGO_INCREMENTAL: "0", CARGO_PROFILE_DEV_DEBUG: "0" },
   })
@@ -167,11 +167,11 @@ export async function up() {
 
   for (const name of Object.keys(apps)) {
     state.pids[name] = start(name, "pnpm", [
-      "--filter", `@genesy/${name}`, "exec", "next", "start", "--port", String(PORTS[name]), "--hostname", "127.0.0.1",
+      "--filter", `@verzo/${name}`, "exec", "next", "start", "--port", String(PORTS[name]), "--hostname", "127.0.0.1",
     ], { cwd: ROOT, env: nextEnv(name) })
   }
   state.pids.field = start("field", "pnpm", [
-    "--filter", "@genesy/field", "exec", "vite", "preview", "--outDir", "dist-stack",
+    "--filter", "@verzo/field", "exec", "vite", "preview", "--outDir", "dist-stack",
     "--port", String(PORTS.field), "--host", "127.0.0.1", "--strictPort",
   ], { cwd: ROOT, env: field })
   writeState(state)

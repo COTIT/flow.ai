@@ -8,9 +8,9 @@ import {
   UsersIcon,
 } from "lucide-react"
 
-import { Badge } from "@genesy/ui/components/badge"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { cn } from "@genesy/ui/lib/utils"
+import { Badge } from "@verzo/ui/components/badge"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { AddToCart } from "@/components/add-to-cart"
 import {

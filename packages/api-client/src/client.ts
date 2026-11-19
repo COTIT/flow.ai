@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance } from "axios"
 
-/** Settings for one app's connection to the Genesy backend. */
+/** Settings for one app's connection to the Verzo backend. */
 export type ApiClientOptions = {
   /** Backend address, e.g. `http://localhost:8080/v1`. */
   baseURL: string
@@ -13,7 +13,7 @@ export type ApiClientOptions = {
   onUnauthorized?: (error: AxiosError) => void
 }
 
-/** Axios instance for the Genesy backend: JSON in and out, bearer token when logged in. */
+/** Axios instance for the Verzo backend: JSON in and out, bearer token when logged in. */
 export function createApiClient({
   baseURL,
   getToken,
