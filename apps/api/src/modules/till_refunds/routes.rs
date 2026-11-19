@@ -7,6 +7,7 @@ use crate::{AppState, modules::till_refunds::handlers};
 /// Member bearer + `X-Till-Session` routes; each handler checks `cashregister.refund`.
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
+        .routes(routes!(handlers::till_sales_lookup))
         .routes(routes!(handlers::till_sales_return_review))
         .routes(routes!(handlers::till_sales_return))
         .routes(routes!(handlers::till_refunds_create_review))

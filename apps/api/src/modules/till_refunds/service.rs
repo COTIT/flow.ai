@@ -30,7 +30,8 @@ use crate::{
         till::privileged::PrivilegedTill,
         till_refunds::dto::{
             RefundInput, RefundJournal, RefundMethod, RefundPost, RefundReview, ReturnInput,
-            ReturnReview, TillRefundResource,
+            ReturnReview, TillRefundResource, TillSaleLookup, TillSaleLookupCredit,
+            TillSaleLookupLine,
         },
         till_sales,
     },
@@ -46,6 +47,17 @@ const WAREHOUSE: &str =
 const BEFORE_BOOK: &str =
     "This sale was recorded before the accounting book became active; return it from the Office.";
 
+/// SQL: refundable money of credit item `i` = residual − pending refund holds of other routes.
+/// Shared by the refund check and the Till lookup.
+macro_rules! refundable {
+    () => {
+        "(i.residual - coalesce((SELECT sum(r.amount) FROM credit_refund_reservations r
+                                 WHERE r.workspace_id = i.workspace_id
+                                   AND r.credit_item_id = i.id AND r.state = 'pending'), 0)
+         )::int8"
+    };
+}
+
 /// The register a till sale `order` of `ws` was rung up on; 404 for anything else.
 async fn sale_register(conn: &mut PgConnection, ws: Uuid, order: Uuid) -> Result<Uuid, AppError> {
     sqlx::query_scalar(
@@ -60,6 +72,93 @@ async fn sale_register(conn: &mut PgConnection, ws: Uuid, order: Uuid) -> Result
 
 fn hash(v: &Value) -> [u8; 32] {
     Sha256::digest(v.to_string().as_bytes()).into()
+}
+
+// --- lookup ------------------------------------------------------------------------------
+
+#[derive(sqlx::FromRow)]
+struct LookupHead {
+    order_id: Uuid,
+    number: String,
+    sold_at: chrono::DateTime<chrono::Utc>,
+    register_id: Uuid,
+    register_name: String,
+    method: String,
+    total: i64,
+    due: i64,
+    currency: String,
+    decimals: i16,
+}
+
+/// GET /till/sales/lookup?number=: a till sale of the workspace by order number, its lines with
+/// what is left to return and its credits with what is left to refund. Read-only, no locks;
+/// quantities and money come from the same SQL the return and refund checks use.
+pub async fn lookup(state: &AppState, ws: Uuid, number: &str) -> Result<TillSaleLookup, AppError> {
+    let mut conn = state.db.acquire().await?;
+    let h: LookupHead = sqlx::query_as(
+        "SELECT s.order_id, o.number, s.sold_at, s.register_id, g.name AS register_name,
+                s.method, s.total, s.due, upper(c.asset_type) AS currency, c.decimals
+         FROM orders o
+         JOIN till_sales s ON s.workspace_id = o.workspace_id AND s.order_id = o.id
+         JOIN till_registers g ON g.workspace_id = s.workspace_id AND g.id = s.register_id
+         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+         WHERE o.workspace_id = $1 AND o.number = $2",
+    )
+    .bind(ws)
+    .bind(number)
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or(AppError::NotFound)?;
+    // Per order line: what the order return allows (delivered − returned) capped by the credit
+    // capacity of its recognition lines (none before activation: 0, the Till can't return it).
+    let lines: Vec<TillSaleLookupLine> = sqlx::query_as(concat!(
+        "SELECT ol.id, ol.title, to_char(ol.quantity, 'FM999999999990.00') AS quantity,
+                ol.line_excl + ol.line_vat AS line_total,
+                to_char(greatest(least(ol.deducted - ol.returned, coalesce((
+                    SELECT sum(",
+        crate::modules::sales_returns::repo::credit_left!(),
+        ") FROM sales_recognition_lines l
+                    WHERE l.workspace_id = ol.workspace_id AND l.order_line_id = ol.id), 0)), 0),
+                    'FM999999999990.00') AS returnable
+         FROM order_lines ol
+         WHERE ol.workspace_id = $1 AND ol.order_id = $2
+         ORDER BY ol.position, ol.id"
+    ))
+    .bind(ws)
+    .bind(h.order_id)
+    .fetch_all(&mut *conn)
+    .await?;
+    let credits: Vec<TillSaleLookupCredit> = sqlx::query_as(concat!(
+        "SELECT i.id AS credit_open_item_id, i.residual, ",
+        refundable!(),
+        " AS refundable, i.created_at
+         FROM accounting_open_items i
+         WHERE i.workspace_id = $1 AND i.order_id = $2
+           AND i.recognition_id IN (SELECT id FROM sales_recognitions
+                                    WHERE workspace_id = $1 AND order_id = $2)
+           AND i.classification = 'customer_credit' AND i.source_kind = 'sales_return'
+         ORDER BY i.created_at, i.id"
+    ))
+    .bind(ws)
+    .bind(h.order_id)
+    .fetch_all(&mut *conn)
+    .await?;
+    let cash_step = till_sales::service::cash_step(&mut conn, ws, &h.currency).await?;
+    Ok(TillSaleLookup {
+        order_id: h.order_id,
+        number: h.number,
+        sold_at: h.sold_at,
+        register_id: h.register_id,
+        register_name: h.register_name,
+        method: h.method,
+        total: h.total,
+        due: h.due,
+        currency: h.currency,
+        decimals: h.decimals,
+        cash_step,
+        lines,
+        credits,
+    })
 }
 
 // --- returns -----------------------------------------------------------------------------
@@ -202,15 +301,12 @@ async fn facts(
     .await?
     .ok_or_else(|| AppError::field("credit_open_item_id", NOT_THIS_SALE))?;
     let sale = returns::lock_sale(&mut *conn, ws, credit.recognition_id).await?;
-    let (residual, refundable): (i64, i64) = sqlx::query_as(
-        "SELECT i.residual,
-                (i.residual - coalesce((SELECT sum(r.amount) FROM credit_refund_reservations r
-                                        WHERE r.workspace_id = i.workspace_id
-                                          AND r.credit_item_id = i.id AND r.state = 'pending'), 0)
-                )::int8
-         FROM accounting_open_items i WHERE i.workspace_id = $1 AND i.id = $2
-         FOR NO KEY UPDATE",
-    )
+    let (residual, refundable): (i64, i64) = sqlx::query_as(concat!(
+        "SELECT i.residual, ",
+        refundable!(),
+        " FROM accounting_open_items i WHERE i.workspace_id = $1 AND i.id = $2
+         FOR NO KEY UPDATE"
+    ))
     .bind(ws)
     .bind(input.item)
     .fetch_one(&mut *conn)
