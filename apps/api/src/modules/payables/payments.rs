@@ -40,7 +40,8 @@ use crate::{
             dto::{
                 AllocateInput, AllocatePayload, AllocateReview, ListQuery,
                 PaymentAllocationResource, PaymentInput, PaymentPayload, PaymentReview,
-                ReverseInput, ReversePayload, ReverseReview, SupplierPaymentResource,
+                PaymentTarget, ReverseInput, ReversePayload, ReverseReview,
+                SupplierPaymentResource,
             },
         },
         purchasing::{
@@ -964,4 +965,81 @@ pub async fn reverse(
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
+}
+
+#[derive(FromRow)]
+struct TargetRow {
+    decimals: i16,
+    open_item_id: Option<Uuid>,
+    classification: Option<String>,
+    source_kind: Option<String>,
+    source_id: Option<Uuid>,
+    source_number: Option<i64>,
+    supplier_invoice_number: Option<String>,
+    issue_date: Option<NaiveDate>,
+    due_date: Option<NaiveDate>,
+    amount: Option<i64>,
+    residual: Option<i64>,
+    total_rows: Option<i64>,
+}
+
+/// GET /supplier-payments/{id}/targets: open items `allocate` accepts for this record (a
+/// payment's supplier payables, a refund's supplier credits; same supplier and currency,
+/// residual left), oldest due first. Read-only, one query; 404 outside the workspace.
+pub async fn targets(
+    state: &AppState,
+    ws: Uuid,
+    id: Uuid,
+    q: &ListQuery,
+) -> Result<Paginated<PaymentTarget>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let rows: Vec<TargetRow> = sqlx::query_as(
+        "SELECT c.decimals, t.* FROM supplier_payments p
+         JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id
+         LEFT JOIN LATERAL (
+             SELECT i.id AS open_item_id, i.classification, i.source_kind, i.source_id,
+                    coalesce(sb.number, pr.number, sp.number) AS source_number,
+                    sb.supplier_invoice_number, i.issue_date, i.due_date, i.amount, i.residual,
+                    count(*) OVER () AS total_rows
+             FROM accounting_open_items i
+             LEFT JOIN supplier_bills sb ON i.source_kind = 'supplier_bill'
+                  AND sb.workspace_id = i.workspace_id AND sb.id = i.source_id
+             LEFT JOIN purchase_returns pr ON i.source_kind = 'purchase_return'
+                  AND pr.workspace_id = i.workspace_id AND pr.id = i.source_id
+             LEFT JOIN supplier_payments sp ON i.source_kind = 'supplier_payment'
+                  AND sp.workspace_id = i.workspace_id AND sp.id = i.source_id
+             WHERE i.workspace_id = p.workspace_id AND i.relation_id = p.supplier_id
+               AND i.classification = CASE WHEN p.direction = 'payment' THEN 'payable'
+                                           ELSE 'supplier_credit' END
+               AND i.currency_id = p.currency_id AND i.residual > 0
+             ORDER BY coalesce(i.due_date, i.issue_date), i.id
+             LIMIT $3 OFFSET $4) t ON true
+         WHERE p.workspace_id = $1 AND p.id = $2",
+    )
+    .bind(ws)
+    .bind(id)
+    .bind(page.size)
+    .bind(page.offset())
+    .fetch_all(&state.db)
+    .await?;
+    let dp = rows.first().ok_or(AppError::NotFound)?.decimals;
+    let total = rows.first().and_then(|r| r.total_rows).unwrap_or(0);
+    let data = rows
+        .into_iter()
+        .filter_map(|t| {
+            Some(PaymentTarget {
+                open_item_id: t.open_item_id?,
+                classification: t.classification?,
+                source_kind: t.source_kind?,
+                source_id: t.source_id?,
+                source_number: t.source_number,
+                supplier_invoice_number: t.supplier_invoice_number,
+                issue_date: t.issue_date?,
+                due_date: t.due_date,
+                amount: amount(t.amount?, dp),
+                residual: amount(t.residual?, dp),
+            })
+        })
+        .collect();
+    Ok(Paginated::new(data, total, page))
 }

@@ -358,6 +358,9 @@ pub struct ListQuery {
 pub struct BillMatchResource {
     pub id: Uuid,
     pub receipt_line_id: Option<Uuid>,
+    /// Receipt and purchase order of a goods match (source links).
+    pub receipt_id: Option<Uuid>,
+    pub purchase_order_id: Option<Uuid>,
     pub landed_cost_id: Option<Uuid>,
     pub quantity: String,
     /// draft (reservation), posted or reversed.
@@ -376,6 +379,7 @@ pub struct BillLineResource {
     /// goods, landed_cost or expense.
     pub kind: String,
     pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
     pub landed_cost_id: Option<Uuid>,
     pub expense_account_id: Option<Uuid>,
     pub quantity: String,
@@ -938,7 +942,10 @@ pub struct ReturnLineResource {
     pub bill_match_id: Option<Uuid>,
     pub billed: bool,
     pub quantity: String,
+    pub product_id: Uuid,
+    pub product_name: Option<String>,
     pub warehouse_id: Uuid,
+    pub warehouse_name: Option<String>,
     pub bin_id: Option<Uuid>,
     pub lot_id: Option<Uuid>,
     /// C: the current average value the goods left at.
@@ -1152,4 +1159,102 @@ pub struct CostAdjustmentReview {
     pub total: String,
     pub journal: Vec<JournalPreview>,
     pub review_fingerprint: String,
+}
+
+// --- Office pickers (M7-A, read-only) -------------------------------------------------------
+
+/// GET /purchase-cost-adjustments query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct CostListQuery {
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+    /// Only adjustments of this supplier's bills.
+    #[param(value_type = Option<Uuid>)]
+    pub supplier_id: Option<Uuid>,
+    /// Only adjustments of this bill.
+    #[param(value_type = Option<Uuid>)]
+    pub bill_id: Option<Uuid>,
+}
+
+/// A booked receipt line a draft bill's goods line may match.
+#[derive(Serialize, ToSchema)]
+pub struct MatchCandidate {
+    pub bill_line_id: Uuid,
+    pub receipt_line_id: Uuid,
+    pub receipt_id: Uuid,
+    pub receipt_number: i64,
+    pub purchase_order_id: Uuid,
+    pub purchase_order_number: i64,
+    pub booked_at: Option<DateTime<Utc>>,
+    /// B − U − M − D, this bill's own reservations not counted (match replaces them).
+    pub matchable: String,
+}
+
+/// GET /supplier-bills/{id}/match-candidates.
+#[derive(Serialize, ToSchema)]
+pub struct BillMatchCandidates {
+    pub bill_id: Uuid,
+    pub candidates: Vec<MatchCandidate>,
+}
+
+/// GET /purchase-returns/candidates query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct ReturnCandidatesQuery {
+    /// The booked receipt to return from (required).
+    #[param(value_type = Uuid)]
+    pub receipt_id: Option<Uuid>,
+}
+
+/// A posted bill match of a receipt line a billed return may name.
+#[derive(Serialize, ToSchema)]
+pub struct BilledReturnCandidate {
+    pub bill_allocation_id: Uuid,
+    pub bill_id: Uuid,
+    pub bill_number: i64,
+    pub supplier_invoice_number: String,
+    pub returnable: String,
+}
+
+/// One receipt line's returnable quantities.
+#[derive(Serialize, ToSchema)]
+pub struct ReturnCandidateLine {
+    pub receipt_line_id: Uuid,
+    pub product_id: Uuid,
+    pub product_name: Option<String>,
+    pub warehouse_id: Uuid,
+    pub warehouse_name: Option<String>,
+    pub booked: String,
+    /// Returnable without naming a bill match.
+    pub unbilled_returnable: String,
+    pub billed: Vec<BilledReturnCandidate>,
+}
+
+/// GET /purchase-returns/candidates.
+#[derive(Serialize, ToSchema)]
+pub struct ReturnCandidates {
+    pub receipt_id: Uuid,
+    pub receipt_number: i64,
+    pub purchase_order_id: Uuid,
+    pub purchase_order_number: i64,
+    pub supplier: SupplierRef,
+    pub currency: CurrencyRef,
+    pub lines: Vec<ReturnCandidateLine>,
+}
+
+/// An open item a supplier payment (payable) or refund received (supplier credit) may settle.
+#[derive(Serialize, ToSchema)]
+pub struct PaymentTarget {
+    pub open_item_id: Uuid,
+    pub classification: String,
+    pub source_kind: String,
+    pub source_id: Uuid,
+    /// Bill, return or payment number of the source, when known.
+    pub source_number: Option<i64>,
+    pub supplier_invoice_number: Option<String>,
+    pub issue_date: NaiveDate,
+    pub due_date: Option<NaiveDate>,
+    pub amount: String,
+    pub residual: String,
 }
