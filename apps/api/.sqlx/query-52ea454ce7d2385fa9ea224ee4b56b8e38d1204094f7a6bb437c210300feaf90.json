@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.stock_id, l.product_id, l.shelf_id, l.bin_id, l.lot_id, l.expected, l.counted,\n                  l.positive_adjustment_value AS value, s.reserved\n           FROM stocktake_lines l JOIN stocks s ON s.id = l.stock_id\n           WHERE l.workspace_id = $1 AND l.stocktake_id = $2\n           ORDER BY l.product_id, l.bin_id NULLS FIRST, l.lot_id NULLS FIRST, l.stock_id",
+  "query": "SELECT l.stock_id, l.product_id, l.shelf_id, l.bin_id, l.lot_id, l.expected, l.counted,\n                  l.positive_adjustment_value AS value, s.reserved,\n                  p.name AS product_name, p.reference AS product_reference,\n                  b.bin_code AS \"bin_code?\", lo.code AS \"lot_code?\"\n           FROM stocktake_lines l JOIN stocks s ON s.id = l.stock_id\n           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id\n           LEFT JOIN warehouse_section_row_bins b ON b.workspace_id = l.workspace_id\n                                                AND b.id = l.bin_id\n           LEFT JOIN lots lo ON lo.workspace_id = l.workspace_id AND lo.id = l.lot_id\n           WHERE l.workspace_id = $1 AND l.stocktake_id = $2\n           ORDER BY l.product_id, l.bin_id NULLS FIRST, l.lot_id NULLS FIRST, l.stock_id",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,50 @@
             "name": "reserved"
           }
         }
+      },
+      {
+        "ordinal": 9,
+        "name": "product_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "product_reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "bin_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_code"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
       }
     ],
     "parameters": {
@@ -118,8 +162,12 @@
       false,
       true,
       true,
+      false,
+      false,
+      true,
+      false,
       false
     ]
   },
-  "hash": "662daa9c65d1faa0209eff78fa2e2c06e26e7a668b098b7dff24ca588076a00b"
+  "hash": "52ea454ce7d2385fa9ea224ee4b56b8e38d1204094f7a6bb437c210300feaf90"
 }

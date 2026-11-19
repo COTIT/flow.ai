@@ -8,6 +8,7 @@ it("each office route keeps the right its page list needs, readable on the serve
   expect(rightFor("/products")).toBe("product.list")
   expect(rightFor("/products/categories")).toBe("product.list")
   expect(rightFor("/stock/negative")).toBe("stock.list")
+  expect(rightFor("/stock/counts/abc")).toBe("stocktake.list")
   expect(rightFor("/till/sales")).toBe("cashregister.list")
   expect(rightFor("/settings/webhooks")).toBe("workspace_admin")
   expect(rightFor("/settings/storefront")).toBe("workspace_admin")

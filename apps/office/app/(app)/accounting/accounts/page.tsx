@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
@@ -166,7 +167,12 @@ export default function AccountsPage({
               {rows.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell className="font-semibold tabular-nums">
-                    {a.code}
+                    <Link
+                      className="underline-offset-4 hover:underline max-md:inline-flex max-md:min-h-11 max-md:min-w-11 max-md:items-center"
+                      href={`/accounting/accounts/${a.id}`}
+                    >
+                      {a.code}
+                    </Link>
                   </TableCell>
                   <TableCell data-m="sub">{a.name}</TableCell>
                   <TableCell data-m="hide">{word("types", a.type)}</TableCell>

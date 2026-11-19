@@ -799,6 +799,12 @@
       "created": "Tax profile saved as draft.",
       "saved": "Draft saved.",
       "verified": "Tax profile verified."
+    },
+    "stocktakes": {
+      "started": "Count started. The warehouse is paused.",
+      "counted": "Counts saved.",
+      "posted": "Count posted.",
+      "cancelled": "Count cancelled."
     }
   },
   "images": {
@@ -1631,7 +1637,9 @@
       "edit": "Edit",
       "editTitle": "Account {code}",
       "editText": "Rename the account or switch it off. An account used for a setup role stays in use.",
-      "inUse": "In use"
+      "inUse": "In use",
+      "history": "Account history",
+      "under": "under {code} {name}"
     },
     "periods": {
       "title": "Fiscal years and periods",
@@ -1912,5 +1920,82 @@
     "select": "Choose a warehouse",
     "selectionUnavailable": "This warehouse is unavailable. Choose another warehouse to continue.",
     "listDenied": "You need permission to view warehouses before you can change stock."
+  },
+  "stocktakes": {
+    "title": "Counts",
+    "one": "Stock count",
+    "titleOf": "Count of {warehouse}",
+    "open": "Open count",
+    "count": "{total, plural, one {# count} other {# counts}}",
+    "empty": "No counts yet.",
+    "warehouse": "Warehouse",
+    "reason": "Reason",
+    "state": "State",
+    "created": "Created",
+    "startedAt": "Started",
+    "postedAt": "Posted",
+    "cancelledAt": "Cancelled",
+    "new": "New count",
+    "newText": "Choose the warehouse to count. Nothing is paused until you start the count.",
+    "chooseWarehouse": "Choose a warehouse",
+    "create": "Create count",
+    "states": {
+      "draft": "Draft",
+      "counting": "Counting",
+      "posted": "Posted",
+      "cancelled": "Cancelled"
+    },
+    "lines": "Items",
+    "item": "Item",
+    "expected": "Expected",
+    "counted": "Counted",
+    "notCounted": "Not counted",
+    "countedOf": "Counted for {item}",
+    "foundValue": "Value of found stock",
+    "foundValueOf": "Value of found stock for {item}",
+    "foundValueHint": "Fill in a value only when the count finds more than expected and the item has no cost in this warehouse yet. The count tells you when it is needed.",
+    "save": "Save counts",
+    "noLines": "This warehouse had no stock rows when the count started.",
+    "nextStep": "Next step",
+    "details": "Details",
+    "paused": "This warehouse is paused: no stock moves in or out until the count is posted or cancelled.",
+    "reallocated": "Order holds on recalled, quarantined or expired batches were moved to sellable stock where possible. A hold that could not move stays on its batch page.",
+    "next": {
+      "start": "Starting freezes the expected stock and pauses this warehouse while you count.",
+      "post": "When every item is counted, post the differences to stock."
+    },
+    "postedInfo": "This count is posted. Its differences are in the stock history.",
+    "cancelledInfo": "This count was cancelled. No stock moved.",
+    "nothingToDo": "Nothing to do here with your rights.",
+    "start": {
+      "action": "Start count",
+      "title": "Start this count?",
+      "text": "The expected stock is frozen now and the warehouse is paused until the count is posted or cancelled."
+    },
+    "cancel": {
+      "action": "Cancel count",
+      "title": "Cancel this count?",
+      "text": "The counts stay as history, no stock moves and the warehouse resumes.",
+      "keep": "Keep it"
+    },
+    "post": {
+      "action": "Post count",
+      "title": "Post this count",
+      "text": "Choose the date, check each difference, then post.",
+      "date": "Posting date",
+      "review": "Check differences",
+      "reviewing": "Checking the differences",
+      "noChanges": "Every count matches what was expected. Posting only resumes the warehouse.",
+      "delta": "Difference {delta}",
+      "value": "value {value}"
+    },
+    "reasons": {
+      "receipt_booking_required": "Goods received in this warehouse still wait to be booked. Book them first, then start the count.",
+      "warehouse_paused": "Another count is already running in this warehouse.",
+      "stocktake_value_required": "An item was found with no cost in this warehouse. Fill in the value of the found stock.",
+      "stocktake_value_not_allowed": "This item already has a cost here. Leave the value of found stock empty.",
+      "backdated_valuation": "This date is before the item's last valuation. Choose a later date."
+    },
+    "linesAfterStart": "The items to count appear once the count starts."
   }
 }

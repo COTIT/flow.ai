@@ -906,3 +906,118 @@ async fn permissions_and_other_workspaces_are_refused(pool: PgPool) {
     assert_eq!(s, StatusCode::OK, "{b}");
     assert_eq!(b["data"].as_array().unwrap().len(), 1);
 }
+
+// --- display fields and allowed actions (M6-C) ---------------------------------------------------
+
+#[sqlx::test]
+async fn lines_carry_product_bin_and_lot_labels_of_this_workspace_only(pool: PgPool) {
+    let w = world(pool).await;
+    let comb = w
+        .api
+        .with_base("/products")
+        .create(
+            json!({ "name": "Comb", "price": "4", "reference": "CMB-1" }),
+            "product_id",
+        )
+        .await;
+    let (s, b) = w
+        .req(
+            Method::POST,
+            &format!("/warehouses/{}/sections", w.main),
+            Some(
+                json!({ "section_name": "Hall", "section_code": "H", "rows": 1,
+                         "shelves_per_row": 1, "bins_per_shelf": 1 }),
+            ),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let (_, bins) = w
+        .req(Method::GET, &format!("/warehouses/{}/bins", w.main), None)
+        .await;
+    let bin = bins["data"][0].clone();
+    let (s, b) = w
+        .req(
+            Method::POST,
+            &format!("/products/{comb}/stocks"),
+            Some(
+                json!({ "warehouse_id": w.main, "bin_id": bin["id"], "mutation_value": "2",
+                         "reason": "x" }),
+            ),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let lot = w.lot(&w.wax, "L-7", "2030-01-01", 3).await;
+    // Another workspace with its own product of the same shape: never in Acme's lines.
+    let (eve, eve_ws) = signup(&w.api.app, "eve@example.com", "evil").await;
+    let (s, _) = send_raw(
+        &w.api.app,
+        Method::POST,
+        &format!("/v1/workspace/{eve_ws}/products"),
+        Some(json!({ "name": "Eve secret", "price": "1", "reference": "EVE-1" })),
+        Some(&eve),
+        &[],
+    )
+    .await;
+    assert!(s.is_success());
+
+    let st = w.start(&w.main).await;
+    let lines = st["lines"].as_array().unwrap();
+    let binned = lines.iter().find(|l| l["bin_id"] == bin["id"]).unwrap();
+    assert_eq!(
+        (
+            &binned["product_name"],
+            &binned["product_reference"],
+            &binned["bin_code"],
+            &binned["lot_code"]
+        ),
+        (
+            &json!("Comb"),
+            &json!("CMB-1"),
+            &bin["bin_code"],
+            &Value::Null
+        )
+    );
+    assert!(bin["bin_code"].is_string(), "{bin}");
+    let lotted = W::line(&st, &w.wax, Some(&lot));
+    assert_eq!(
+        (
+            &lotted["product_name"],
+            &lotted["lot_code"],
+            &lotted["bin_code"]
+        ),
+        (&json!("Wax"), &json!("L-7"), &Value::Null)
+    );
+    let body = w.get(&st).await.to_string();
+    assert!(
+        !body.contains("Eve secret") && !body.contains("EVE-1"),
+        "{body}"
+    );
+}
+
+#[sqlx::test]
+async fn allowed_actions_follow_the_state(pool: PgPool) {
+    let w = world(pool).await;
+    w.add(&w.honey, &w.main, "1").await;
+    let actions = |st: &Value| st["allowed_actions"].clone();
+
+    let draft = w.create(&w.main).await;
+    assert_eq!(actions(&draft), json!(["start", "cancel"]));
+    let (_, list) = w.req(Method::GET, "/stocktakes", None).await;
+    assert_eq!(actions(&list["data"][0]), json!(["start", "cancel"]));
+
+    let (s, b) = w.act(&draft, "cancel", json!({ "reason": "typo" })).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(actions(&b["data"]), json!([]));
+
+    let st = w.start(&w.main).await;
+    assert_eq!(actions(&st), json!(["count", "post", "cancel"]));
+    let st = w.get(&st).await;
+    assert_eq!(actions(&st), json!(["count", "post", "cancel"]));
+    let lines: Vec<_> = st["lines"].as_array().unwrap().to_vec();
+    let counts: Vec<(&Value, &str, Option<&str>)> = lines.iter().map(|l| (l, "1", None)).collect();
+    let (s, b) = w.count(&st, &counts).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let (s, b) = w.post(&b["data"]).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(actions(&b["data"]), json!([]));
+}

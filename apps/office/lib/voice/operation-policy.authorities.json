@@ -221,7 +221,7 @@
   "apps/api/src/modules/stock/handlers.rs": "279769845e6398734c3c0034d436670d3bd1f43801e35eb51f163028ff5b3c24",
   "apps/api/src/modules/stock/service.rs": "cb97ce92728d72b069ad3792f0f13d156b3af075f1b2abd05c09992e09ff6e8d",
   "apps/api/src/modules/stocktakes/handlers.rs": "fcdbe5435c72027ed044d4c82c64f6e270cc7fb3d2f794b69b97d4eba64547aa",
-  "apps/api/src/modules/stocktakes/service.rs": "ccea86683234139ea98bf91d6b1d37a7d6e183763cd1daac22ff047278b9ab7c",
+  "apps/api/src/modules/stocktakes/service.rs": "cc82ee8af390c803587cae14104a3ccfe851f1cc30b52c41471dea26b5a20dd9",
   "apps/api/src/modules/storage_locations/handlers.rs": "3b2959e858b9fed626a0d34b05da172e26486ddd4541490a9636f88631cf68f3",
   "apps/api/src/modules/storage_locations/service.rs": "9982926ac903441a8638bdeebd28f0648778fe3b2209bbcdac1076047e25fa43",
   "apps/api/src/modules/storefront/connections.rs": "de9059f515d94a43acfa61771005dd9124ff6eb66e92520445229531e4313117",
