@@ -14,6 +14,7 @@ export * from './accountingExceptionsListParams';
 export * from './accountingGeneralLedgerParams';
 export * from './accountingInventoryValuationParams';
 export * from './accountingJournalsListParams';
+export * from './accountingOpeningBaselinesListParams';
 export * from './accountingPartyLedgerParams';
 export * from './accountingPayablesAgingParams';
 export * from './accountingPeriodsListParams';

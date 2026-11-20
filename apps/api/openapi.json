@@ -58714,6 +58714,22 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -58721,11 +58737,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_Value"
+                  "$ref": "#/components/schemas/Paginated_Value"
                 }
               }
             },
-            "description": "Baselines: source, party, currency, face, settled, outstanding, corrected_outstanding, corrections"
+            "description": "One page of baselines: source, party, currency, face, settled, outstanding, corrected_outstanding, corrections"
           },
           "400": {
             "content": {
