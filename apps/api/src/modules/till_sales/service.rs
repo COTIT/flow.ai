@@ -16,7 +16,7 @@ use crate::{
     AppState,
     error::AppError,
     modules::{
-        cash::{repo as cash, service::round_cash},
+        cash::repo as cash,
         currencies, farm_supply,
         orders::{
             dto::LineInput,
@@ -143,7 +143,8 @@ async fn price_sale(
                 .await?
                 .map(|c| c.asset_type)
                 .unwrap_or_default();
-            round_cash(charged.total, cash_step(&mut *conn, ws, &code).await?)
+            let step = cash_step(&mut *conn, ws, &code).await?;
+            cash::round_cash(&mut *conn, charged.total, step).await?
         }
         Payment::Card { .. } => charged.total,
     };

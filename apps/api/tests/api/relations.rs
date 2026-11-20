@@ -1560,6 +1560,41 @@ async fn financial_summary_zero_documents(pool: PgPool) {
     );
 }
 
+#[sqlx::test]
+async fn financial_summary_credit_is_exact(pool: PgPool) {
+    let api = api(pool).await;
+    let mut b = body();
+    // f64: 1.005 * 100 = 100.4999…, rounds to 1.0; numeric half away from zero gives 1.01.
+    b["financial_account"] = json!({ "credit_limit": "1.005" });
+    let small = api.create(b, "relation_id").await;
+    let mut b = body();
+    b["company_name"] = json!("Big Credit BV");
+    b["financial_account"] = json!({ "credit_limit": "12345678901234567.89" });
+    let big = api.create(b, "relation_id").await;
+
+    let get = |id: String| {
+        let api = &api;
+        async move {
+            let (status, s) = api
+                .call(
+                    Method::GET,
+                    &format!("/{id}/financial-summary"),
+                    None,
+                    &api.owner,
+                )
+                .await;
+            assert_eq!(status, StatusCode::OK, "{s}");
+            s["data"].clone()
+        }
+    };
+    let s = get(small).await;
+    assert_eq!(s["credit_limit"].to_string(), "1.005");
+    assert_eq!(s["available_credit"].to_string(), "1.01");
+    let s = get(big).await;
+    assert_eq!(s["credit_limit"].to_string(), "12345678901234567.89");
+    assert_eq!(s["available_credit"].to_string(), "12345678901234567.89");
+}
+
 // ---- review fixes
 
 #[sqlx::test]

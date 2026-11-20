@@ -37,7 +37,8 @@ async function bookedReceipt(
   request: APIRequestContext,
   api: Api,
   w: Base,
-  qty: string
+  qty: string,
+  landed: { amount: string; evidence_ref: string }[] = []
 ): Promise<{ po: string; receipt: string }> {
   let po: Po = await command<Po>(request, api, "POST", "/purchase-orders", {
     payload: {
@@ -82,7 +83,11 @@ async function bookedReceipt(
   )
   const book = {
     receipt_line_ids: receipt.lines.map((l) => l.id),
-    landed_costs: [],
+    landed_costs: landed.map((l) => ({
+      client_component_ref: crypto.randomUUID(),
+      currency_id: w.currency,
+      ...l,
+    })),
   }
   const path = `/purchase-orders/${po.id}/receipts/${receipt.id}/book`
   const r = await api.post<{ review_fingerprint: string }>(
@@ -356,5 +361,73 @@ test.describe("payables", () => {
       }
     )
     expect([403, 404]).toContain(res.status())
+  })
+
+  test("supplier bill: extra cost picked from the booked receipt, price prefilled, posted", async ({
+    page,
+    request,
+  }) => {
+    await loginOffice(page, w.login)
+    await page.goto(`${urls.office}/supplier-bills/new`)
+    await page.getByLabel("Line type").selectOption("landed_cost")
+    // Nothing booked yet: the form says so instead of an empty picker.
+    await expect(
+      page.getByText("No booked extra cost is left to bill in this currency.")
+    ).toBeVisible()
+
+    const freight = `DHL-${w.tag}`
+    const booked = await bookedReceipt(request, w.api, w, "2", [
+      { amount: "7.00", evidence_ref: freight },
+    ])
+    await page.reload()
+    await page
+      .getByLabel("Supplier", { exact: true })
+      .selectOption({ label: `Bees ${w.tag}` })
+    await page.getByLabel("Supplier invoice number").fill(`FRT-${w.tag}`)
+    await page.getByLabel("Line type").selectOption("landed_cost")
+    const option = page
+      .getByLabel("Extra cost", { exact: true })
+      .locator("option", { hasText: freight })
+    await page
+      .getByLabel("Extra cost", { exact: true })
+      .selectOption({ label: (await option.textContent())!.trim() })
+    await expect(page.getByLabel("Quantity")).toHaveValue("1")
+    await expect(page.getByLabel("Unit price")).toHaveValue("7.00")
+    await page.getByLabel("Unit price").fill("7.50")
+    await page.getByRole("button", { name: "Save draft" }).click()
+    await expect(page.getByText("Draft saved.")).toBeVisible()
+    await expect(
+      page.getByText(new RegExp(`${freight} · booked`))
+    ).toBeVisible()
+
+    // The component is now held by this draft: a new bill no longer offers it.
+    const billUrl = page.url().split("?")[0]!
+    await page.goto(`${urls.office}/supplier-bills/new`)
+    await page.getByLabel("Line type").selectOption("landed_cost")
+    await expect(
+      page.getByText("No booked extra cost is left to bill in this currency.")
+    ).toBeVisible()
+
+    // Its own edit form still offers it, selected.
+    await page.goto(`${billUrl}/edit`)
+    await expect(page.getByLabel("Extra cost", { exact: true })).toContainText(
+      freight
+    )
+
+    await page.goto(billUrl)
+    await side(page, "Next step")
+      .getByRole("button", { name: "Post bill" })
+      .click()
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByText("Check before you confirm")).toBeVisible()
+    await dialog.getByRole("button", { name: "Post bill" }).click()
+    await expect(page.getByText("Posted.")).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "receipt", exact: true })
+    ).toHaveAttribute(
+      "href",
+      `/purchases/${booked.po}/receipts/${booked.receipt}`
+    )
+    await expectNoRawValues(page, { allow })
   })
 })

@@ -11,6 +11,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::bills_get, handlers::bills_update))
         .routes(routes!(handlers::bills_match))
         .routes(routes!(handlers::bills_match_candidates))
+        .routes(routes!(handlers::bills_landed_candidates))
         .routes(routes!(handlers::bills_post_review))
         .routes(routes!(handlers::bills_post))
         .routes(routes!(handlers::bills_reverse_review))

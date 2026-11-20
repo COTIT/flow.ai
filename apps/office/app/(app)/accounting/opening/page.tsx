@@ -25,7 +25,7 @@ import { Notice } from "@genesy/ui/components/notice"
 import { formatDateTime } from "@genesy/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field } from "@/components/field"
-import { PageHead } from "@/components/list"
+import { ListPager, PageHead } from "@/components/list"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useCan } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
@@ -330,10 +330,14 @@ function Corrections({
   const mayConfigure = useCan("accounting.configure")
   const mayPost = useCan("accounting.post")
   const mayCorrect = mayConfigure && mayPost
-  const list = useAccountingOpeningBaselinesList(workspaceId, {
-    query: { enabled: Boolean(workspaceId) },
-  })
+  const [page, setPage] = React.useState(1)
+  const list = useAccountingOpeningBaselinesList(
+    workspaceId,
+    { page: String(page) },
+    { query: { enabled: Boolean(workspaceId) } },
+  )
   const rows = (list.data?.data ?? []) as unknown as Baseline[]
+  const meta = list.data?.meta
   const [open, setOpen] = React.useState<string | null>(null)
   return (
     <div className="flex flex-col gap-5">
@@ -396,6 +400,7 @@ function Corrections({
             ))}
           </ul>
         )}
+        {meta && meta.last_page > 1 ? <ListPager meta={meta} onPage={setPage} /> : null}
       </Card>
     </div>
   )

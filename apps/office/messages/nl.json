@@ -2380,6 +2380,19 @@
       "reversed": "Tegoed teruggedraaid.",
       "unrestocked": "Terugzetten ongedaan gemaakt.",
       "legacyCost": "Gecontroleerde kostprijs vastgelegd. Terugzetten gebruikt die nu."
+    },
+    "new": {
+      "action": "Nieuwe retour (eerst controleren)",
+      "title": "Nieuwe klantretour",
+      "fromOrder": "Start een nieuwe retour vanuit een order: open de order en kies Nieuwe retour.",
+      "ofOrder": "Order {number} · {customer}",
+      "sale": "Verkoop",
+      "saleOption": "{date} · {kind}",
+      "sold": "verkocht {qty}",
+      "left": "nog {qty} te crediteren",
+      "nothingToCredit": "Er valt niets meer te crediteren op deze order.",
+      "saveDraft": "Concept opslaan",
+      "created": "Concept opgeslagen. Controleer de bedragen en boek dan de creditering."
     }
   },
   "payables": {
@@ -2401,6 +2414,10 @@
     "dueDate": "Vervaldatum",
     "evidenceRef": "Documentreferentie",
     "expenseAccount": "Kostenrekening",
+    "extraCost": "Extra kosten",
+    "chooseExtraCost": "Kies extra kosten",
+    "noExtraCosts": "Er staan geen geboekte extra kosten meer open in deze valuta.",
+    "extraCostOption": "Order {order}, ontvangst {receipt}: {evidence} ({amount})",
     "extension": "Regeltotaal",
     "facts": "Gegevens",
     "functionalTotal": "In boekvaluta",
@@ -2507,7 +2524,7 @@
       "empty": "Nog geen inkoopfacturen.",
       "edit": "Concept wijzigen",
       "back": "Terug naar de factuur",
-      "onlyDrafts": "Alleen een conceptfactuur zonder extra-kostenregels kan hier worden gewijzigd.",
+      "onlyDrafts": "Alleen een conceptfactuur kan hier worden gewijzigd.",
       "match": "Koppel ontvangen goederen",
       "matchTitle": "Koppel factuur {number} aan ontvangen goederen",
       "matchText": "Per product: hoeveel van elke geboekte ontvangst deze factuur dekt. Wat overblijft komt van de server.",
@@ -2516,6 +2533,7 @@
       "saveMatch": "Koppelingen opslaan",
       "unmatched": "Nog niet gekoppeld",
       "receiptLink": "ontvangst",
+      "landedOf": "Order {order} · {evidence} · geboekt {amount}",
       "post": "Factuur boeken",
       "postTitle": "Factuur {number} boeken",
       "postText": "Boeken legt het leverancierssaldo en de btw vast. Alleen terug te draaien met een terugboeking.",

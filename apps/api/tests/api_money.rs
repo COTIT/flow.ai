@@ -99,6 +99,8 @@ mod sales_groups;
 mod sales_recognition;
 #[path = "api/sales_returns.rs"]
 mod sales_returns;
+#[path = "api/sales_returns_candidates.rs"]
+mod sales_returns_candidates;
 #[path = "api/sales_returns_schema.rs"]
 mod sales_returns_schema;
 #[path = "api/settlement.rs"]

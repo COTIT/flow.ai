@@ -597,19 +597,30 @@ pub async fn soft_delete(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// What the financial summary needs from a live relation: stored account and creation time.
+/// What the financial summary needs from a live relation: credit limit and available credit
+/// (exact decimal text, null when unset or not a number) and creation time.
 pub async fn summary_source(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     id: Uuid,
-) -> Result<Option<(Option<Value>, DateTime<Utc>)>, sqlx::Error> {
+) -> Result<Option<(Option<String>, Option<String>, DateTime<Utc>)>, sqlx::Error> {
+    // Legacy rows may hold the limit as a string; the pattern keeps NaN/Infinity out.
     Ok(sqlx::query!(
-        "SELECT financial_account, created_at FROM relations
-         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        r#"SELECT trim_scale(c.v)::text AS credit_limit,
+                  trim_scale(round(greatest(c.v, 0), 2))::text AS available_credit,
+                  r.created_at
+           FROM relations r
+           CROSS JOIN LATERAL (SELECT CASE jsonb_typeof(r.financial_account -> 'credit_limit')
+               WHEN 'number' THEN (r.financial_account ->> 'credit_limit')::numeric
+               WHEN 'string' THEN CASE WHEN btrim(r.financial_account ->> 'credit_limit')
+                       ~ '^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$'
+                   THEN btrim(r.financial_account ->> 'credit_limit')::numeric END
+           END AS v) c
+           WHERE r.id = $1 AND r.workspace_id = $2 AND r.deleted_at IS NULL"#,
         id,
         workspace_id,
     )
     .fetch_optional(db)
     .await?
-    .map(|r| (r.financial_account, r.created_at)))
+    .map(|r| (r.credit_limit, r.available_credit, r.created_at)))
 }

@@ -18,7 +18,10 @@ use super::{
 use crate::{
     AppState,
     error::AppError,
-    http::json::{Rules, Validate},
+    http::{
+        json::{Rules, Validate},
+        list::{Page, Paginated},
+    },
     modules::stock::value,
 };
 
@@ -1630,10 +1633,14 @@ pub async fn correction_create(
 
 /// GET /accounting/opening-baselines: every receivable/payable the opening carried, with its
 /// corrected outstanding (opening + typed corrections) and correction count; amounts as
-/// decimal text in the source currency. Reads only; an empty list in a setup book.
-// shortcut: first 500 by source number, no paging; add the list envelope when a book has more.
-pub async fn baselines(state: &AppState, ws: Uuid) -> Result<Value, AppError> {
-    let rows: Vec<Value> = sqlx::query_scalar(
+/// decimal text in the source currency, one page in source-number order. Reads only; an empty
+/// list in a setup book.
+pub async fn baselines(
+    state: &AppState,
+    ws: Uuid,
+    page: Page,
+) -> Result<Paginated<Value>, AppError> {
+    let rows: Vec<(Value, i64)> = sqlx::query_as(
         "SELECT json_build_object(
              'id', b.id, 'source_kind', b.source_kind, 'source_id', b.source_id,
              'number', coalesce(i.invoice_number::text, sb.supplier_invoice_number),
@@ -1644,7 +1651,8 @@ pub async fn baselines(state: &AppState, ws: Uuid) -> Result<Value, AppError> {
              'outstanding', round(b.outstanding / 10::numeric ^ c.decimals, c.decimals)::text,
              'corrected_outstanding',
                round((b.outstanding + coalesce(k.delta, 0)) / 10::numeric ^ c.decimals, c.decimals)::text,
-             'corrections', coalesce(k.n, 0))
+             'corrections', coalesce(k.n, 0)),
+             count(*) OVER ()
          FROM accounting_opening_baselines b
          JOIN currencies c ON c.workspace_id = b.workspace_id AND c.id = b.currency_id
          LEFT JOIN invoices i ON i.workspace_id = b.workspace_id AND b.source_kind = 'invoice'
@@ -1658,10 +1666,28 @@ pub async fn baselines(state: &AppState, ws: Uuid) -> Result<Value, AppError> {
                             WHERE x.workspace_id = b.workspace_id AND x.baseline_id = b.id) k ON true
          WHERE b.workspace_id = $1
          ORDER BY b.source_kind, coalesce(i.invoice_number::text, sb.supplier_invoice_number), b.id
-         LIMIT 500",
+         LIMIT $2 OFFSET $3",
     )
     .bind(ws)
+    .bind(page.size)
+    .bind(page.offset())
     .fetch_all(&state.db)
     .await?;
-    Ok(Value::Array(rows))
+    let total = match rows.first() {
+        Some((_, t)) => *t,
+        // Past the last page: no row carries the window count.
+        None => {
+            sqlx::query_scalar(
+                "SELECT count(*) FROM accounting_opening_baselines WHERE workspace_id = $1",
+            )
+            .bind(ws)
+            .fetch_one(&state.db)
+            .await?
+        }
+    };
+    Ok(Paginated::new(
+        rows.into_iter().map(|(v, _)| v).collect(),
+        total,
+        page,
+    ))
 }

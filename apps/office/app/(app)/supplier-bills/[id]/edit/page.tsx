@@ -13,7 +13,7 @@ import { LoadError } from "@/components/states"
 
 import { BillForm } from "../../bill-form"
 
-/** Change a draft bill (full replace); any other state, or landed-cost lines, says so. */
+/** Change a draft bill (full replace); any other state says so. */
 export default function EditSupplierBillPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations()
   const { id } = React.use(params)
@@ -23,8 +23,7 @@ export default function EditSupplierBillPage({ params }: { params: Promise<{ id:
   if (bill.isError)
     return <LoadError error={bill.error} onRetry={() => void bill.refetch()} backHref="/supplier-bills" />
   const b = bill.data.data
-  // shortcut: landed-cost lines aren't editable here (M7-A v1); the form would drop them.
-  const editable = b.allowed_actions.includes("update") && !b.lines.some((l) => l.kind === "landed_cost")
+  const editable = b.allowed_actions.includes("update")
   const back = `/supplier-bills/${b.id}`
   return (
     <>

@@ -11,6 +11,7 @@ Same as shipments (`docs/api/shipments.md`): C `{client_ref, payload}` → 201, 
 | Operation | Route | Permission |
 |---|---|---|
 | `sales_returns_list` | `GET /sales-returns?page=&page_size=` | `salesreturn.list` |
+| `sales_returns_candidates` | `GET /sales-returns/candidates?order_id=` | `salesreturn.create` |
 | `sales_returns_create` | `POST /sales-returns` | `salesreturn.create` |
 | `sales_returns_get` | `GET /sales-returns/{return}` | `salesreturn.get` |
 | `sales_returns_update` | `PATCH /sales-returns/{return}` | `salesreturn.update` |
@@ -39,6 +40,10 @@ Create `{recognition_id, accounting_date, reason, lines: [{recognition_line_id, 
 - Post (review first; the accounting date must be the book's day): per line the cumulative proportional share of the recognised net and tax (`money_round_div`); the credit reaching the recognised quantity takes the exact rest. A Till receipt's cash rounding R (due − gross, from its `received` journal) is shared the same way by gross, so a full return gives back exactly the cash taken. Credit = net + tax + rounding.
 - Journal `sales_return/<id>/posted`: DR `sales_returns` net, DR `tax_payable` tax, ± `rounding`, CR the sale's receivable role (billed `receivables` or `unbilled_receivables`) for the part applied at once to what the customer still owes, CR `receivables` for the rest.
 - One open item, classification `customer_credit`, role `receivables`, source `sales_return/<id>`, `invoice_id` = the aliased credit note (else null), applied at once to the sale's open receivable. Its residual minus pending refund holds (`credit_refund_reservations`) is the refundable money; Till refunds allocate against it (`docs/api/till.md` "Till returns and refunds").
+
+## Candidates
+
+`GET /sales-returns/candidates?order_id=` (Office "New return"): `{order_id, order_number, relation_name, recognitions: [{recognition_id, source_kind, kind, accounting_date, lines: [{recognition_line_id, order_line_id, product_id, product_name, recognised, creditable}]}]}`, recognitions oldest first. `creditable` = recognised − Σ draft and posted credits of the line (the create check's SQL), so a draft at `creditable` passes and more is 422. `kind` is what a create would get. An order with no recognition (not yet delivered, or sold before activation) lists none. Missing `order_id`: 422; unknown order or another workspace: 404. Standalone invoices have no order: credit them from the invoice.
 
 ## Restock
 
