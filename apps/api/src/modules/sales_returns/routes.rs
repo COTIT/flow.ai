@@ -15,6 +15,7 @@ pub fn private() -> OpenApiRouter<AppState> {
             handlers::sales_returns_get,
             handlers::sales_returns_update
         ))
+        .routes(routes!(handlers::sales_returns_candidates))
         .routes(routes!(handlers::sales_returns_cancel))
         .routes(routes!(handlers::sales_returns_post_review))
         .routes(routes!(handlers::sales_returns_post))

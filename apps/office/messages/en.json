@@ -2380,6 +2380,19 @@
       "reversed": "Credit reversed.",
       "unrestocked": "Restock undone.",
       "legacyCost": "Reviewed cost recorded. Restock now uses it."
+    },
+    "new": {
+      "action": "New return (review first)",
+      "title": "New customer return",
+      "fromOrder": "Start a new return from an order: open the order and choose New return.",
+      "ofOrder": "Order {number} · {customer}",
+      "sale": "Sale",
+      "saleOption": "{date} · {kind}",
+      "sold": "sold {qty}",
+      "left": "{qty} left to credit",
+      "nothingToCredit": "Nothing left to credit on this order.",
+      "saveDraft": "Save draft",
+      "created": "Draft saved. Check the amounts, then post the credit."
     }
   },
   "payables": {

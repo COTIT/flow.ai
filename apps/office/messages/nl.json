@@ -2380,6 +2380,19 @@
       "reversed": "Tegoed teruggedraaid.",
       "unrestocked": "Terugzetten ongedaan gemaakt.",
       "legacyCost": "Gecontroleerde kostprijs vastgelegd. Terugzetten gebruikt die nu."
+    },
+    "new": {
+      "action": "Nieuwe retour (eerst controleren)",
+      "title": "Nieuwe klantretour",
+      "fromOrder": "Start een nieuwe retour vanuit een order: open de order en kies Nieuwe retour.",
+      "ofOrder": "Order {number} · {customer}",
+      "sale": "Verkoop",
+      "saleOption": "{date} · {kind}",
+      "sold": "verkocht {qty}",
+      "left": "nog {qty} te crediteren",
+      "nothingToCredit": "Er valt niets meer te crediteren op deze order.",
+      "saveDraft": "Concept opslaan",
+      "created": "Concept opgeslagen. Controleer de bedragen en boek dan de creditering."
     }
   },
   "payables": {

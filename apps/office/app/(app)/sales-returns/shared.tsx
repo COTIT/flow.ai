@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl"
 
+import { today, useBookMonth } from "../accounting/shared"
+
 export {
   bookAmount,
   Shell,
@@ -9,6 +11,11 @@ export {
   useAction,
   type Outcome,
 } from "../accounting/shared"
+
+/** Today in the book's timezone (`business_date`); the browser's day until the setup loads. */
+export function useBookToday() {
+  return useBookMonth().today ?? today()
+}
 
 /** A return state as its label and badge tone. */
 export function useStateBadge() {

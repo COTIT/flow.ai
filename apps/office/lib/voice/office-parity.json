@@ -899,6 +899,12 @@
   "sales_returns_cancel": {
     "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
+  "sales_returns_candidates": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_create": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "sales_returns_get": {
     "ask": {
       "en": ["sales return restock"],

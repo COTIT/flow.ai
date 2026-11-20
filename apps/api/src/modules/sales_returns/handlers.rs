@@ -27,7 +27,7 @@ use crate::{
                 ActionReview, FingerprintPayload, LegacyCostPayload, LegacyCostResource,
                 PostReview, RestockPayload, RestockReversePayload, RestockReviewBody,
                 ReturnCreatePayload, ReturnUpdatePayload, ReversePayload, ReverseReviewBody,
-                SalesReturnResource,
+                SalesReturnCandidates, SalesReturnCandidatesQuery, SalesReturnResource,
             },
             service,
         },
@@ -69,6 +69,33 @@ pub async fn sales_returns_list(
     Query(q): Query<PageQuery>,
 ) -> Result<Json<Paginated<SalesReturnResource>>, AppError> {
     Ok(Json(service::list(&state, &access, &q).await?))
+}
+
+/// sales_returns_candidates: What a new credit of one order's recognised sales may take.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/sales-returns/candidates", tag = "sales_returns",
+    operation_id = "sales_returns_candidates",
+    summary = "Creditable quantities of one order's recognised sales",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), SalesReturnCandidatesQuery),
+    responses(
+        (status = 200, body = Envelope<SalesReturnCandidates>, description = "Success; per recognition line the credit left"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`order_id` missing"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn sales_returns_candidates(
+    State(state): State<AppState>,
+    access: Can<CreateReturn>,
+    Query(q): Query<SalesReturnCandidatesQuery>,
+) -> Result<Data<SalesReturnCandidates>, AppError> {
+    let order = q
+        .order_id
+        .ok_or_else(|| AppError::field("order_id", "Choose an order."))?;
+    Ok(Data(
+        service::candidates(&state, access.workspace_id, order).await?,
+    ))
 }
 
 /// sales_returns_create: Draft a credit of a recognised sale (reserves capacity only).
