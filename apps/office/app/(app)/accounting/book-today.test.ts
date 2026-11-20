@@ -5,6 +5,7 @@ const setup = vi.hoisted(() => ({ day: undefined as string | undefined }))
 vi.mock("@verzo/api-client/auth", () => ({
   useSession: (pick: (s: { workspaceId: string }) => unknown) => pick({ workspaceId: "ws" }),
 }))
+vi.mock("@/lib/can", () => ({ useCan: () => true }))
 vi.mock("@verzo/api-client/endpoints/accounting", () => ({
   useAccountingSetupGet: () => ({
     data: setup.day ? { data: { business_date: setup.day } } : undefined,
