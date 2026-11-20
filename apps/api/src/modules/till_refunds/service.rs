@@ -22,7 +22,7 @@ use crate::{
             service::{created, stale},
             settlement::{self, NewAllocation, NewOpenItem, Side},
         },
-        cash::{repo as cash, service::round_cash},
+        cash::repo as cash,
         orders::{self, dto::LinesQuantity},
         purchasing::{dto::PageQuery, service::amount},
         sales_returns::{dto::SalesReturnResource, service as returns},
@@ -336,7 +336,7 @@ async fn facts(
                 .ok_or(AppError::Conflict(NO_SHIFT))?;
             let step =
                 till_sales::service::cash_step(&mut *conn, ws, &p.till.currency_code).await?;
-            if round_cash(input.amount, step) != input.amount {
+            if cash::round_cash(&mut *conn, input.amount, step).await? != input.amount {
                 return Err(AppError::field("amount", NOT_STEP));
             }
             if shift.expected < input.amount {

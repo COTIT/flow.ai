@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT LEAST(money_round_div($1::bigint::numeric, GREATEST($2::bigint, 1)::numeric) * GREATEST($2::bigint, 1),\n                        9223372036854775807)::bigint AS \"due!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "due!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "02499b07ff825eb2dda1bf1a127640868ba061e7129aab5c3be39d019d2958b5"
+}
