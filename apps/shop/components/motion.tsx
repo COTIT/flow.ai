@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore, type ReactNode } from "react"
 
-import { island } from "@genesy/ui/components/island"
+import { island, useMotionAllowed } from "@genesy/ui/components/island"
 
 import FadeTile from "./fade-tile"
 
@@ -25,7 +25,15 @@ function useFinePointer() {
   )
 }
 
-/** A soft gold glare across a product photo under a mouse. */
+/** GlareHover's own root look, so the photo sits in the same box it did inside it. */
+const FRAME =
+  "relative isolate inline-grid place-items-center overflow-hidden border border-solid border-transparent align-top"
+
+/**
+ * A soft gold glare across a product photo under a mouse. The photo's wrapper is the same
+ * element from the server render on (`display: contents` until the glare is allowed), and the
+ * glare loads as an empty layer over it, so the photo is never torn down and rebuilt.
+ */
 export function Glare({
   children,
   radius,
@@ -35,20 +43,38 @@ export function Glare({
   radius: string
 }) {
   const fine = useFinePointer()
-  if (!fine) return children
+  const motion = useMotionAllowed()
+  const on = fine && motion
   return (
-    <GlareHover
-      plain={children}
-      glareColor="#f9dd8c"
-      glareOpacity={0.3}
-      background="transparent"
-      borderColor="transparent"
-      width="100%"
-      height="100%"
-      borderRadius={radius}
+    <div
+      className={on ? FRAME : undefined}
+      style={
+        on
+          ? { width: "100%", height: "100%", borderRadius: radius }
+          : { display: "contents" }
+      }
     >
       {children}
-    </GlareHover>
+      {on ? (
+        <GlareHover
+          plain={null}
+          glareColor="#f9dd8c"
+          glareOpacity={0.3}
+          background="transparent"
+          borderColor="transparent"
+          width="100%"
+          height="100%"
+          borderRadius={radius}
+          // Over the photo, not around it; no isolation, so the glare still blends with the photo.
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderWidth: 0,
+            isolation: "auto",
+          }}
+        />
+      ) : null}
+    </div>
   )
 }
 
