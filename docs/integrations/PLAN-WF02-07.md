@@ -1,6 +1,6 @@
 # Verzo glue layer: WF-02 to WF-07 plan (rev 1)
 
-Status: plan only, no code. Written 2026-11-21 on branch `claude/verzo-wf02-07-plan`.
+Status: **APPROVED 2026-11-21 by the user, all default decisions D-21..D-74 accepted.** Written on branch `claude/verzo-wf02-07-plan`. Build waves B0a..B4 run one child at a time; B5 (sandbox) last.
 
 **Inputs**
 - Stories: `~/Downloads/verzo_odoo_netsuite_workflow_stories.md` (unvalidated backlog, 2026-11-17).
