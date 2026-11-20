@@ -727,11 +727,33 @@ async fn a_paid_orders_invoice_is_sent_paid(pool: PgPool) {
     };
     let full = invoiced(1, 0).await;
     let part = invoiced(2, 500).await;
+    // (status, paid_total, total) as stored.
+    let stored = |id: String| {
+        let pool = f.api.pool.clone();
+        async move {
+            sqlx::query_as::<_, (String, i64, i64)>(
+                "SELECT status, paid_total, total FROM invoices WHERE id = $1::uuid",
+            )
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    // Converted: still a draft, the online payment already booked on it.
+    let (status, paid, total) = stored(full.clone()).await;
+    assert_eq!((status.as_str(), paid), ("draft", total));
+    let (status, paid, total) = stored(part.clone()).await;
+    assert_eq!((status.as_str(), paid), ("draft", total - 500));
     for id in [&full, &part] {
         assert_eq!(send(&f, id, message(&f, "manual")).await, ok());
     }
     assert_eq!(numbered(&f, &full).await.1, "paid");
     assert_eq!(numbered(&f, &part).await.1, "partially_paid");
+    let (status, paid, total) = stored(full).await;
+    assert_eq!((status.as_str(), paid), ("paid", total));
+    let (status, paid, total) = stored(part).await;
+    assert_eq!((status.as_str(), paid), ("partially_paid", total - 500));
 }
 
 /// `(order decreases, invoice movements)` of the fixture's product.
