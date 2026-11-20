@@ -36,7 +36,7 @@ import { useCan } from "@/lib/can"
 import {
   AccountingTabs,
   Shell,
-  today,
+  useBookToday,
   useAction,
   useReasons,
   useWord,
@@ -177,6 +177,7 @@ function CountDialog({
   button: React.ReactElement
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const word = useWord()
   const cash = useCash()
   const reasons = useReasons()
@@ -184,7 +185,7 @@ function CountDialog({
   const a = useAction(outcome)
   const [asked, setAsked] = React.useState({
     counted_amount: "",
-    accounting_date: today(),
+    accounting_date: "",
   })
   const review = useAccountingCashAdjustmentsCreateReview()
   const post = useAccountingCashAdjustmentsCreate({
@@ -283,7 +284,8 @@ function CountDialog({
             type="date"
             name="accounting_date"
             required
-            defaultValue={asked.accounting_date}
+            key={asked.accounting_date || bookToday}
+            defaultValue={asked.accounting_date || bookToday}
             onChange={() => review.reset()}
           />
         </Field>

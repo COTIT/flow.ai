@@ -899,6 +899,12 @@
   "sales_returns_cancel": {
     "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
+  "sales_returns_candidates": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
+  "sales_returns_create": {
+    "officeOnlyBecause": "Customer credits post money and put goods back on stock after a reviewed check on the Office return screens; the assistant keeps them internal until its milestone (masterplan section 17)."
+  },
   "sales_returns_get": {
     "ask": {
       "en": ["sales return restock"],
@@ -1092,6 +1098,9 @@
       "nl": ["inkoopfactuur details"],
       "sw": ["bili ya msambazaji"]
     }
+  },
+  "supplier_bills_landed_candidates": {
+    "officeOnlyBecause": "Payables (supplier bills, supplier payments, purchase returns and cost adjustments) are ordinary ERP work done on the Office payables screens, where every posting is reviewed first; the assistant keeps them internal until its milestone (masterplan section 17)."
   },
   "supplier_bills_list": {
     "ask": {

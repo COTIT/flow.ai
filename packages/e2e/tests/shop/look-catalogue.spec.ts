@@ -127,6 +127,44 @@ test("the hero headline stays still and product photos support pointer effects",
   await expectNoLayoutShift(page)
 })
 
+test("product card photos keep their elements once the page comes alive, and still open the product", async ({
+  page,
+  isMobile,
+}) => {
+  // Counts every card photo taken out of the page; the glare must not rebuild the photo under it.
+  await page.addInitScript(() => {
+    const w = window as unknown as { removedPhotos: number }
+    w.removedPhotos = 0
+    new MutationObserver((records) => {
+      for (const r of records)
+        for (const n of r.removedNodes)
+          if (
+            n instanceof Element &&
+            (n.matches('a[href^="/products/"] img') ||
+              n.querySelector(
+                'a[href^="/products/"] img, img.afm-product-image'
+              ))
+          )
+            w.removedPhotos++
+    }).observe(document, { childList: true, subtree: true })
+  })
+  await page.goto("/")
+  const honey = page
+    .getByRole("region", { name: "In stock now" })
+    .getByRole("link", { name: /Ilundo Wild Forest Honey/ })
+  await expect(honey.locator("[data-motion]")).toHaveCount(isMobile ? 0 : 1)
+  await page.waitForLoadState("networkidle")
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { removedPhotos: number }).removedPhotos
+    )
+  ).toBe(0)
+  // A click on the photo (under the glare layer on a mouse) still opens the product.
+  await expect(honey.locator("img")).toHaveCount(1)
+  await honey.click({ position: { x: 24, y: 24 } })
+  await expect(page).toHaveURL(/\/products\//)
+})
+
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" })
 

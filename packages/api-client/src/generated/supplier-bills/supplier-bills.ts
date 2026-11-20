@@ -30,6 +30,7 @@ import type {
   ActionPayablesReversePayload,
   ActionReviewedPayload,
   CreateBillPayload,
+  EnvelopeBillLandedCandidates,
   EnvelopeBillMatchCandidates,
   EnvelopeBillPostReview,
   EnvelopeReverseReview,
@@ -37,6 +38,7 @@ import type {
   MessageBody,
   PaginatedSupplierBillResource,
   ReverseBody,
+  SupplierBillsLandedCandidatesParams,
   SupplierBillsListParams,
   ValidationErrorBody
 } from '../model';
@@ -233,6 +235,106 @@ export const useSupplierBillsCreate = <TError = ErrorType<MessageBody | Validati
       return useMutation(getSupplierBillsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Booked landed components a bill line may clear
+ */
+export const supplierBillsLandedCandidates = (
+    workspace: string,
+    params: SupplierBillsLandedCandidatesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeBillLandedCandidates>(
+      {url: `/workspace/${workspace}/supplier-bills/landed-candidates`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getSupplierBillsLandedCandidatesQueryKey = (workspace: string,
+    params?: SupplierBillsLandedCandidatesParams,) => {
+    return [
+    `/workspace/${workspace}/supplier-bills/landed-candidates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSupplierBillsLandedCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: SupplierBillsLandedCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSupplierBillsLandedCandidatesQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>> = ({ signal }) => supplierBillsLandedCandidates(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SupplierBillsLandedCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>>
+export type SupplierBillsLandedCandidatesQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useSupplierBillsLandedCandidates<TData = Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SupplierBillsLandedCandidatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierBillsLandedCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof supplierBillsLandedCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierBillsLandedCandidates<TData = Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SupplierBillsLandedCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof supplierBillsLandedCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof supplierBillsLandedCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSupplierBillsLandedCandidates<TData = Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SupplierBillsLandedCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Booked landed components a bill line may clear
+ */
+
+export function useSupplierBillsLandedCandidates<TData = Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SupplierBillsLandedCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplierBillsLandedCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSupplierBillsLandedCandidatesQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Read a supplier bill
  */
 export const supplierBillsGet = (

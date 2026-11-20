@@ -23,7 +23,7 @@ import { Field } from "@/components/field"
 import {
   Shell,
   showMoney,
-  today,
+  useBookToday,
   useAction,
   useReasons,
   type Outcome,
@@ -178,11 +178,12 @@ export function ReverseDialog({
   outcome: Outcome
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const reasons = useReasons()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const a = useAction(outcome)
   const [asked, setAsked] = React.useState({
-    accounting_date: today(),
+    accounting_date: "",
     reason: "",
   })
   const review = useAccountingJournalsReverseReview()
@@ -241,7 +242,8 @@ export function ReverseDialog({
             type="date"
             name="accounting_date"
             required
-            defaultValue={asked.accounting_date}
+            key={asked.accounting_date || bookToday}
+            defaultValue={asked.accounting_date || bookToday}
             onChange={() => review.reset()}
           />
         </Field>

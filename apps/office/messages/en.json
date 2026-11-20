@@ -2380,6 +2380,19 @@
       "reversed": "Credit reversed.",
       "unrestocked": "Restock undone.",
       "legacyCost": "Reviewed cost recorded. Restock now uses it."
+    },
+    "new": {
+      "action": "New return (review first)",
+      "title": "New customer return",
+      "fromOrder": "Start a new return from an order: open the order and choose New return.",
+      "ofOrder": "Order {number} · {customer}",
+      "sale": "Sale",
+      "saleOption": "{date} · {kind}",
+      "sold": "sold {qty}",
+      "left": "{qty} left to credit",
+      "nothingToCredit": "Nothing left to credit on this order.",
+      "saveDraft": "Save draft",
+      "created": "Draft saved. Check the amounts, then post the credit."
     }
   },
   "payables": {
@@ -2401,6 +2414,10 @@
     "dueDate": "Due date",
     "evidenceRef": "Document reference",
     "expenseAccount": "Expense account",
+    "extraCost": "Extra cost",
+    "chooseExtraCost": "Choose an extra cost",
+    "noExtraCosts": "No booked extra cost is left to bill in this currency.",
+    "extraCostOption": "Order {order}, receipt {receipt}: {evidence} ({amount})",
     "extension": "Line total",
     "facts": "Details",
     "functionalTotal": "In book currency",
@@ -2507,7 +2524,7 @@
       "empty": "No supplier bills yet.",
       "edit": "Edit draft",
       "back": "Back to the bill",
-      "onlyDrafts": "Only a draft bill without extra-cost lines can be changed here.",
+      "onlyDrafts": "Only a draft bill can be changed here.",
       "match": "Match received goods",
       "matchTitle": "Match bill {number} to received goods",
       "matchText": "For each product, how much of each booked receipt this bill covers. The amount left comes from the server.",
@@ -2516,6 +2533,7 @@
       "saveMatch": "Save matches",
       "unmatched": "Not matched yet",
       "receiptLink": "receipt",
+      "landedOf": "Order {order} · {evidence} · booked {amount}",
       "post": "Post bill",
       "postTitle": "Post bill {number}",
       "postText": "Posting books the supplier balance and tax. It can only be undone by a reversal.",

@@ -35,8 +35,8 @@ import { Field } from "@/components/field"
 import {
   bookAmount,
   Shell,
-  today,
   useAction,
+  useBookToday,
   useReturnReasons,
   type Outcome,
 } from "../shared"
@@ -515,7 +515,8 @@ export function ReverseDialog({ ret, outcome, button }: Props) {
   const reasons = useReturnReasons()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const a = useAction(outcome)
-  const [date, setDate] = React.useState(today())
+  const bookToday = useBookToday()
+  const [date, setDate] = React.useState(bookToday)
   const [reason, setReason] = React.useState("")
   const review = useSalesReturnsReverseReview()
   const reverse = useSalesReturnsReverse({
@@ -536,7 +537,7 @@ export function ReverseDialog({ ret, outcome, button }: Props) {
       setOpen={a.setOpen}
       onOpen={() => {
         a.key.renew()
-        setDate(today())
+        setDate(bookToday)
         setReason("")
         review.reset()
         reverse.reset()

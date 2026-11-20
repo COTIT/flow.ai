@@ -28,7 +28,8 @@ import { CategoryPicker, RelationPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { isStale } from "../../purchases/shared"
 import { useReasons, useWord } from "./shared"
 
 type Component = {
@@ -74,6 +75,7 @@ export function TaxForm({
   corrects?: TaxProfileResource
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const router = useRouter()
   const word = useWord()
   const reasons = useReasons()
@@ -225,7 +227,8 @@ export function TaxForm({
               type="date"
               name="effective_from"
               required
-              defaultValue={from?.effective_from ?? today()}
+              key={bookToday}
+              defaultValue={from?.effective_from ?? bookToday}
             />
           </Field>
           <Field id="tx-to" label={t("taxes.to")} errors={err("effective_to")}>
