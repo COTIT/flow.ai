@@ -1,6 +1,9 @@
 //! Workspace record bodies: Laravel WorkspaceResource + UpdateWorkspaceRequest (company profile).
 
+use std::str::FromStr;
+
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use utoipa::ToSchema;
@@ -372,6 +375,25 @@ fn numeric(r: &mut Rules, field: &str, v: Option<Value>) -> Option<f64> {
     n
 }
 
+/// Money field: JSON number or numeric string read as an exact decimal (no f64). Null = None.
+fn money(r: &mut Rules, field: &str, v: Value) -> Option<Decimal> {
+    let name = field.rsplit('.').next().unwrap_or(field);
+    let text = match v {
+        Value::Null => return None,
+        Value::Number(n) => n.to_string(),
+        // Length cap first: a 60 KB digit string is not a number anyone means.
+        Value::String(s) if s.trim().len() <= 20 => s.trim().to_owned(),
+        _ => String::new(),
+    };
+    let n = Decimal::from_str(&text)
+        .or_else(|_| Decimal::from_scientific(&text))
+        .ok();
+    if n.is_none() {
+        r.add(field, format!("The {} must be a number.", human(name)));
+    }
+    n
+}
+
 /// Laravel Address::rules: address/house_number/zipcode/city/country required.
 fn address(r: &mut Rules, v: Value) -> Value {
     let Value::Object(mut a) = v else {
@@ -456,14 +478,18 @@ pub(crate) fn account(r: &mut Rules, key: &str, prefix: &str, v: Value) -> Value
             "The bic swift must be a valid BIC.",
         );
     }
-    let limit = match numeric(r, &k("credit_limit"), Some(limit)) {
+    let limit = match money(r, &k("credit_limit"), limit) {
         Some(n) => {
             r.check(
                 &k("credit_limit"),
-                n >= 0.0,
+                !n.is_sign_negative() || n.is_zero(),
                 "The credit limit must be at least 0.",
             );
-            serde_json::Number::from_f64(n).map_or(Value::Null, Value::Number)
+            // Decimal text into an arbitrary_precision Number: every digit kept.
+            n.normalize()
+                .to_string()
+                .parse()
+                .map_or(Value::Null, Value::Number)
         }
         None => Value::Null,
     };

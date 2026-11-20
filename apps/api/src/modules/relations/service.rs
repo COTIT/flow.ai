@@ -343,18 +343,12 @@ pub async fn financial_summary(
     lite: bool,
 ) -> Result<Value, AppError> {
     let id = parse(id)?;
-    let (account, created_at) = repo::summary_source(&state.db, workspace_id, id)
+    let (credit_limit, available, created_at) = repo::summary_source(&state.db, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let credit_limit = account
-        .as_ref()
-        .and_then(|a| a.get("credit_limit"))
-        .and_then(|c| {
-            c.as_f64()
-                .or_else(|| c.as_str().and_then(|s| s.trim().parse().ok()))
-        })
-        .filter(|c: &f64| c.is_finite());
-    let available = credit_limit.map(|c| (c.max(0.0) * 100.0).round() / 100.0);
+    // SQL did the math; text keeps every digit (serde_json arbitrary_precision).
+    let number = |s: Option<String>| s.and_then(|s| s.parse::<serde_json::Number>().ok());
+    let (credit_limit, available) = (number(credit_limit), number(available));
     if lite {
         return Ok(json!({
             "relation_id": id, "projected_ltv": null, "total_spend": 0.0,
