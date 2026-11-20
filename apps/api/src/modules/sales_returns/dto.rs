@@ -6,7 +6,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -521,4 +521,50 @@ pub struct ActionReview {
     #[schema(example = "1.00")]
     pub value: Option<String>,
     pub review_fingerprint: String,
+}
+
+/// GET /sales-returns/candidates query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct SalesReturnCandidatesQuery {
+    /// The order whose recognised sales to credit (required).
+    #[param(value_type = Uuid)]
+    pub order_id: Option<Uuid>,
+}
+
+/// One recognised line and what a new credit may still take.
+#[derive(Serialize, ToSchema)]
+pub struct SalesReturnCandidateLine {
+    pub recognition_line_id: Uuid,
+    pub order_line_id: Option<Uuid>,
+    pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
+    #[schema(example = "2")]
+    pub recognised: String,
+    /// Recognised − draft and posted credits (the create check's SQL).
+    #[schema(example = "1")]
+    pub creditable: String,
+}
+
+/// One recognised sale (shipment or Till receipt) of the order.
+#[derive(Serialize, ToSchema)]
+pub struct SalesReturnCandidateSale {
+    pub recognition_id: Uuid,
+    /// shipment, retail_sale or invoice.
+    pub source_kind: String,
+    /// receipt_credit or invoice_credit: what a create would get.
+    pub kind: String,
+    pub accounting_date: NaiveDate,
+    pub lines: Vec<SalesReturnCandidateLine>,
+}
+
+/// GET /sales-returns/candidates.
+#[derive(Serialize, ToSchema)]
+pub struct SalesReturnCandidates {
+    pub order_id: Uuid,
+    pub order_number: String,
+    /// Customer display name; null for anonymous retail.
+    pub relation_name: Option<String>,
+    /// Oldest first; empty when nothing is recognised yet.
+    pub recognitions: Vec<SalesReturnCandidateSale>,
 }

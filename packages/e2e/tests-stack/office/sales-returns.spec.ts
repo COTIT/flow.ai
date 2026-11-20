@@ -28,6 +28,11 @@ test.describe("customer returns", () => {
             url: `${urls.office}/v1/workspace/${w.api.workspace}/sales-returns/${seed.credit}/restock/review`,
             status: 422,
           },
+          // Crediting more than is left is the refusal under test; the form says it in words.
+          {
+            url: `${urls.office}/v1/workspace/${w.api.workspace}/sales-returns`,
+            status: 422,
+          },
           // An unknown return: the page says it is not found.
           {
             url: `${urls.office}/v1/workspace/${w.api.workspace}/sales-returns/00000000-0000-7000-8000-000000000000`,
@@ -128,6 +133,40 @@ test.describe("customer returns", () => {
     await expect(
       page.getByText("Reversed", { exact: true }).first()
     ).toBeVisible()
+    await expectNoHorizontalScroll(page)
+  })
+
+  test("start a new return from the order: refused over the limit, then drafted", async ({
+    page,
+  }) => {
+    await loginOffice(page, w.login)
+    // Without an order the page says where to start.
+    await page.goto(`${urls.office}/sales-returns/new`)
+    await expect(page.getByText(/open the order and choose New return/)).toBeVisible()
+
+    // The first credit was reversed above, so both shipped jars are creditable again.
+    await page.goto(`${urls.office}/orders/${seed.order}`)
+    await next(page).getByRole("link", { name: "New return (review first)" }).click()
+    await expect(page.getByRole("heading", { name: "New customer return" })).toBeVisible()
+    const qty = page.getByLabel(/Honey jar · sold 2 · 2 left to credit/)
+    await page.getByLabel("Reason").fill("Broken in transit")
+    await qty.fill("3")
+    await page.getByRole("button", { name: "Save draft" }).click()
+    // Said at the line and in the form's summary.
+    await expect(
+      page.getByRole("region", { name: "Lines" }).getByText("Only 2 is left to credit on this line.")
+    ).toBeVisible()
+    await qty.fill("2")
+    await page.getByRole("button", { name: "Save draft" }).click()
+    await expect(page.getByText("Draft saved. Check the amounts, then post the credit.")).toBeVisible()
+    await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible()
+    await expectNoRawValues(page)
+    await expectNoHorizontalScroll(page)
+
+    // The draft holds both jars: nothing is left to credit.
+    await page.goto(`${urls.office}/sales-returns/new?order=${seed.order}`)
+    await expect(page.getByText("Nothing left to credit on this order.")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Save draft" })).toBeDisabled()
     await expectNoHorizontalScroll(page)
   })
 })

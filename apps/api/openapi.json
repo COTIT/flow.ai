@@ -13245,6 +13245,18 @@
         ],
         "type": "object"
       },
+      "Envelope_SalesReturnCandidates": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesReturnCandidates"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_SalesReturnPostReview": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -36210,6 +36222,117 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "SalesReturnCandidateLine": {
+        "description": "One recognised line and what a new credit may still take.",
+        "properties": {
+          "creditable": {
+            "description": "Recognised − draft and posted credits (the create check's SQL).",
+            "example": "1",
+            "type": "string"
+          },
+          "order_line_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recognised": {
+            "example": "2",
+            "type": "string"
+          },
+          "recognition_line_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recognition_line_id",
+          "recognised",
+          "creditable"
+        ],
+        "type": "object"
+      },
+      "SalesReturnCandidateSale": {
+        "description": "One recognised sale (shipment or Till receipt) of the order.",
+        "properties": {
+          "accounting_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "kind": {
+            "description": "receipt_credit or invoice_credit: what a create would get.",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/SalesReturnCandidateLine"
+            },
+            "type": "array"
+          },
+          "recognition_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source_kind": {
+            "description": "shipment, retail_sale or invoice.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recognition_id",
+          "source_kind",
+          "kind",
+          "accounting_date",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "SalesReturnCandidates": {
+        "description": "GET /sales-returns/candidates.",
+        "properties": {
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "order_number": {
+            "type": "string"
+          },
+          "recognitions": {
+            "description": "Oldest first; empty when nothing is recognised yet.",
+            "items": {
+              "$ref": "#/components/schemas/SalesReturnCandidateSale"
+            },
+            "type": "array"
+          },
+          "relation_name": {
+            "description": "Customer display name; null for anonymous retail.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "order_number",
+          "recognitions"
         ],
         "type": "object"
       },
@@ -139946,6 +140069,160 @@
           }
         ],
         "summary": "Draft a customer credit (reserves capacity only)",
+        "tags": [
+          "sales_returns"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales-returns/candidates": {
+      "get": {
+        "operationId": "sales_returns_candidates",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The order whose recognised sales to credit (required).",
+            "in": "query",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SalesReturnCandidates"
+                }
+              }
+            },
+            "description": "Success; per recognition line the credit left"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or order, or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`order_id` missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Creditable quantities of one order's recognised sales",
         "tags": [
           "sales_returns"
         ]

@@ -32,12 +32,14 @@ import type {
   ActionSalesReturnReversePayload,
   CreateReturnCreatePayload,
   EnvelopeActionReview,
+  EnvelopeSalesReturnCandidates,
   EnvelopeSalesReturnPostReview,
   EnvelopeSalesReturnResource,
   MessageBody,
   PaginatedSalesReturnResource,
   RestockReviewBody,
   SalesReturnReverseReviewBody,
+  SalesReturnsCandidatesParams,
   SalesReturnsListParams,
   ValidationErrorBody
 } from '../model';
@@ -234,6 +236,106 @@ export const useSalesReturnsCreate = <TError = ErrorType<MessageBody | Validatio
       return useMutation(getSalesReturnsCreateMutationOptions(options), queryClient);
     }
     /**
+ * @summary Creditable quantities of one order's recognised sales
+ */
+export const salesReturnsCandidates = (
+    workspace: string,
+    params: SalesReturnsCandidatesParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSalesReturnCandidates>(
+      {url: `/workspace/${workspace}/sales-returns/candidates`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getSalesReturnsCandidatesQueryKey = (workspace: string,
+    params?: SalesReturnsCandidatesParams,) => {
+    return [
+    `/workspace/${workspace}/sales-returns/candidates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSalesReturnsCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof salesReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: SalesReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSalesReturnsCandidatesQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof salesReturnsCandidates>>> = ({ signal }) => salesReturnsCandidates(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SalesReturnsCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof salesReturnsCandidates>>>
+export type SalesReturnsCandidatesQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useSalesReturnsCandidates<TData = Awaited<ReturnType<typeof salesReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SalesReturnsCandidatesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesReturnsCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof salesReturnsCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesReturnsCandidates<TData = Awaited<ReturnType<typeof salesReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SalesReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof salesReturnsCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof salesReturnsCandidates>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSalesReturnsCandidates<TData = Awaited<ReturnType<typeof salesReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SalesReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Creditable quantities of one order's recognised sales
+ */
+
+export function useSalesReturnsCandidates<TData = Awaited<ReturnType<typeof salesReturnsCandidates>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SalesReturnsCandidatesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof salesReturnsCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSalesReturnsCandidatesQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Read a customer return
  */
 export const salesReturnsGet = (

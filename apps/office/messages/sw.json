@@ -2380,6 +2380,19 @@
       "reversed": "Salio limerudishwa nyuma.",
       "unrestocked": "Kurudisha kumetenduliwa.",
       "legacyCost": "Gharama iliyokaguliwa imewekwa. Kurudisha stooni kunaitumia sasa."
+    },
+    "new": {
+      "action": "Rejesho jipya (kagua kwanza)",
+      "title": "Rejesho jipya la mteja",
+      "fromOrder": "Anza rejesho jipya kutoka kwenye oda: fungua oda na uchague Rejesho jipya.",
+      "ofOrder": "Oda {number} · {customer}",
+      "sale": "Mauzo",
+      "saleOption": "{date} · {kind}",
+      "sold": "imeuzwa {qty}",
+      "left": "{qty} imebaki kurejeshewa",
+      "nothingToCredit": "Hakuna kilichobaki kurejeshewa kwenye oda hii.",
+      "saveDraft": "Hifadhi rasimu",
+      "created": "Rasimu imehifadhiwa. Kagua kiasi, kisha weka marejesho."
     }
   },
   "payables": {
