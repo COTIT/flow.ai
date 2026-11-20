@@ -481,4 +481,212 @@ mod tests {
         assert!(amounts(&near, 2).is_some());
         assert_eq!(summarise(&[near, near], 2), Err(1));
     }
+
+    /// One golden document: name, currency decimals, lines.
+    type GoldenDoc = (String, u32, Vec<Line>);
+
+    fn golden_line(q: &str, p: &str, vat: &str, disc: &str, purchase: Option<&str>) -> Line {
+        Line {
+            purchase_price: purchase.map(d),
+            ..line(q, p, vat, disc)
+        }
+    }
+
+    /// Wide case set for `price_lines` (SQL): half-cent ties, credits, discounts, exact rate
+    /// grouping, 0/2/3/8 decimals, set children, overflow, the Laravel parity fixture.
+    fn golden_docs() -> Vec<GoldenDoc> {
+        let mut docs: Vec<GoldenDoc> = Vec::new();
+        let dps = [0, 2, 3, 8];
+        let qs = ["1", "3", "-3", "0.125", "2.33333333", "100000000"];
+        let ps = ["0.005", "0.335", "9.99", "1.00000005", "-4.35"];
+        let vats = ["0", "5.5", "5.50", "21", "100.12345678"];
+        let discs = ["0", "10", "33.33333333", "100"];
+        for dp in dps {
+            for q in qs {
+                let mut lines = Vec::new();
+                for p in ps {
+                    for vat in vats {
+                        for disc in discs {
+                            let n = lines.len();
+                            let purchase = (n % 3 == 0).then_some("0.333");
+                            lines.push(Line {
+                                set_child: n % 7 == 6,
+                                ..golden_line(q, p, vat, disc, purchase)
+                            });
+                        }
+                    }
+                }
+                docs.push((format!("grid_dp{dp}_q{q}"), dp, lines));
+                // Largest numeric(24,8) price: alone, so a lossy Rust product stays in its doc.
+                for vat in ["21", "100.12345678"] {
+                    for disc in ["0", "33.33333333"] {
+                        let l = golden_line(q, "9999999999999999.99999999", vat, disc, Some("1"));
+                        docs.push((format!("huge_dp{dp}_q{q}_v{vat}_d{disc}"), dp, vec![l]));
+                    }
+                }
+            }
+        }
+        let max = crate::money::MAX;
+        let big = |q: Decimal, p: Decimal| Line {
+            quantity: q,
+            price: p,
+            ..Line::default()
+        };
+        let mut named = |name: &str, dp: u32, lines: Vec<Line>| docs.push((name.into(), dp, lines));
+        named("empty", 2, vec![]);
+        named("three_at_9_99", 2, vec![line("3", "9.99", "21", "0")]);
+        named("discount_per_line", 2, vec![line("3", "9.99", "21", "10")]);
+        named("tie_vat", 2, vec![line("1", "0.5", "21", "0")]);
+        named("tie_vat_credit", 2, vec![line("-1", "0.5", "21", "0")]);
+        named("tie_gross", 2, vec![line("3", "0.335", "21", "0")]);
+        named("tie_gross_credit", 2, vec![line("-3", "0.335", "21", "0")]);
+        named(
+            "vat_once_per_rate",
+            2,
+            vec![line("1", "0.07", "21", "0"); 3],
+        );
+        named(
+            "thousand_cents",
+            2,
+            vec![line("1", "0.01", "21", "0"); 1000],
+        );
+        named(
+            "rates_first_seen",
+            2,
+            vec![
+                line("1", "100", "5.5", "0"),
+                line("1", "100", "5", "0"),
+                line("1", "10", "5.5", "0"),
+                line("1", "10", "5.50", "0"),
+            ],
+        );
+        named("full_discount", 2, vec![line("2", "50", "21", "100")]);
+        named("decimals_0", 0, vec![line("3", "9.99", "21", "0")]);
+        named(
+            "margin_no_revenue",
+            2,
+            vec![golden_line("1", "0", "21", "0", Some("5"))],
+        );
+        named("overflow_line", 2, vec![big(max, max)]);
+        named(
+            "overflow_second",
+            2,
+            vec![line("1", "1", "0", "0"), big(max, max)],
+        );
+        let rate = Line {
+            vat: d("2"),
+            ..big(d("1"), d("30000000000000000000000000000"))
+        };
+        named("overflow_rate_vat", 2, vec![rate, rate]);
+        let near = big(d("7000000000000"), max);
+        named("overflow_running", 2, vec![near, near]);
+        let costly = Line {
+            purchase_price: Some(max),
+            ..big(max, Decimal::ZERO)
+        };
+        named("overflow_margin", 2, vec![line("1", "1", "0", "0"), costly]);
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../../tests/fixtures/pricing_parity.json"))
+                .unwrap();
+        for case in fixture["cases"].as_array().unwrap() {
+            let lines = case["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|i| Line {
+                    quantity: fixture_dec(i.get("quantity")),
+                    price: fixture_dec(i.get("price")),
+                    vat: fixture_dec(i.get("vat")),
+                    discount: fixture_dec(i.get("productDiscount")),
+                    purchase_price: i.get("purchase_price").map(|v| fixture_dec(Some(v))),
+                    set_child: i.get("multi_set_item_id").is_some_and(|v| !v.is_null()),
+                })
+                .collect();
+            docs.push((
+                format!("parity_{}", case["name"].as_str().unwrap()),
+                2,
+                lines,
+            ));
+        }
+        docs
+    }
+
+    /// rust_decimal keeps 28 digits: a product needing more drops scale (lossy); SQL is exact.
+    fn lossy_mul(a: Decimal, b: Decimal) -> bool {
+        let exact = a.mantissa().checked_mul(b.mantissa());
+        a.scale() + b.scale() > 28 || exact.is_none_or(|m| m.unsigned_abs() > (1u128 << 96) - 1)
+    }
+
+    fn lossy(lines: &[Line], s: &Summary) -> bool {
+        let line = lines.iter().zip(&s.lines).any(|(l, a)| {
+            lossy_mul(l.quantity, l.price)
+                || lossy_mul(a.gross, l.discount)
+                || lossy_mul(a.excl, l.vat)
+                || lossy_mul(l.purchase_price.unwrap_or_default(), l.quantity)
+        });
+        line || s.vats.iter().any(|v| lossy_mul(v.base, v.rate))
+    }
+
+    fn golden_out(lines: &[Line], dp: u32) -> (serde_json::Value, bool) {
+        use rust_decimal::prelude::ToPrimitive;
+        use serde_json::json;
+        let n = |v: Decimal| v.normalize().to_string();
+        let s = match summarise(lines, dp) {
+            Ok(s) => s,
+            Err(i) => return (json!({ "err": i }), false),
+        };
+        let margin = match margin(lines, &s.lines, dp) {
+            Ok(m) => json!([n(m.cost), n(m.revenue), n(m.amount), m.percentage.to_f64()]),
+            Err(i) => json!({ "err": i }),
+        };
+        let out = json!({
+            "lines": s.lines.iter()
+                .map(|a| [n(a.gross), n(a.discount), n(a.excl), n(a.line_vat)])
+                .collect::<Vec<_>>(),
+            // Rate as first seen (scale kept): "5.5" vs "5.50" shows which line set it.
+            "vats": s.vats.iter()
+                .map(|v| [v.rate.to_string(), n(v.base), n(v.vat)])
+                .collect::<Vec<_>>(),
+            "totals": [n(s.gross), n(s.discount), n(s.excl), n(s.vat), n(s.total)],
+            "margin": margin,
+        });
+        (out, lossy(lines, &s))
+    }
+
+    /// Freezes this engine's results into `tests/fixtures/pricing_golden.json`, which
+    /// `tests/api/pricing_sql.rs` checks `price_lines` (SQL) against. `GOLDEN_WRITE=1`
+    /// rewrites the file; otherwise it must match.
+    #[test]
+    fn golden_fixture_matches_engine() {
+        let cases: Vec<String> = golden_docs()
+            .iter()
+            .map(|(name, dp, lines)| {
+                let (out, lossy) = golden_out(lines, *dp);
+                let input: Vec<_> = lines
+                    .iter()
+                    .map(|l| {
+                        serde_json::json!([
+                            l.quantity.to_string(),
+                            l.price.to_string(),
+                            l.vat.to_string(),
+                            l.discount.to_string(),
+                            l.purchase_price.map(|p| p.to_string()),
+                            l.set_child
+                        ])
+                    })
+                    .collect();
+                serde_json::json!({ "name": name, "dp": dp, "lossy": lossy, "lines": input, "out": out })
+                    .to_string()
+            })
+            .collect();
+        let got = format!("{{\"cases\":[\n{}\n]}}\n", cases.join(",\n"));
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/pricing_golden.json"
+        );
+        if std::env::var_os("GOLDEN_WRITE").is_some() {
+            std::fs::write(path, &got).unwrap();
+        }
+        assert_eq!(got, std::fs::read_to_string(path).unwrap());
+    }
 }
