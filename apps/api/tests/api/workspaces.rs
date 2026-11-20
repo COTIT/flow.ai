@@ -300,6 +300,22 @@ async fn iban_and_numbers_stored_normalized(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn credit_limit_stored_exactly(pool: PgPool) {
+    let w = world(pool).await;
+    let mut body = full_profile();
+    // 19 significant digits: f64 keeps ~16, so 12345678901234568 would come back.
+    body["account"]["credit_limit"] = json!("12345678901234567.89");
+
+    assert_eq!(w.update(body, &w.owner).await.0, StatusCode::OK);
+
+    let p = w.get(&w.owner).await.1["data"]["workspace_profile"].clone();
+    assert_eq!(
+        p["account"]["credit_limit"].to_string(),
+        "12345678901234567.89"
+    );
+}
+
+#[sqlx::test]
 async fn oversized_or_unicode_values_rejected(pool: PgPool) {
     let w = world(pool).await;
     let mut body = full_profile();
