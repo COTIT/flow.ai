@@ -180,6 +180,34 @@ test("with motion, the photo glares only under a mouse", async ({
   await expect(page.locator("main [data-motion]")).toHaveCount(isMobile ? 0 : 1)
 })
 
+test("the product photo keeps its element once the page comes alive (no re-mount)", async ({
+  page,
+  isMobile,
+}) => {
+  // Counts every photo taken out of the page; the glare must not rebuild the photo under it.
+  await page.addInitScript(() => {
+    const w = window as unknown as { removedPhotos: number }
+    w.removedPhotos = 0
+    new MutationObserver((records) => {
+      for (const r of records)
+        for (const n of r.removedNodes)
+          if (
+            n instanceof Element &&
+            (n.matches("img") || n.querySelector("img"))
+          )
+            w.removedPhotos++
+    }).observe(document, { childList: true, subtree: true })
+  })
+  await page.goto(`/products/${PRODUCT.honey}`)
+  await expect(page.locator("main [data-motion]")).toHaveCount(isMobile ? 0 : 1)
+  await page.waitForLoadState("networkidle")
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { removedPhotos: number }).removedPhotos
+    )
+  ).toBe(0)
+})
+
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" })
 
