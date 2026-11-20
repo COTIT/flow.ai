@@ -6,23 +6,23 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
+import { useSession } from "@verzo/api-client/auth"
+import { useProductCategoriesList } from "@verzo/api-client/endpoints/product-categories"
 import {
   getTaxProfilesGetQueryKey,
   getTaxProfilesListQueryKey,
   useTaxProfilesCreate,
   useTaxProfilesUpdate,
-} from "@genesy/api-client/endpoints/tax-profiles"
+} from "@verzo/api-client/endpoints/tax-profiles"
 import type {
   TaxProfileCreate,
   TaxProfileResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { Input } from "@verzo/ui/components/input"
 import { Choices, Field, selectClass } from "@/components/field"
 import { CategoryPicker, RelationPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"

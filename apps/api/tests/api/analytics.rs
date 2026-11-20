@@ -912,7 +912,7 @@ async fn invoice_exports_expire_and_stay_in_their_workspace(pool: PgPool) {
         .await
         .unwrap();
     let store = f.delivery_state.files.clone().unwrap();
-    let swept = genesy_360_api::cleanup::sweep_files(&f.api.pool, &store)
+    let swept = verzo_360_api::cleanup::sweep_files(&f.api.pool, &store)
         .await
         .unwrap();
     assert_eq!(swept, 0, "a fresh export stays");
@@ -921,7 +921,7 @@ async fn invoice_exports_expire_and_stay_in_their_workspace(pool: PgPool) {
         .execute(&f.api.pool)
         .await
         .unwrap();
-    let swept = genesy_360_api::cleanup::sweep_files(&f.api.pool, &store)
+    let swept = verzo_360_api::cleanup::sweep_files(&f.api.pool, &store)
         .await
         .unwrap();
     assert_eq!(swept, 1);

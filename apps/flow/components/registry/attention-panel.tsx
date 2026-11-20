@@ -8,11 +8,11 @@ import {
   getAttentionPrioritiesQueryKey,
   getAttentionSummaryQueryKey,
   useAttentionMarksSet,
-} from "@genesy/api-client/endpoints/attention"
-import type { PriorityGroup } from "@genesy/api-client/model"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/attention"
+import type { PriorityGroup } from "@verzo/api-client/model"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatQty } from "@verzo/ui/lib/format"
 import { usePriorities, useWorkspace } from "@/lib/use-scene-data"
 import { useSyncGuard } from "@/lib/use-sync-guard"
 import { DataState, Restricted } from "./data-state"

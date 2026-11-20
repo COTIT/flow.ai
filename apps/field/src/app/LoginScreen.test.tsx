@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const authLogin = vi.fn()
 const farmLoginsLogin = vi.fn()
@@ -11,8 +11,8 @@ const navigate = vi.fn()
 /** The route's search params. Mutated by the redirect tests. */
 let search: { redirect?: string } = {}
 
-vi.mock('@genesy/api-client/endpoints/auth', () => ({ authLogin: (a: unknown) => authLogin(a) }))
-vi.mock('@genesy/api-client/endpoints/farm-logins', () => ({
+vi.mock('@verzo/api-client/endpoints/auth', () => ({ authLogin: (a: unknown) => authLogin(a) }))
+vi.mock('@verzo/api-client/endpoints/farm-logins', () => ({
   farmLoginsLogin: (a: unknown) => farmLoginsLogin(a),
 }))
 vi.mock('@/app/session', () => ({
@@ -128,7 +128,7 @@ test('a successful sign-in navigates to the resolved landing route', async () =>
   await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/ops', replace: true }))
 })
 
-// Staff type an email (Genesy sign-in); farmers type the phone their officer
+// Staff type an email (Verzo sign-in); farmers type the phone their officer
 // registered (farm sign-in, which normalises it server side).
 describe('which sign-in the typed id goes to', () => {
   test('a phone number signs in as a farmer, with the phone as typed', async () => {

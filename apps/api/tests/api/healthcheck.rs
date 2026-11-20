@@ -1,12 +1,12 @@
-//! `genesy-360-api healthcheck` self-probe: the distroless image has no shell or curl, so the
+//! `verzo-360-api healthcheck` self-probe: the distroless image has no shell or curl, so the
 //! binary checks its own /healthz for the compose healthcheck.
 
 use crate::common;
 
 use std::{net::SocketAddr, time::Duration};
 
-use genesy_360_api::{build_app, healthcheck::probe, mail::Mailer};
 use sqlx::{PgPool, postgres::PgPoolOptions};
+use verzo_360_api::{build_app, healthcheck::probe, mail::Mailer};
 
 /// Serve `pool` on an ephemeral localhost port, return the port.
 async fn serve(pool: PgPool) -> u16 {

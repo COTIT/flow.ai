@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmEquipmentGet, farmEquipmentList } from '@genesy/api-client/endpoints/farm-equipment'
-import type { EquipmentResource } from '@genesy/api-client/model'
+import { farmEquipmentGet, farmEquipmentList } from '@verzo/api-client/endpoints/farm-equipment'
+import type { EquipmentResource } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

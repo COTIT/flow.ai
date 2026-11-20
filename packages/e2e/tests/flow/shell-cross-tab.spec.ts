@@ -15,7 +15,7 @@ import {
 import { fakeAgent, send, startText, typeInstead } from "./voice"
 
 // Two tabs = two pages of one browser context (one localStorage). Tab 2 writes the saved login
-// exactly as @genesy/api-client's sessionStore does; tab 1 (the guarded page) must follow.
+// exactly as @verzo/api-client's sessionStore does; tab 1 (the guarded page) must follow.
 // SIMULATED voice: mock upstream behind Flow's real proxy + a fake ElevenLabs socket.
 
 const KEY = "genesy.session"

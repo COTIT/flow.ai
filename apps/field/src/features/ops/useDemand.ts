@@ -8,8 +8,8 @@ import {
   farmMarketDemandsGet,
   farmMarketDemandsList,
   farmMarketOpportunitiesCreate,
-} from '@genesy/api-client/endpoints/farm-market'
-import type { BuyerDemandRequest, BuyerDemandResource, Money } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-market'
+import type { BuyerDemandRequest, BuyerDemandResource, Money } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

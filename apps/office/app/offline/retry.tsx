@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 
 /** Loads the page the user asked for again (the service worker shows this screen in its place). */
 export function Retry({ children }: { children: React.ReactNode }) {

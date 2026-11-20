@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { cn } from "@genesy/ui/lib/utils"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { CheckoutForm } from "@/components/checkout-form"
 import { COUNTRY_CODES } from "@/lib/countries"

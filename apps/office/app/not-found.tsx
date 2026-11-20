@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
-import { Card, CardContent } from "@genesy/ui/components/card"
-import { EmptyState } from "@genesy/ui/components/empty-state"
+import { Card, CardContent } from "@verzo/ui/components/card"
+import { EmptyState } from "@verzo/ui/components/empty-state"
 
 /** An address no office screen answers. */
 export default async function NotFound() {

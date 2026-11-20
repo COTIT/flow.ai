@@ -15,7 +15,7 @@ import React, {
   type ReactNode
 } from 'react';
 import { animate, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react';
-// Genesy edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
+// Verzo edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
 import { Calendar, ChartLine, Check, ChevronDown, CircleHelp, File, Globe, Mail, Mic, Paperclip, Plus, Sparkles, X, type LucideIcon } from 'lucide-react';
 type IconSvgElement = LucideIcon;
 const HugeiconsIcon = ({ icon: Icon, size, strokeWidth }: { icon: IconSvgElement; size?: number | string; strokeWidth?: number }) => <Icon size={size} strokeWidth={strokeWidth} />;
@@ -68,15 +68,15 @@ export interface PromptBarProps {
   defaultEffort?: string;
   onEffortChange?: (effort: string) => void;
   busy?: boolean;
-  /** Genesy edit: arms Send without text, e.g. for files staged outside the bar. */
+  /** Verzo edit: arms Send without text, e.g. for files staged outside the bar. */
   ready?: boolean;
-  /** Genesy edit: id of the hint that describes the message box. */
+  /** Verzo edit: id of the hint that describes the message box. */
   describedBy?: string;
-  /** Genesy edit: translated accessible names; English by default. */
+  /** Verzo edit: translated accessible names; English by default. */
   labels?: Partial<typeof DEFAULT_LABELS>;
-  /** Genesy edit: puts this text in the box and focuses it; a new object fills again. */
+  /** Verzo edit: puts this text in the box and focuses it; a new object fills again. */
   seed?: { text: string };
-  /** Genesy edit: return false (or a promise of false) to keep the draft. */
+  /** Verzo edit: return false (or a promise of false) to keep the draft. */
   onSend?: (text: string, detail: PromptBarSendDetail) => void | boolean | Promise<boolean | void>;
   onStop?: () => void;
   onAttach?: () => string | string[] | void | Promise<string | string[] | void>;
@@ -157,7 +157,7 @@ const DEFAULT_MODELS: PromptBarModel[] = [
   { key: 'nova-2', name: 'Nova 2', tag: 'Legacy' }
 ];
 const DEFAULT_EFFORTS = ['Low', 'Medium', 'High', 'Extra', 'Max'];
-// Genesy edit: accessible names, overridable by `labels`.
+// Verzo edit: accessible names, overridable by `labels`.
 const DEFAULT_LABELS = { prompt: 'Prompt', add: 'Add files and sources', sources: 'Sources', send: 'Send', stop: 'Stop' };
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -305,7 +305,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
     return [];
   }, [open, query, sources, commands, models]);
   const cursor = Math.min(active, Math.max(0, list.length - 1));
-  // Genesy edit: `ready` arms Send without text.
+  // Verzo edit: `ready` arms Send without text.
   const canSend = draft.trim().length > 0 || attachments.length > 0 || ready;
   const armed = busy || canSend;
   const level = efforts[effortIndex] ?? '';
@@ -520,7 +520,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
 
   const send = () => {
     if (!canSend || busy) return;
-    // Genesy edit: keep the draft when onSend says false.
+    // Verzo edit: keep the draft when onSend says false.
     Promise.resolve(latest.current.onSend?.(draft.trim(), { attachments, model, effort: level })).then(sent => {
       if (sent === false) return;
       setDraft('');
@@ -790,7 +790,7 @@ const PromptBar: React.FC<PromptBarProps> = ({
               setModelOpen(false);
               setEffortOpen(false);
               setActive(0);
-              // Genesy edit: focus first; the textarea's onFocus closes menus, so focusing
+              // Verzo edit: focus first; the textarea's onFocus closes menus, so focusing
               // after the toggle shut the menu again whenever the box was not focused yet.
               focusInput();
               setPlusOpen(v => !v);

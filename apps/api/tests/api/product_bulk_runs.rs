@@ -4,15 +4,15 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
-use genesy_360_api::{
-    AppState,
-    jobs::{self, kinds::Ctx, runner::Step},
-    product_bulk_runs,
-};
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
+use verzo_360_api::{
+    AppState,
+    jobs::{self, kinds::Ctx, runner::Step},
+    product_bulk_runs,
+};
 
 struct World {
     app: Router,
@@ -42,9 +42,9 @@ async fn malformed_or_unknown_json_is_a_structured_refusal(db: PgPool) {
     assert_eq!(count, 0);
 }
 async fn world(db: PgPool) -> World {
-    let mut state = common::state(db, genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(db, verzo_360_api::mail::Mailer::capture().0);
     state.product_bulk_enabled = true;
-    let app = genesy_360_api::build_app(state.clone());
+    let app = verzo_360_api::build_app(state.clone());
     let (token, workspace) = signup(&app, "bulk@example.test", "bulk").await;
     let workspace = Uuid::parse_str(&workspace).unwrap();
     World {
@@ -85,7 +85,7 @@ fn ctx(w: &World) -> Ctx {
         assistant_api_key: None,
         db: w.state.db.clone(),
         files: w.state.files.clone(),
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: w.state.credentials.clone(),
         payments: w.state.payments.clone(),
     }
@@ -891,8 +891,8 @@ async fn real_csv_header_candidates_retain_data_require_confirmation_and_allow_e
         "Set GENESY_PRODUCT_PARSER_BIN to the built debug API for actual child-process extraction"
     );
     let mut w = world(db).await;
-    w.state.files = Some(genesy_360_api::storage::Store::memory());
-    w.app = genesy_360_api::build_app(w.state.clone());
+    w.state.files = Some(verzo_360_api::storage::Store::memory());
+    w.app = verzo_360_api::build_app(w.state.clone());
     let (run, _) = stored_csv(&w, "name,brand\nname,brand\n").await;
     drain(&w).await;
     let rows = request(&w, Method::GET, &format!("/{run}/rows"), None).await;

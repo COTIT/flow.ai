@@ -3,9 +3,9 @@
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import type { PaginatedStockResource } from "@genesy/api-client/model"
-import { Badge } from "@genesy/ui/components/badge"
-import { buttonVariants } from "@genesy/ui/components/button"
+import type { PaginatedStockResource } from "@verzo/api-client/model"
+import { Badge } from "@verzo/ui/components/badge"
+import { buttonVariants } from "@verzo/ui/components/button"
 import {
   Table,
   TableBody,
@@ -13,8 +13,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatQty } from "@verzo/ui/lib/format"
 import {
   CardState,
   ListCard,

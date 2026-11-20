@@ -5,12 +5,12 @@ import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAccountingBankAccountsList } from "@genesy/api-client/endpoints/accounting"
+import { useSession } from "@verzo/api-client/auth"
+import { useAccountingBankAccountsList } from "@verzo/api-client/endpoints/accounting"
 import {
   useBankReconciliationsCreate,
   useBankReconciliationsReverse,
-} from "@genesy/api-client/endpoints/bank-reconciliations"
+} from "@verzo/api-client/endpoints/bank-reconciliations"
 import {
   getBankStatementsGetQueryKey,
   getBankStatementsLinesQueryKey,
@@ -18,15 +18,15 @@ import {
   useBankStatementsGet,
   useBankStatementsLineCandidates,
   useBankStatementsLines,
-} from "@genesy/api-client/endpoints/bank-statements"
-import type { Meta } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/bank-statements"
+import type { Meta } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -34,9 +34,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { ListPager, PageHead } from "@/components/list"

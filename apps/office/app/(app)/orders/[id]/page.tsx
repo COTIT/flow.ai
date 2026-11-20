@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { ChevronRight, Package } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getOrdersEventsQueryKey,
   getOrdersGetQueryKey,
@@ -20,13 +20,13 @@ import {
   useOrdersPick,
   useOrdersRefund,
   useOrdersReturns,
-} from "@genesy/api-client/endpoints/orders"
-import type { OrderAction, OrderResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/orders"
+import type { OrderAction, OrderResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogClose,
@@ -36,10 +36,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -47,8 +47,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
+} from "@verzo/ui/components/table"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { PageHead } from "@/components/list"

@@ -3,10 +3,10 @@
 //! excess outflow to recovery, exception retry/resolve routes, book gate before invoice locks.
 
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{gateway::repo::Operation, invoice_gateway as gateway, provider_observations};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{gateway::repo::Operation, invoice_gateway as gateway, provider_observations};
 
 use crate::settlement::{Paying, paying};
 
@@ -27,7 +27,7 @@ pub(crate) async fn operation(
         .bind(if note.is_some() { "refund" } else { "payment" }).bind(amount).bind(id.to_string())
         .bind(format!("tx-{id}"))
         .execute(&p.w.pool).await.unwrap();
-    genesy_360_api::gateway::repo::find(&p.w.pool, ws, id)
+    verzo_360_api::gateway::repo::find(&p.w.pool, ws, id)
         .await
         .unwrap()
         .unwrap()
@@ -501,7 +501,7 @@ async fn shop_collection_is_an_order_deposit_and_its_refund_relieves_it(pool: Pg
         (pay, "collection", "pi_1", 2_500),
         (back, "refund", "re_1", 1_000),
     ] {
-        let op = genesy_360_api::gateway::repo::find(&p.w.pool, ws, id)
+        let op = verzo_360_api::gateway::repo::find(&p.w.pool, ws, id)
             .await
             .unwrap()
             .unwrap();

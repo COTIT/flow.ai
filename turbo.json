@@ -68,12 +68,12 @@
     },
     "e2e": {
       "dependsOn": [
-        "@genesy/shop#build",
-        "@genesy/office#build",
-        "@genesy/field#build",
-        "@genesy/till#build",
-        "@genesy/landing#build",
-        "@genesy/flow#build"
+        "@verzo/shop#build",
+        "@verzo/office#build",
+        "@verzo/field#build",
+        "@verzo/till#build",
+        "@verzo/landing#build",
+        "@verzo/flow#build"
       ],
       "passThroughEnv": [
         "CI",
@@ -96,7 +96,7 @@
       "outputs": ["openapi.json"]
     },
     "generate": {
-      "dependsOn": ["@genesy/api#openapi"],
+      "dependsOn": ["@verzo/api#openapi"],
       "inputs": [
         "orval.config.ts",
         "src/mutator.ts",
@@ -105,7 +105,7 @@
       "outputs": ["src/generated/**"]
     },
     "generate:check": {
-      "dependsOn": ["@genesy/api#openapi"],
+      "dependsOn": ["@verzo/api#openapi"],
       "cache": false
     }
   }

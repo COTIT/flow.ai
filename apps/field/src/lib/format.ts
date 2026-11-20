@@ -6,8 +6,8 @@
  * coverage percentages, or any stored energy estimate (§11).
  */
 
-import type { Money } from '@genesy/api-client/model'
-import { formatMoney as formatMinor } from '@genesy/ui/lib/money'
+import type { Money } from '@verzo/api-client/model'
+import { formatMoney as formatMinor } from '@verzo/ui/lib/money'
 
 import i18n from '@/i18n'
 

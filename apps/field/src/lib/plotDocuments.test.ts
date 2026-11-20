@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const create = vi.fn()
 const list = vi.fn()
 const get = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-documents', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-documents', () => ({
   farmDocumentsCreate: (...args: unknown[]) => create(...args),
   farmDocumentsList: (...args: unknown[]) => list(...args),
   farmDocumentsGet: (...args: unknown[]) => get(...args),

@@ -33,7 +33,7 @@ cd flow.ai
 Existing checkouts: `git remote set-url origin git@github.com:COTIT/flow.ai.git`
 (or use the HTTPS URL above if your checkout uses HTTPS).
 
-The repository is now `COTIT/flow.ai`; internal `@genesy/*` package names, image names,
+The repository is now `COTIT/flow.ai`; internal `@verzo/*` package names, image names,
 server paths and domains remain unchanged. Use those existing names in commands.
 
 ## Commands
@@ -47,7 +47,7 @@ pnpm typecheck
 pnpm test
 ```
 
-Run only the shop: `pnpm --filter @genesy/shop dev`.
+Run only the shop: `pnpm --filter @verzo/shop dev`.
 
 Shop pages need a backend to show catalog data. For local design work without production
 credentials, reuse the mock storefront API in `packages/e2e/mock/server.mjs` and its
@@ -61,11 +61,11 @@ Rust handlers ──▶ apps/api/openapi.json ──▶ orval ──▶ packages
 ```
 
 - After changing a backend route or its request/response types, regenerate both files:
-  `pnpm turbo run generate --filter=@genesy/api-client`. Commit `openapi.json` and `src/generated` with the change.
+  `pnpm turbo run generate --filter=@verzo/api-client`. Commit `openapi.json` and `src/generated` with the change.
 - Both are checked: `cargo test --test openapi` fails when `openapi.json` is stale, and
   `pnpm turbo run generate:check` fails when the generated client is.
 - In an app: `lib/api.ts` calls `configureApi(...)` once; then use the hooks, e.g.
-  `import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"` and types from `@genesy/api-client/model`.
+  `import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"` and types from `@verzo/api-client/model`.
 
 ## Storefront design foundation
 
@@ -80,7 +80,7 @@ server-only `SHOP_DESIGN_ENABLED` flag defaults to `false`; enabling it renders 
 published `hero`/`product_grid` document and retains native batch lookup. Existing
 catalog caching and commerce routes keep their contracts.
 
-See [Genesy Flow handoff](docs/genesy-flow/CURRENT_HANDOFF.md) for the test fixture, API workflow,
+See [Verzo Flow handoff](docs/verzo-flow/CURRENT_HANDOFF.md) for the test fixture, API workflow,
 architecture, validation evidence, rollout/rollback and proposed Phases 2–6.
 
 ## Office voice assistant
@@ -95,25 +95,25 @@ Set `LANGSMITH_API_KEY`, `LANGSMITH_TRACING=true` and `LANGSMITH_PROJECT` for wo
 
 Effects show an immutable review and expire after 120 seconds. LangGraph persists the review interruption in PostgreSQL; Rust atomically consumes the exact approved request before dispatch. Office exposes the confirmation phrase only on the native review card, never in model tools or contextual updates. Users can read it aloud or approve with its button. Spoken approval passes through ElevenLabs ASR as a user utterance; later echoes cannot dispatch the action again. Lost acknowledgement remains unknown until reconciled. Mail-server acceptance does not establish delivery.
 
-References are limited to 10 MiB each, ten per session and two concurrent uploads. Inspection never implicitly saves or sends a file. End/clear schedules durable provider cleanup; used references remain in model context until that conversation is deleted. Office reload restores task status through opaque IDs and requires a fresh review. Flow also restores owner-scoped conversation dialogue across reloads and authenticated return visits; original attachment bytes are not archived. See [conversation continuity](docs/genesy-flow/CONVERSATION_CONTINUITY.md).
+References are limited to 10 MiB each, ten per session and two concurrent uploads. Inspection never implicitly saves or sends a file. End/clear schedules durable provider cleanup; used references remain in model context until that conversation is deleted. Office reload restores task status through opaque IDs and requires a fresh review. Flow also restores owner-scoped conversation dialogue across reloads and authenticated return visits; original attachment bytes are not archived. See [conversation continuity](docs/verzo-flow/CONVERSATION_CONTINUITY.md).
 
-After backend contract changes, run `pnpm --filter @genesy/office voice:generate`. `voice:check` and the Office unit tests detect a stale catalog. Run the focused browser checks against an Office production build with `pnpm --filter @genesy/e2e exec playwright test --config voice.config.ts voice.spec.ts`; both desktop and 375px layouts are covered.
+After backend contract changes, run `pnpm --filter @verzo/office voice:generate`. `voice:check` and the Office unit tests detect a stale catalog. Run the focused browser checks against an Office production build with `pnpm --filter @verzo/e2e exec playwright test --config voice.config.ts voice.spec.ts`; both desktop and 375px layouts are covered.
 
 ## End-to-end tests (Playwright)
 
 Every web change is checked headless in a real browser; no clicking through by hand.
 
 ```bash
-pnpm --filter @genesy/e2e exec playwright install chromium   # once per machine (downloads Chromium)
+pnpm --filter @verzo/e2e exec playwright install chromium   # once per machine (downloads Chromium)
 pnpm turbo run e2e                                            # builds shop + office, then runs every test
 ```
 
 - Each test runs twice: desktop (1280 px) and phone (375 px). Chromium only.
 - The shop runs `next start` against a mock storefront API (`packages/e2e/mock/server.mjs`, 127.0.0.1:8199).
   The office runs `next start` and its browser calls are answered by `mockApi` (`page.route`). No database, no Docker.
-- The field build needs `VITE_FEATURE_RESOURCES=on` (CI sets it in `.github/workflows/ci.yml`), or its equipment, loans and requests tests fail: `VITE_FEATURE_RESOURCES=on pnpm turbo run build --filter=@genesy/field --force` (force, because turbo caches the flag-off build).
+- The field build needs `VITE_FEATURE_RESOURCES=on` (CI sets it in `.github/workflows/ci.yml`), or its equipment, loans and requests tests fail: `VITE_FEATURE_RESOURCES=on pnpm turbo run build --filter=@verzo/field --force` (force, because turbo caches the flag-off build).
 - Two checkouts at once (e.g. two worktrees): give one `E2E_PORT_OFFSET=40` so its ports don't clash.
-- Debug: `pnpm --filter @genesy/e2e exec playwright test --ui` (or `--headed`, `-g "<test name>"`).
+- Debug: `pnpm --filter @verzo/e2e exec playwright test --ui` (or `--headed`, `-g "<test name>"`).
   CI uploads the HTML report and traces as the `playwright-report` artifact when the job fails.
 
 ### How to add a test

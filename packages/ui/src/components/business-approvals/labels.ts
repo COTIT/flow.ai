@@ -2,7 +2,7 @@ import type { BlockedReasonView, Translate } from "./types"
 
 /**
  * Every code in contracts.md §3 and §5.6, by group. The text lives in the shared
- * `businessApprovals` messages (@genesy/i18n); `label` turns a code into it. A code the
+ * `businessApprovals` messages (@verzo/i18n); `label` turns a code into it. A code the
  * UI does not know yet reads as the group's `unknown` text, never as the raw code.
  */
 export const CODES = {

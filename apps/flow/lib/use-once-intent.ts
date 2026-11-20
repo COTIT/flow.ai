@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import { useVoice } from "@genesy/voice/components/provider"
+import { useVoice } from "@verzo/voice/components/provider"
 
 import { INTENT_LIMIT_MS, intentPending, type SentIntent } from "./once-intent"
 
 /**
  * One message per intent for a task-card button: `send` goes out once, then the button stays
- * pending (disable it, mark it aria-busy) until Genesy answers, fails, or the card's subject
+ * pending (disable it, mark it aria-busy) until Verzo answers, fails, or the card's subject
  * (`key`) changes. A failed send frees it at once.
  */
 export function useOnceIntent(key: string) {

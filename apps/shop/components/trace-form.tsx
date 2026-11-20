@@ -1,9 +1,9 @@
 import { getTranslations } from "next-intl/server"
 import { QrCodeIcon } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { cn } from "@genesy/ui/lib/utils"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { goldChip, tile } from "@/lib/look"
 import { getShopBase } from "@/lib/shop-scope"

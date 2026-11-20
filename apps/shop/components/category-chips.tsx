@@ -1,6 +1,6 @@
 import Link from "@/components/shop-link"
 
-import { cn } from "@genesy/ui/lib/utils"
+import { cn } from "@verzo/ui/lib/utils"
 
 import type { StorefrontCategory } from "@/lib/storefront"
 

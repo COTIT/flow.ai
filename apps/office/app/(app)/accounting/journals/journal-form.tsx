@@ -6,20 +6,20 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingJournalsGetQueryKey,
   getAccountingJournalsListQueryKey,
   useAccountingJournalsCreate,
   useAccountingJournalsUpdate,
-} from "@genesy/api-client/endpoints/accounting"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import type { JournalPayload, JournalResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/api-client/endpoints/accounting"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import type { JournalPayload, JournalResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Field } from "@/components/field"
 import { AccountPicker, CurrencyPicker } from "@/components/pickers"
 import { useIdempotencyKey } from "@/lib/idempotency"

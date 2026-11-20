@@ -1,1 +1,1 @@
-export { default } from "@genesy/ui/postcss.config"
+export { default } from "@verzo/ui/postcss.config"

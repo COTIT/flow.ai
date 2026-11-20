@@ -5,17 +5,17 @@ import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { UserPlus } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getInvitesListQueryKey,
   useInvitesDelete,
   useInvitesList,
   useInvitesSend,
-} from "@genesy/api-client/endpoints/invites"
-import { useTeamsList } from "@genesy/api-client/endpoints/teams"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/invites"
+import { useTeamsList } from "@verzo/api-client/endpoints/teams"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogClose,
@@ -25,8 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -34,8 +34,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDate } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import {
   CardState,

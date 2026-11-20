@@ -1,10 +1,10 @@
 //! Account identity and credential rotation through the settings trust boundary.
 use crate::common::{self, Api};
 use axum::http::{Method, StatusCode};
-use genesy_360_api::{CredentialKey, gateway::accounts, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{CredentialKey, gateway::accounts, mail::Mailer};
 
 fn config(environment: &str, merchant: &str) -> Value {
     json!({"integrations":{"payment":{
@@ -37,13 +37,13 @@ fn slot(body: &mut Value) -> &mut Value {
 
 #[sqlx::test]
 async fn approved_origins_metadata_keeps_the_deployment_realm(pool: PgPool) {
-    use genesy_360_api::payments::GlobadymeEnvironment::{Production, Sandbox};
+    use verzo_360_api::payments::GlobadymeEnvironment::{Production, Sandbox};
 
     let mut api = Api::new(pool.clone(), "/settings").await;
     for (realm, expected) in [(Sandbox, "sandbox"), (Production, "production")] {
         let mut state = common::state(pool.clone(), Mailer::capture().0);
         state.payments = state.payments.with_globadyme_environment(Some(realm));
-        api.app = genesy_360_api::build_app(state);
+        api.app = verzo_360_api::build_app(state);
         for query in ["", "?type=integrations"] {
             let (status, body) = api.call(Method::GET, query, None, &api.owner).await;
             assert_eq!(status, StatusCode::OK, "{body}");
@@ -144,10 +144,10 @@ async fn merchant_binding_is_unique_per_environment_across_workspaces(pool: PgPo
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
     let mut production = common::state(api.pool.clone(), Mailer::capture().0);
     production.payments = production.payments.with_globadyme_environment(Some(
-        genesy_360_api::payments::GlobadymeEnvironment::Production,
+        verzo_360_api::payments::GlobadymeEnvironment::Production,
     ));
     let (status, body) = common::send(
-        &genesy_360_api::build_app(production),
+        &verzo_360_api::build_app(production),
         Method::POST,
         &path,
         Some(config("production", "shared-merchant")),
@@ -172,7 +172,7 @@ async fn merchant_binding_is_unique_per_environment_across_workspaces(pool: PgPo
 async fn deployment_realm_blocks_settings_bypass_and_preserves_other_realm_credentials(
     pool: PgPool,
 ) {
-    use genesy_360_api::{build_app, payments::GlobadymeEnvironment};
+    use verzo_360_api::{build_app, payments::GlobadymeEnvironment};
     let mut api = Api::new(pool, "/settings").await;
     let mut production = common::state(api.pool.clone(), Mailer::capture().0);
     production.payments = production
@@ -286,7 +286,7 @@ async fn password_rotation_invalidates_stale_collection_selection(pool: PgPool) 
     let mut tx = api.pool.begin().await.unwrap();
     assert!(matches!(
         accounts::bind(&mut tx, ws, &stale).await,
-        Err(genesy_360_api::AppError::Conflict(_))
+        Err(verzo_360_api::AppError::Conflict(_))
     ));
     tx.rollback().await.unwrap();
     let fresh = accounts::select(&state, ws).await.unwrap().unwrap();

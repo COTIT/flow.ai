@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'

@@ -105,7 +105,7 @@ ps = live['platform_settings']
 ps['auth']['require_origin_header'] = True
 ps['auth']['allowlist'] = [{'hostname': 'office.fake-origin.test'}]
 ps['call_limits'] = {'daily_limit': 150}
-live.update({'agent_id': agent_id, 'name': 'Genesy Development', 'version_id': 'agtvrsn_old0001'})
+live.update({'agent_id': agent_id, 'name': 'Verzo Development', 'version_id': 'agtvrsn_old0001'})
 (state / 'agent.json').write_text(json.dumps(live))
 (state / 'webhooks.json').write_text(json.dumps({'webhooks': [{'webhook_id': 'hook_FAKESTAGING0001', 'webhook_url': 'https://staging-office.genesy.app/api/voice/history-webhook', 'auth_type': 'hmac', 'is_disabled': False, 'is_auto_disabled': False}, {'webhook_id': 'hook_FAKEPRODUCTION01', 'webhook_url': 'https://office.genesy.app/api/voice/history-webhook', 'auth_type': 'hmac', 'is_disabled': False, 'is_auto_disabled': False}]}))
 tools = {tool['name']: copy.deepcopy(tool) for tool in t['clientTools']}
@@ -114,9 +114,9 @@ tools['execute_genesy_tool']['extra_server_field'] = 'kept'
 for name, tid in IDS.items():
     if name == missing or name not in tools: continue
     (state / ('tool_%s.json' % tid)).write_text(json.dumps({'id': tid, 'tool_config': tools[name]}))
-    agents = [{'type': 'available', 'id': agent_id, 'name': 'Genesy Development'}]
+    agents = [{'type': 'available', 'id': agent_id, 'name': 'Verzo Development'}]
     if shared and name == 'execute_genesy_tool':
-        agents.append({'type': 'available', 'id': 'agent_FAKEPROD00000001', 'name': 'Genesy Production'})
+        agents.append({'type': 'available', 'id': 'agent_FAKEPROD00000001', 'name': 'Verzo Production'})
     (state / ('deps_%s.json' % tid)).write_text(json.dumps({'agents': agents, 'has_more': False}))
 PY
   : > "$tmp/state/log"
@@ -222,9 +222,9 @@ grep -qF "matches the template" "$tmp/out" || fail "no-op not reported"
 # 6. Same live agent recorded as staging, then production (confirmed): the gate closes.
 run staging --apply && fail "applied to an agent whose name says another environment"
 grep -qF "does not look like the staging agent" "$tmp/out" || fail "wrong-environment name not named"
-rename "Genesy Staging"
+rename "Verzo Staging"
 run staging --apply || fail "staging record failed"
-rename "Genesy Production"
+rename "Verzo Production"
 ASSISTANT_AGENT_CONFIRM=production run production --apply || fail "confirmed production failed"
 python3 - "$tmp/validation.json" <<'PY' || fail "gate not cleared after all three environments"
 import json, sys
@@ -236,10 +236,10 @@ PY
 
 # 7. Shared tool: loud banner; staging apply refused without the production confirmation.
 fixture 1
-rename "Genesy Staging"
+rename "Verzo Staging"
 run staging --apply && fail "changed the shared tool without confirmation"
 grep -qF "SHARED TOOL" "$tmp/out" || fail "no shared-tool banner"
-grep -qF "Genesy Production" "$tmp/out" || fail "banner does not name the other agent"
+grep -qF "Verzo Production" "$tmp/out" || fail "banner does not name the other agent"
 [[ "$(patches)" == 0 ]] || fail "refused shared change still sent a PATCH"
 no_secrets
 ASSISTANT_AGENT_CONFIRM=production run staging --apply || fail "confirmed shared change failed"
@@ -304,7 +304,7 @@ if grep -q '"method": "POST"' "$tmp/state/log"; then fail "created the tool twic
 
 # Runtime webhook binding stays out of the sanitized template and dry runs never write.
 fixture 0
-rename "Genesy Staging"
+rename "Verzo Staging"
 ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging || fail "webhook dry run failed"
 grep -qF "platform_settings.workspace_overrides.webhooks.post_call_webhook_id" "$tmp/out" || fail "webhook diff missing"
 no_secrets
@@ -332,7 +332,7 @@ ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply || fail "web
 
 # Invalid IDs/configurations fail before mutations; provider read-back remains mandatory.
 for bad in '' '../foreign' missing_hook hook_FAKEPRODUCTION01; do
-  fixture 0; rename "Genesy Staging"
+  fixture 0; rename "Verzo Staging"
   ASSISTANT_AGENT_WEBHOOK_ID="$bad" run staging --apply && fail "accepted invalid/mismatched webhook"
   [[ "$(patches)" == 0 ]] || fail "invalid webhook mutated agent"
 done
@@ -340,7 +340,7 @@ fixture 0
 ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run development --apply && fail "accepted development webhook override"
 [[ "$(patches)" == 0 ]] || fail "development webhook mutated agent"
 for field in auth_type is_disabled is_auto_disabled webhook_url; do
-  fixture 0; rename "Genesy Staging"
+  fixture 0; rename "Verzo Staging"
   python3 - "$tmp/state/webhooks.json" "$field" <<'PY'
 import json,sys
 p,field=sys.argv[1:]; value=json.load(open(p))
@@ -350,10 +350,10 @@ PY
   ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply && fail "accepted unsafe webhook $field"
   [[ "$(patches)" == 0 ]] || fail "unsafe webhook mutated agent"
 done
-fixture 0; rename "Genesy Production"
+fixture 0; rename "Verzo Production"
 ASSISTANT_AGENT_CONFIRM=production ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKEPRODUCTION01 run production --apply || fail "production webhook failed"
 no_secrets
-fixture 0; rename "Genesy Staging"; echo drop_webhook > "$tmp/state/mode"
+fixture 0; rename "Verzo Staging"; echo drop_webhook > "$tmp/state/mode"
 ASSISTANT_AGENT_WEBHOOK_ID=hook_FAKESTAGING0001 run staging --apply && fail "ignored webhook read-back mismatch"
 cmp -s "$tmp/validation.start.json" "$tmp/validation.json" || fail "webhook mismatch wrote evidence"
 

@@ -5,9 +5,9 @@ import * as React from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
 
 /**
  * A list or page that failed to load: the API's words (or a plain fallback) and a retry.

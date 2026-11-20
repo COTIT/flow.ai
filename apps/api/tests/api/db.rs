@@ -7,9 +7,9 @@ use std::time::{Duration, Instant};
 
 use axum::http::{Method, StatusCode};
 use common::{send, signup};
-use genesy_360_api::{build_app, db, mail::Mailer};
 use serde_json::json;
 use sqlx::PgPool;
+use verzo_360_api::{build_app, db, mail::Mailer};
 
 /// Every request connection carries the statement, idle-in-transaction and lock limits.
 #[sqlx::test]

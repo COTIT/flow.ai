@@ -3,15 +3,15 @@ import { NextIntlClientProvider } from "next-intl"
 import { getLocale } from "next-intl/server"
 import { headers } from "next/headers"
 
-import "@genesy/ui/globals.css"
-import "@genesy/voice/styles/voice.css"
-import { QueryProvider } from "@genesy/api-client/query-provider"
-import { fontSans } from "@genesy/ui/lib/fonts"
-import { cn } from "@genesy/ui/lib/utils"
+import "@verzo/ui/globals.css"
+import "@verzo/voice/styles/voice.css"
+import { QueryProvider } from "@verzo/api-client/query-provider"
+import { fontSans } from "@verzo/ui/lib/fonts"
+import { cn } from "@verzo/ui/lib/utils"
 import { OfflineNavigation } from "@/components/offline-navigation"
 import { ThemeProvider } from "@/components/theme-provider"
 
-export const metadata: Metadata = { title: "Genesy Flow" }
+export const metadata: Metadata = { title: "Verzo Flow" }
 
 export const viewport: Viewport = {
   width: "device-width",

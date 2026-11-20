@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verzo wordmark studies</title>
+<style>
+* { box-sizing: border-box }
+body { background: #faf8f3; color: #1c1b18; margin: auto; max-width: 73rem; padding: 2.5rem clamp(1rem, 5vw, 4.5rem); font: 16px/1.5 system-ui, sans-serif }
+h1, h2, p { margin: 0 }
+h1 { font-size: clamp(2.3rem, 6vw, 4.2rem); line-height: 1; letter-spacing: -.055em }
+h2 { font-size: 1.35rem; letter-spacing: -.025em }
+header { padding-bottom: 1.4rem }
+header p, section p { color: #5f5c55; margin-top: .4rem }
+section { border-top: 1px solid #e4dfd6; padding: 1rem 0 1.2rem }
+.previews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: .65rem; gap: .55rem }
+.sample { --mark: #8a6116; display: grid; place-items: center; min-height: 105px; padding: .45rem; border: 1px solid #e4dfd6; border-radius: 6px }
+.dark { --mark: #efc977; background: #1c1b18; color: #faf8f3; border-color: #1c1b18 }
+.lockup { display: flex; align-items: center; justify-content: center; gap: .55rem; width: 100% }
+.mark { width: clamp(24px, 6vw, 48px); height: auto; color: var(--mark) }
+.letters { width: min(65%, 185px); height: auto }
+.small { margin-top: .15rem; gap: .22rem }
+.small .mark { width: 15px }
+.small .letters { width: 55px }
+.defs { position: absolute; width: 0; height: 0; overflow: hidden }
+</style>
+<svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 64 64"><path d="M28 9 7 30a5 5 0 0 0 0 7l11 11 7-7-8-8L35 16zm18 6-7 7 8 8-18 17 7 8 21-21a5 5 0 0 0 0-7zM23 33l10-10 8 8-10 10z" fill="currentColor"/></symbol>
+  <symbol id="structured" viewBox="0 0 204 52">
+    <g stroke="currentColor" stroke-width="1" stroke-linejoin="round">
+    <path d="M2 8h9l11 28L33 8h9L26 44h-8ZM50 8h29v7H58v8h18v7H58v7h21v7H50ZM127 8h31v6l-20 23h21v7h-32v-6l20-23h-20Z" fill="currentColor"/>
+    <path d="M89 44V8h17c8 0 13 4 13 11 0 5-3 9-8 10l10 15h-10l-9-14h-5v14Zm8-21h9c3 0 5-1 5-4s-2-4-5-4h-9Z" fill="currentColor"/>
+    <path d="M174 8h19l9 9v18l-9 9h-19l-9-9V17Zm4 7-5 5v12l5 5h11l5-5V20l-5-5Z" fill="currentColor" fill-rule="evenodd"/>
+    </g>
+  </symbol>
+  <symbol id="human" viewBox="0 0 175 52">
+    <path d="M1 9h8l14 28L36 9h8L27 44h-8Z" fill="currentColor"/>
+    <path d="M52 31h21c0-7-4-11-10-11S51 25 51 33s5 12 12 12c3 0 6-1 9-3m11 2V21m1 7c2-4 6-7 12-7h2m7 0h23l-23 23h24" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="bevel"/>
+    <path d="M139 33c0-7 6-13 14-13s14 5 14 13-6 12-14 12-14-4-14-12Z" fill="none" stroke="currentColor" stroke-width="5"/>
+  </symbol>
+  <symbol id="editorial" viewBox="0 0 179 52">
+    <path d="M1 8h19v3h-5l11 27 11-27h-6V8h16v3h-6L25 45h-4L7 11H1Zm86 36v-3h5V23h-5v-3l12-2v7c3-4 7-7 11-7 3 0 5 2 5 4 0 3-2 5-4 5-3 0-4-2-5-3-3 0-5 2-7 5v12h7v3Zm35-25h24v2l-17 20h8c4 0 5-2 6-5h3l-1 8h-25v-3l17-19h-5c-4 0-6 2-7 5h-3Z" fill="currentColor"/>
+    <path d="M58 31c0 7 3 11 10 11 4 0 7-1 10-3l2 2c-4 3-8 4-13 4-10 0-16-5-16-13 0-9 7-14 15-14 9 0 14 5 14 13Zm0-3h15c0-5-3-8-7-8-5 0-7 4-8 8Zm106-10c9 0 14 5 14 13s-6 14-15 14-15-6-15-13 7-14 16-14Zm-1 2c-5 0-8 5-8 11 0 7 3 12 9 12 5 0 7-5 7-11 0-7-3-12-8-12Z" fill="currentColor" fill-rule="evenodd"/>
+  </symbol>
+</svg>
+<header><h1>Verzo wordmark studies</h1><p>The Connected Workflows mark paired with three lettering directions.</p></header>
+<main>
+<section><h2>A. Structured</h2><p>Wide capitals with lightly softened corners. The angled O echoes the mark.</p><div class="previews">
+  <div class="sample light" role="img" aria-label="A. Structured on light">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 204 52"><use href="#structured"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 204 52"><use href="#structured"/></svg></div>
+  </div>
+  <div class="sample dark" role="img" aria-label="A. Structured on dark">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 204 52"><use href="#structured"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 204 52"><use href="#structured"/></svg></div>
+  </div>
+</div></section>
+<section><h2>B. Humanist</h2><p>Open spacing, sharp joins, and a broad lowercase o give Verzo a warmer voice.</p><div class="previews">
+  <div class="sample light" role="img" aria-label="B. Humanist on light">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 175 52"><use href="#human"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 175 52"><use href="#human"/></svg></div>
+  </div>
+  <div class="sample dark" role="img" aria-label="B. Humanist on dark">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 175 52"><use href="#human"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 175 52"><use href="#human"/></svg></div>
+  </div>
+</div></section>
+<section><h2>C. Editorial</h2><p>A serif wordmark with flared strokes gives the angular mark a distinctive pairing.</p><div class="previews">
+  <div class="sample light" role="img" aria-label="C. Editorial on light">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 179 52"><use href="#editorial"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 179 52"><use href="#editorial"/></svg></div>
+  </div>
+  <div class="sample dark" role="img" aria-label="C. Editorial on dark">
+    <div class="lockup" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 179 52"><use href="#editorial"/></svg></div>
+    <div class="lockup small" aria-hidden="true"><svg class="mark" viewBox="0 0 64 64"><use href="#mark"/></svg><svg class="letters" viewBox="0 0 179 52"><use href="#editorial"/></svg></div>
+  </div>
+</div></section>
+</main>

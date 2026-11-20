@@ -8,12 +8,12 @@ const farmSurveysAnswer = vi.fn()
 const farmSurveysEligibility = vi.fn()
 const farmVouchersMine = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-surveys', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-surveys', () => ({
   farmSurveysGet: (...args: unknown[]) => farmSurveysGet(...args),
   farmSurveysAnswer: (...args: unknown[]) => farmSurveysAnswer(...args),
   farmSurveysEligibility: (...args: unknown[]) => farmSurveysEligibility(...args),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({
   farmVouchersMine: (...args: unknown[]) => farmVouchersMine(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))

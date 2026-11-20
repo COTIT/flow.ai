@@ -66,7 +66,7 @@ pub fn lot(id: Option<Uuid>, code: Option<&str>, expires_on: Option<NaiveDate>) 
     )
 }
 
-/// `configured-bins`: bins grouped by warehouse in first-seen order. genesy has no int ids,
+/// `configured-bins`: bins grouped by warehouse in first-seen order. Verzo has no int ids,
 /// so `warehouse_id` carries the uuid too (clients key on `warehouse_uuid || warehouse_id`).
 pub fn configured(bins: &[ConfiguredBin]) -> Vec<Value> {
     let mut groups: Vec<(Uuid, Option<Uuid>, Vec<Value>)> = Vec::new();

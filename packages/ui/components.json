@@ -11,11 +11,11 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "@genesy/ui/components",
-    "utils": "@genesy/ui/lib/utils",
-    "hooks": "@genesy/ui/hooks",
-    "lib": "@genesy/ui/lib",
-    "ui": "@genesy/ui/components"
+    "components": "@verzo/ui/components",
+    "utils": "@verzo/ui/lib/utils",
+    "hooks": "@verzo/ui/hooks",
+    "lib": "@verzo/ui/lib",
+    "ui": "@verzo/ui/components"
   },
   "rtl": false,
   "menuColor": "default",

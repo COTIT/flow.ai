@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { farmMarketDemandsList } from '@genesy/api-client/endpoints/farm-market'
-import { farmPueRequestsList } from '@genesy/api-client/endpoints/farm-pue'
+import { farmMarketDemandsList } from '@verzo/api-client/endpoints/farm-market'
+import { farmPueRequestsList } from '@verzo/api-client/endpoints/farm-pue'
 
 import { workspaceId } from '@/app/workspace'
 import { queryKeys } from '@/lib/queryKeys'

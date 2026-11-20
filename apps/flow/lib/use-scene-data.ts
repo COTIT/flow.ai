@@ -3,20 +3,20 @@
 import { useEffect, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useAttentionPriorities,
   useAttentionSummary,
-} from "@genesy/api-client/endpoints/attention"
+} from "@verzo/api-client/endpoints/attention"
 import {
   useOrdersList,
   useOrdersSalesCompare,
   useOrdersSalesDaily,
   useOrdersSalesSummary,
-} from "@genesy/api-client/endpoints/orders"
-import { useScheduledReportsList } from "@genesy/api-client/endpoints/scheduled-reports"
-import type { FlowPeriod } from "@genesy/api-client/model"
-import { useVoice } from "@genesy/voice/components/provider"
+} from "@verzo/api-client/endpoints/orders"
+import { useScheduledReportsList } from "@verzo/api-client/endpoints/scheduled-reports"
+import type { FlowPeriod } from "@verzo/api-client/model"
+import { useVoice } from "@verzo/voice/components/provider"
 import {
   comparePeriod,
   localToday,

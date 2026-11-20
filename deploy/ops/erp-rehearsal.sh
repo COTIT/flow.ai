@@ -9,7 +9,7 @@
 #   1. scratch DB "src": every migration, then `seed-demo` (populated: AFM + RUAHA demo data)
 #   2. revert src to the last pre-ERP migration (20261114020000): the populated pre-ERP shape
 #   3. pg_dump src → pg_restore into scratch DB "dst" (the restore rehearsal)
-#   4. `genesy-360-api migrate` on dst twice: forward to the newest, then a no-op
+#   4. `verzo-360-api migrate` on dst twice: forward to the newest, then a no-op
 #   5. pre-ERP row counts survive; every workspace has its book row (state setup)
 #   6. the API on dst (127.0.0.1:18490): log in as a seeded owner, ERP read routes answer 200
 #   7. drop both scratch DBs (--keep leaves them for inspection)
@@ -43,7 +43,7 @@ host="${BASH_REMATCH[3]}" db="${BASH_REMATCH[5]}"
 [[ "$db" == postgres ]] || die "refusing maintenance database $db: pass .../postgres"
 server="${url%/postgres}"
 
-api_bin="${api_bin:-${CARGO_TARGET_DIR:-$REPO/apps/api/target}/debug/genesy-360-api}"
+api_bin="${api_bin:-${CARGO_TARGET_DIR:-$REPO/apps/api/target}/debug/verzo-360-api}"
 [[ -x "$api_bin" ]] || die "no API binary at $api_bin (cargo build first, or --api-bin)"
 for tool in psql sqlx python3 curl; do
   command -v "$tool" > /dev/null || die "$tool not found"

@@ -5,8 +5,8 @@ import { useStore } from "zustand"
 import {
   tillSalesCreate,
   tillSalesGet,
-} from "@genesy/api-client/endpoints/till"
-import type { SaleRequest, SaleResource } from "@genesy/api-client/model"
+} from "@verzo/api-client/endpoints/till"
+import type { SaleRequest, SaleResource } from "@verzo/api-client/model"
 import type { CartLine } from "@/lib/cart-store"
 import { migrateQueue, whereFrom, type Origin } from "@/lib/queue-origin"
 import { tillStore } from "@/lib/till-store"

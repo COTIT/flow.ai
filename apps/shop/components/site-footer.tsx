@@ -2,8 +2,8 @@ import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 import { MailIcon } from "lucide-react"
 
-import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
-import { LogoIcon } from "@genesy/ui/components/logo"
+import { LocaleSwitcher } from "@verzo/i18n/locale-switcher"
+import { LogoIcon } from "@verzo/ui/components/logo"
 
 import { NAV, mailto } from "@/lib/nav"
 

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { X } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import { runState, TERMINAL_STATES } from "@/lib/product-bulk"
 import { useBulkRuns } from "@/lib/use-product-bulk"
 

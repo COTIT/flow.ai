@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 
 /**
  * Explicit approval of one publication: the live and the proposed revision side by side. Confirm

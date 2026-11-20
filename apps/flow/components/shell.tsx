@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useVoice } from "@genesy/voice/components/provider"
-import { sessionPhase } from "@genesy/voice/lib/presentation"
-import { sceneContext } from "@genesy/voice/lib/scene-context"
+import { useSession } from "@verzo/api-client/auth"
+import { useVoice } from "@verzo/voice/components/provider"
+import { sessionPhase } from "@verzo/voice/lib/presentation"
+import { sceneContext } from "@verzo/voice/lib/scene-context"
 import { useProposalHold } from "@/components/task/storefront-proposal"
 import {
   Rail,

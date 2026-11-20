@@ -1,5 +1,5 @@
-import { FLOW_CAPABILITIES } from "@genesy/voice/lib/capabilities"
-import type { Uses } from "@genesy/voice/lib/rank"
+import { FLOW_CAPABILITIES } from "@verzo/voice/lib/capabilities"
+import type { Uses } from "@verzo/voice/lib/rank"
 
 /** Observed use only orders suggestions; it is kept on this device (decision Q6) for 90 days. */
 const KEEP = 90 * 86_400_000

@@ -3,9 +3,9 @@
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { cn } from "@genesy/ui/lib/utils"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { cn } from "@verzo/ui/lib/utils"
 
 /** Any screen that crashed (POS panel). No detail is shown; queued sales stay on the device. */
 export default function ErrorPage({ reset }: { reset: () => void }) {

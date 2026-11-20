@@ -6,8 +6,8 @@ import { PrinterIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { encode } from "uqr"
 
-import { useStorefrontConnectionGet } from "@genesy/api-client/endpoints/storefront-connection"
-import { Button } from "@genesy/ui/components/button"
+import { useStorefrontConnectionGet } from "@verzo/api-client/endpoints/storefront-connection"
+import { Button } from "@verzo/ui/components/button"
 import { Tile } from "@/components/bento"
 import { storefrontProductPassportUrl } from "@/lib/storefront-url"
 

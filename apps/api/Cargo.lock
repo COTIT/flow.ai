@@ -1030,52 +1030,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "genesy-360-api"
-version = "0.1.0"
-dependencies = [
- "argon2",
- "askama",
- "axum",
- "base64 0.22.1",
- "calamine",
- "chacha20poly1305",
- "chrono",
- "csv",
- "dotenvy",
- "futures-util",
- "getrandom 0.4.3",
- "hex",
- "hmac",
- "http-body-util",
- "jsonschema",
- "lettre",
- "lopdf",
- "reqwest",
- "ring",
- "rlimit",
- "rust_decimal",
- "rustls",
- "rusty-s3",
- "serde",
- "serde_json",
- "sha2 0.11.1",
- "sqlx",
- "thiserror 2.0.21",
- "tokio",
- "tower",
- "tower-http 0.7.1",
- "tower_governor",
- "tracing",
- "tracing-subscriber",
- "utoipa",
- "utoipa-axum",
- "uuid",
- "webpki-roots",
- "zeroize",
- "zip",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3551,6 +3505,52 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "verzo-360-api"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "askama",
+ "axum",
+ "base64 0.22.1",
+ "calamine",
+ "chacha20poly1305",
+ "chrono",
+ "csv",
+ "dotenvy",
+ "futures-util",
+ "getrandom 0.4.3",
+ "hex",
+ "hmac",
+ "http-body-util",
+ "jsonschema",
+ "lettre",
+ "lopdf",
+ "reqwest",
+ "ring",
+ "rlimit",
+ "rust_decimal",
+ "rustls",
+ "rusty-s3",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "sqlx",
+ "thiserror 2.0.21",
+ "tokio",
+ "tower",
+ "tower-http 0.7.1",
+ "tower_governor",
+ "tracing",
+ "tracing-subscriber",
+ "utoipa",
+ "utoipa-axum",
+ "uuid",
+ "webpki-roots",
+ "zeroize",
+ "zip",
+]
 
 [[package]]
 name = "vsimd"

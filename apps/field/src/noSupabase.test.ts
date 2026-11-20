@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest'
 import { code, offendingLines, read } from './styles/design'
 
 /**
- * The app runs on the Genesy API only. Supabase was RUAHA's backend and was
+ * The app runs on the Verzo API only. Supabase was RUAHA's backend and was
  * removed in port step 8; this guard keeps it from creeping back (tests
  * included, so no stray `vi.mock('@/lib/supabase')` survives either).
  */

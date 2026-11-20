@@ -5,13 +5,13 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
-import { getLotsListQueryKey } from "@genesy/api-client/endpoints/lots"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
-import { useSupplyChainPack } from "@genesy/api-client/endpoints/supply-chain"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+import { useSession } from "@verzo/api-client/auth"
+import { getLotsListQueryKey } from "@verzo/api-client/endpoints/lots"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
+import { useSupplyChainPack } from "@verzo/api-client/endpoints/supply-chain"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogClose,
@@ -21,8 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import { Field, selectClass } from "@/components/field"
 import { Capped } from "@/components/states"
 

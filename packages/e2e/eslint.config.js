@@ -1,4 +1,4 @@
-import { config } from "@genesy/eslint-config/base"
+import { config } from "@verzo/eslint-config/base"
 
 /** @type {import("eslint").Linter.Config} */
 export default [

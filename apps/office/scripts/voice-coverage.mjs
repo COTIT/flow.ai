@@ -1,5 +1,5 @@
-// G7 of docs/genesy-flow/OFFICE_VOICE_COVERAGE.md: how voice reaches each Office area, printed in CI.
-// `pnpm --filter @genesy/office voice:coverage`; appends to $GITHUB_STEP_SUMMARY when set.
+// G7 of docs/verzo-flow/OFFICE_VOICE_COVERAGE.md: how voice reaches each Office area, printed in CI.
+// `pnpm --filter @verzo/office voice:coverage`; appends to $GITHUB_STEP_SUMMARY when set.
 // Report only: the guards that fail live in lib/voice/office-parity.test.ts and keywords.test.ts.
 import { appendFileSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
@@ -11,8 +11,8 @@ export function areaOf(file) {
   const route = file.match(/^app\/\(app\)\/([^/]+)\//)
   if (route) return route[1]
   if (/^app\/\(app\)\/[^/]+$/.test(file)) return "overview"
-  if (file === "@genesy/api-client/storefront-review") return "settings"
-  if (file.startsWith("@genesy/api-client/")) return "sign-in and session"
+  if (file === "@verzo/api-client/storefront-review") return "settings"
+  if (file.startsWith("@verzo/api-client/")) return "sign-in and session"
   return file.split("/")[file.startsWith("app/") ? 1 : 0]
 }
 

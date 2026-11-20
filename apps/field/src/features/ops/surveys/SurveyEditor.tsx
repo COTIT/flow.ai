@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/ErrorState'

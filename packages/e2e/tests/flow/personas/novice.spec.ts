@@ -138,7 +138,7 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       run: () => persona.startText(),
     },
     {
-      name: "Genesy proposes a stock change",
+      name: "Verzo proposes a stock change",
       weight: 2,
       run: async () => {
         if (!(await live(page))) return
@@ -156,7 +156,7 @@ function noviceSteps(persona: Persona, page: Page): Step[] {
       },
     },
     {
-      name: "Genesy asks which product",
+      name: "Verzo asks which product",
       weight: 1,
       run: async () => {
         if (!(await live(page))) return
@@ -445,9 +445,9 @@ test("P3-1: after dismissing the tip, the explorer can still be found from home"
   await expect(way.first()).toBeVisible()
 })
 
-// P3-2: "Try it" sends the instruction and Genesy answers, but the person stays on /explore,
+// P3-2: "Try it" sends the instruction and Verzo answers, but the person stays on /explore,
 // where the conversation is not shown: nothing on screen says what happened.
-test("P3-2: Try it in the explorer shows what Genesy answered", async ({
+test("P3-2: Try it in the explorer shows what Verzo answered", async ({
   persona,
   page,
   api,
@@ -544,7 +544,7 @@ test("probe: cancel halfway, then the same goal another way", async ({
   await expect(
     scene(page).getByRole("button", { name: v.approve })
   ).toHaveCount(0)
-  // Retries by typing, Genesy proposes again with another number.
+  // Retries by typing, Verzo proposes again with another number.
   await page
     .getByRole("button", { name: shell.backHome })
     .filter({ visible: true })

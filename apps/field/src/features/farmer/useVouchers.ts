@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { farmVouchersMine } from '@genesy/api-client/endpoints/farm-vouchers'
-import type { MyVoucher } from '@genesy/api-client/model'
+import { farmVouchersMine } from '@verzo/api-client/endpoints/farm-vouchers'
+import type { MyVoucher } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import type { AuditEvent } from '@/components/AuditTimeline'

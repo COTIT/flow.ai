@@ -1,7 +1,7 @@
 <?php
 
 // available-fields oracle. Loads vimdesk-api's real PdfTemplateFields (custom fields stubbed
-// empty: genesy has none; Laravel's Arr::dot/get reimplemented below, no vendor/ needed) and
+// empty: Verzo has none; Laravel's Arr::dot/get reimplemented below, no vendor/ needed) and
 // writes {fields, variables} per domain, key order kept, to <out>/<domain>.json:
 //   php tests/fixtures/pdf_template_fields_oracle.php /path/to/apps/vimdesk-api src/modules/pdf_templates/fields
 

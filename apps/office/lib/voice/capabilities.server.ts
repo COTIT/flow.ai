@@ -1,7 +1,7 @@
 import "server-only"
-import { voiceMessages } from "@genesy/i18n/voice"
+import { voiceMessages } from "@verzo/i18n/voice"
 import { getOperation, isToolAllowed } from "./catalog"
-import { CAPABILITIES, rotated, type Available } from "@genesy/voice/lib/capabilities"
+import { CAPABILITIES, rotated, type Available } from "@verzo/voice/lib/capabilities"
 
 const messages = voiceMessages
 export const voiceText = (language?: string | null) =>

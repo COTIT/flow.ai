@@ -2,12 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const farmLoginsIssue = vi.fn()
 const farmLoginsHistory = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-logins', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-logins', () => ({
   farmLoginsIssue: (...args: unknown[]) => farmLoginsIssue(...args),
   farmLoginsHistory: (...args: unknown[]) => farmLoginsHistory(...args),
 }))

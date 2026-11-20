@@ -21,7 +21,7 @@
       "waitingConfirmation": "Inasubiri ruhusa yako.",
       "executing": "Inafanya badiliko.",
       "paused": "Imesitishwa. Hakuna kitakachoendelea hadi uamue.",
-      "completed": "Imethibitishwa na Genesy.",
+      "completed": "Imethibitishwa na Verzo.",
       "partial": "Sehemu tu imefanyika.",
       "failed": "Haikufanyika.",
       "cancelled": "Hakuna kilichobadilishwa.",
@@ -58,8 +58,8 @@
       "readFailed": "Imekamilika; thamani ya sasa haikuweza kupakiwa.",
       "unconfirmed": "Imekamilika; thamani ya sasa haikuweza kuthibitishwa.",
       "refresh": "Onyesha upya",
-      "unknownText": "Usirudie: huenda tayari imefanyika. Genesy inakagua matokeo yaliyorekodiwa.",
-      "check": "Iombe Genesy ikague",
+      "unknownText": "Usirudie: huenda tayari imefanyika. Verzo inakagua matokeo yaliyorekodiwa.",
+      "check": "Iombe Verzo ikague",
       "checkMessage": "Kagua kama mabadiliko yangu ya mwisho yaliyoidhinishwa yamekamilika. Usiyarudie.",
       "next": "Inayofuata",
       "approved": "Imeidhinishwa: {value}"
@@ -90,7 +90,7 @@
       "exceptions": "{count, plural, =0 {hakuna vighairi} one {kighairi # hakijajumuishwa: hakuna kinachoandikwa} other {vighairi # havijajumuishwa: hakuna kinachoandikwa}}",
       "result": "{done} zimesasishwa · {failed} zimeshindikana · {notRun} hazijaendeshwa · {unknown} zinahitaji ukaguzi",
       "continue": "Andaa zilizobaki",
-      "continueText": "Kazi iliyositishwa haiendelei yenyewe. Genesy inaandaa ukaguzi mpya kwa mabadiliko ambayo hayakuendeshwa.",
+      "continueText": "Kazi iliyositishwa haiendelei yenyewe. Verzo inaandaa ukaguzi mpya kwa mabadiliko ambayo hayakuendeshwa.",
       "continueMessage": "Andaa ukaguzi mpya kwa mabadiliko {count} ambayo hayakuendeshwa."
     },
     "resume": {

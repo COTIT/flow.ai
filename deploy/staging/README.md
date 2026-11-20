@@ -4,7 +4,7 @@ Office assistant stays disabled by default. See [assistant deployment](../ASSIST
 
 Product imports stay disabled by default. See [product import deployment](../PRODUCT_BULK.md) for release gates, file credentials and pausing existing workers safely.
 
-A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the apps (shop, office, till, field, flow) and the landing page, all served through the VPS's existing Traefik.
+A full Verzo stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the apps (shop, office, till, field, flow) and the landing page, all served through the VPS's existing Traefik.
 
 Think of it as a dress rehearsal stage: same sets as opening night, fake money in the till, and every letter lands in a box backstage.
 
@@ -178,7 +178,7 @@ cd /srv/genesy-staging && deploy/deploy.sh staging <green-main-sha> --bundle /tm
 deploy/deploy.sh staging rollback            # back to the previous version
 ```
 
-On staging the migrations run in a one-off `seed` container (`genesy-360-api migrate`, not the seed). Every manual compose command goes through `deploy/deploy.sh staging compose …`, which adds the Stripe and no-DNS files when they are there. The nightly backup, weekly restore test and alerts come from the ops kit, installed once from the production checkout (`../ops/README.md`).
+On staging the migrations run in a one-off `seed` container (`verzo-360-api migrate`, not the seed). Every manual compose command goes through `deploy/deploy.sh staging compose …`, which adds the Stripe and no-DNS files when they are there. The nightly backup, weekly restore test and alerts come from the ops kit, installed once from the production checkout (`../ops/README.md`).
 
 **The shop's app key.** The shop needs a storefront key before it shows a catalog:
 
@@ -266,7 +266,7 @@ After the first deploy, and after each reset:
 deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
-This runs `genesy-360-api seed-demo`, which fills every app with demo data: AFM's real catalogue (75 products in 10 categories, with photos once file uploads are on), 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
+This runs `verzo-360-api seed-demo`, which fills every app with demo data: AFM's real catalogue (75 products in 10 categories, with photos once file uploads are on), 300 orders, 40 invoices, a week of till shifts, and 60 farmers over four seasons (full list: `apps/api/docs/api/demo-seed.md`). It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that.
 
 It prints a logins table (`app | role | login | secret | path`), then the storefront app key, sample paths (passports, shop orders) and `seeded in N.N s`. The passwords, PINs and keys are new on every run and are printed only this once, so save them somewhere safe before sharing them.
 

@@ -9,17 +9,17 @@ import {
   tillSalesGet,
   useTillSalesCreate,
   useTillShiftCurrent,
-} from "@genesy/api-client/endpoints/till"
+} from "@verzo/api-client/endpoints/till"
 import type {
   QuoteLine,
   SaleRequest,
   SaleResource,
-} from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { cn } from "@verzo/ui/lib/utils"
 import { Keypad, type PadKey } from "@/components/keypad"
 import { Receipt, Saved } from "@/components/receipt"
 import {

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { buttonVariants } from "@genesy/ui/components/button"
+import { buttonVariants } from "@verzo/ui/components/button"
 import { usePriorities } from "@/lib/use-scene-data"
 
 /** Home's Flow noticed card: the top two groups, grounded counts, one way in. No conversation needed. */

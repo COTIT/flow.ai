@@ -1,9 +1,9 @@
-import type { TranscriptRow } from "@genesy/voice/lib/helpers"
+import type { TranscriptRow } from "@verzo/voice/lib/helpers"
 
 /** A lost answer never leaves a dead button: past this, the intent may be sent again. */
 export const INTENT_LIMIT_MS = 20_000
 
-/** One message a task-card button sent to Genesy, for the card's current subject (`key`). */
+/** One message a task-card button sent to Verzo, for the card's current subject (`key`). */
 export type SentIntent = {
   key: string
   /** Last transcript row when it was sent; only rows after it can answer it. */
@@ -21,7 +21,7 @@ export type IntentNow = {
 }
 
 /**
- * Still waiting for Genesy's answer to the intent: until a non-user row lands after the send, a
+ * Still waiting for Verzo's answer to the intent: until a non-user row lands after the send, a
  * new error shows, the connection drops, the card's subject changes, or the limit passes.
  */
 export function intentPending(intent: SentIntent | null, now: IntentNow) {

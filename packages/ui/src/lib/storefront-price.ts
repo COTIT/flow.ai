@@ -1,4 +1,4 @@
-import type { StorefrontProduct } from "@genesy/api-client/model"
+import type { StorefrontProduct } from "@verzo/api-client/model"
 
 /** Default variant price matches existing Shop presentation. */
 export const defaultVariant = (product: Pick<StorefrontProduct, "variants">) =>

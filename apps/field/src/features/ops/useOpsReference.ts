@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { farmMarketBuyersCreate, farmMarketBuyersList } from '@genesy/api-client/endpoints/farm-market'
-import { farmVillagesCapacityCreate, farmVillagesCreate, farmVillagesList } from '@genesy/api-client/endpoints/farm-villages'
-import type { BuyerRequest, CapacityRequest } from '@genesy/api-client/model'
+import { farmMarketBuyersCreate, farmMarketBuyersList } from '@verzo/api-client/endpoints/farm-market'
+import { farmVillagesCapacityCreate, farmVillagesCreate, farmVillagesList } from '@verzo/api-client/endpoints/farm-villages'
+import type { BuyerRequest, CapacityRequest } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

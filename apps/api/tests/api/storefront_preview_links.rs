@@ -147,7 +147,7 @@ async fn plaintext_rows(pool: &PgPool, plain: &str) -> i64 {
 
 #[test]
 fn every_preview_link_operation_is_documented() {
-    let spec = genesy_360_api::openapi::spec().unwrap();
+    let spec = verzo_360_api::openapi::spec().unwrap();
     let links = "/workspace/{workspace}/storefront/pages/home/preview-links";
     for (method, path, id) in [
         ("post", links, "storefront_design_preview_link_create"),
@@ -549,14 +549,14 @@ async fn resolve_has_its_own_rate_limit(pool: PgPool) {
     let revision = draft(&api).await;
     let key = app_key(&api, json!(["catalog:read"])).await;
     let token = token_of(&issue(&api, &revision, "issue").await);
-    let (mailer, _) = genesy_360_api::mail::Mailer::capture();
+    let (mailer, _) = verzo_360_api::mail::Mailer::capture();
     let mut state = common::state(pool, mailer);
-    state.preview_rate_limit = genesy_360_api::RateLimit {
+    state.preview_rate_limit = verzo_360_api::RateLimit {
         burst: 3,
         replenish: std::time::Duration::from_secs(3600),
         trust_forwarded: false,
     };
-    let app = genesy_360_api::build_app(state);
+    let app = verzo_360_api::build_app(state);
     for _ in 0..3 {
         assert_eq!(resolve_on(&app, &key, &token).await.0, StatusCode::OK);
     }

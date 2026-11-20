@@ -8,13 +8,13 @@ use std::time::Duration;
 
 use axum::http::{Method, StatusCode};
 use common::Api;
-use genesy_360_api::jobs::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::jobs::{
     kinds::{self, Ctx},
     repo,
     runner::Step,
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 /// Claim and run every due job until none is left, recording outcomes as the runner does.
 async fn run_jobs(pool: &PgPool) {
@@ -23,7 +23,7 @@ async fn run_jobs(pool: &PgPool) {
         assistant_api_key: None,
         db: pool.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
         payments: Default::default(),
     };
@@ -240,7 +240,7 @@ async fn the_sweep_resumes_chunk_by_chunk(pool: PgPool) {
     let mut conn = pool.acquire().await.unwrap();
     let mut after = None;
     let mut chunks = 0;
-    while let Some((last, n)) = genesy_360_api::jobs::kinds::seed_chunk(&mut conn, ws, after, 2)
+    while let Some((last, n)) = verzo_360_api::jobs::kinds::seed_chunk(&mut conn, ws, after, 2)
         .await
         .unwrap()
     {

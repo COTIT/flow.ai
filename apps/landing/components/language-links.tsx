@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import type { Locale } from "@genesy/i18n/locales"
+import type { Locale } from "@verzo/i18n/locales"
 
 const LANGUAGES: { locale: Locale; href: string; name: string }[] = [
   { locale: "en", href: "/", name: "English" },

@@ -73,7 +73,7 @@ Numbers follow the shared decimal rules: at most 8 decimals, ±10¹⁶. `items.*
 - A row without `id` is a new line.
 - Lines the body doesn't mention stay as they are (Laravel did no full-set diff).
 - An `id` that isn't a line of this invoice is a 422 `The selected items.N.id is invalid.`; deleting such an id is a no-op. Laravel updated or deleted another invoice's line.
-- Set children (`multi_set_product_id`) and rows whose set parent was deleted are skipped. genesy has no product sets yet.
+- Set children (`multi_set_product_id`) and rows whose set parent was deleted are skipped. Verzo has no product sets yet.
 - Several rows with one `id`: the last one wins (Laravel applied them in order).
 - A sent line equal to the stored one is not rewritten (no new row version per save).
 
@@ -101,7 +101,7 @@ Cancels a draft: status `cancelled`, the row and its lines stay (Laravel never d
 
 A new draft from any live invoice, whatever its status (the source is share locked while it is copied):
 - **Copied:** relation, currency, credit flag, note and meta, plus every line (title, description, quantity, price, VAT, discount, purchase price, product, variant, warehouse), with positions renumbered from 0.
-- **Not copied:** reference, billing address, addressed contact, payment method, dates and customer reference (Laravel). Laravel also reset the purchase prices to 0; genesy keeps them, so the margin stays right.
+- **Not copied:** reference, billing address, addressed contact, payment method, dates and customer reference (Laravel). Laravel also reset the purchase prices to 0; Verzo keeps them, so the margin stays right.
 
 ## Preview `GET /invoices/{id}/preview`
 
@@ -191,7 +191,7 @@ Rows (InvoiceIndexResource):
 - `total_amount`: the stored total, two places kept.
 - `summary`: from the stored totals; no line is read.
 - `has_activities`, `has_note_activity`, `has_collective_invoice`: false until those modules are ported.
-- `customer_name` (Genesy addition): the relation's company name, else its alias, else its first contact's full name; null when none is set. Read from the embedded relation, no extra query.
+- `customer_name` (Verzo addition): the relation's company name, else its alias, else its first contact's full name; null when none is set. Read from the embedded relation, no extra query.
 - `relationships.{relation, currency}`.
 
 ## Delete guards on other modules

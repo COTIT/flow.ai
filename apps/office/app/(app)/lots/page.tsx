@@ -7,15 +7,15 @@ import { useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getLotsListQueryKey,
   useLotsCreate,
   useLotsList,
-} from "@genesy/api-client/endpoints/lots"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+} from "@verzo/api-client/endpoints/lots"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogContent,
@@ -23,15 +23,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
+} from "@verzo/ui/components/select"
 import {
   Table,
   TableBody,
@@ -39,7 +39,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { useRights } from "@/lib/can"
 import { Field, selectClass } from "@/components/field"
 import {

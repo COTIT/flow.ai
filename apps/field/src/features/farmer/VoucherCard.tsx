@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { Notice } from '@genesy/ui/components/notice'
-import { formatMoney } from '@genesy/ui/lib/money'
+import { Notice } from '@verzo/ui/components/notice'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { AuditTimeline } from '@/components/AuditTimeline'
 import { EmptyState } from '@/components/EmptyState'

@@ -58,7 +58,7 @@ test.describe("two businesses", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expect(micNote(page)).toHaveCount(0)
     await expect(tip(page)).toHaveCount(0)
-    await expect(page.getByRole("link", { name: "What can Genesy do?" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "What can Verzo do?" })).toBeVisible()
   })
 
   test("hidden scenes and reset are one small line of links, not buttons", async ({ page }) => {

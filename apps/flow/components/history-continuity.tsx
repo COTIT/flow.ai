@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSession } from "@genesy/api-client/auth"
-import { sessionStore } from "@genesy/api-client/session"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import { useVoice } from "@genesy/voice/components/provider"
+import { useSession } from "@verzo/api-client/auth"
+import { sessionStore } from "@verzo/api-client/session"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import { useVoice } from "@verzo/voice/components/provider"
 import { readHistoryPointer, saveHistoryPointer } from "@/lib/history-pointer"
 
 export function HistoryContinuity() {

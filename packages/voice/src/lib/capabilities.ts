@@ -149,7 +149,7 @@ export const followUpFor = (list: Available[], operationId?: string) =>
   operationId ? list.find((c) => c.after?.includes(operationId)) : undefined
 
 // ---------------------------------------------------------------------------------------------
-// Genesy Flow discovery registry (pills, explorer, next actions). Office's list above is separate
+// Verzo Flow discovery registry (pills, explorer, next actions). Office's list above is separate
 // so Office chips stay as they are. `rights` and `write` are copied from the voice tool catalog;
 // capabilities.catalog.test.ts proves they match, so nothing here is invented.
 
@@ -175,7 +175,7 @@ export type FlowCapability = {
   rights: string[]
   /** Any of the operations writes. */
   write: boolean
-  /** `href`: open that screen directly (no AI). `prompt`: an instruction for Genesy. */
+  /** `href`: open that screen directly (no AI). `prompt`: an instruction for Verzo. */
   entry: { href: string } | { prompt: true }
   /** Scenes where it is a contextual suggestion. */
   scenes: SceneKey[]
@@ -371,7 +371,7 @@ export const FLOW_CAPABILITIES: FlowCapability[] = [
 
 export type FlowStatus = "available" | "approval" | "restricted" | "planned"
 
-/** AVAILABLE · REQUIRES APPROVAL (every write asked of Genesy is reviewed) · RESTRICTED · PLANNED. */
+/** AVAILABLE · REQUIRES APPROVAL (every write asked of Verzo is reviewed) · RESTRICTED · PLANNED. */
 export function statusOf(
   cap: FlowCapability,
   may: (right: string) => boolean

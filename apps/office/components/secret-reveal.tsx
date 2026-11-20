@@ -4,8 +4,8 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import { Copy } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 
 /**
  * A secret the API shows once (OfficeSettings "Key created"): a warning, the secret in a

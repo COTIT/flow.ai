@@ -266,7 +266,7 @@ const INCOMING_INVOICE: &[Field] = &[
     f("ledgers", Rule::List(LEDGER, 500)),
 ];
 
-/// Farm desk rules (genesy): the most a field officer pays out at once, in minor units of
+/// Farm desk rules (Verzo): the most a field officer pays out at once, in minor units of
 /// the payout's currency; above it only ops or admin pay.
 const FARM: &[Field] = &[f("payout_officer_limit", Rule::Int(0, i64::MAX))];
 

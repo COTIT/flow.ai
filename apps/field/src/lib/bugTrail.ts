@@ -64,7 +64,7 @@ export function installClickTrail(): () => void {
   return () => document.removeEventListener('click', onClick, true)
 }
 
-/** Every Genesy API call lands on the trail: method, redacted path, status, time. Never a body or a token. */
+/** Every Verzo API call lands on the trail: method, redacted path, status, time. Never a body or a token. */
 export function trailApi(instance: typeof api) {
   const started = new WeakMap<object, number>()
   const record = (config: { method?: string } | undefined, outcome: string) => {

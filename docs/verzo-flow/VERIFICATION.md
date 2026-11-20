@@ -1,4 +1,4 @@
-# Genesy Flow verification
+# Verzo Flow verification
 
 Updated 2026-11-10. Results below were actually executed: staging on `dd6678bfe`, local gates on `codex/flow-foundation`.
 Pending items are listed as pending, never as passed.
@@ -16,7 +16,7 @@ API (`storefront_design` preview links: create/list/revoke + public resolve by S
 
 ## Local full-stack check of Flow on main `106b83325` (2026-11-11)
 
-Real API, Office and Flow from `pnpm --filter @genesy/e2e stack:up` (seeded, assistant off), in-app browser. Owner login → conversation (two panes on desktop, one pane + Results button at 375 px); storefront design created through the real API (save 201, publish 200, Phase 3 typed edit 201); `/storefront` shows draft/published with distinct short codes; preview frame measured 375 / 834 / 1280 px inner width, one h1, no links, no page overflow; no console errors; all API calls 200 (one aborted `_rsc` prefetch, known noise).
+Real API, Office and Flow from `pnpm --filter @verzo/e2e stack:up` (seeded, assistant off), in-app browser. Owner login → conversation (two panes on desktop, one pane + Results button at 375 px); storefront design created through the real API (save 201, publish 200, Phase 3 typed edit 201); `/storefront` shows draft/published with distinct short codes; preview frame measured 375 / 834 / 1280 px inner width, one h1, no links, no page overflow; no console errors; all API calls 200 (one aborted `_rsc` prefetch, known noise).
 
 ## Phase 4A — file design references (2026-11-11)
 
@@ -24,7 +24,7 @@ Branch `flow/p4a` (child commits `a47aff20b`, `6e1fb137a`, `e28d85568`). No stor
 
 | Check | Result |
 | --- | --- |
-| e2e offline node tests (`pnpm --filter @genesy/e2e test`, incl. grader forbidOps/notInArgs red-first) | 46 passed (after a47aff20b) |
+| e2e offline node tests (`pnpm --filter @verzo/e2e test`, incl. grader forbidOps/notInArgs red-first) | 46 passed (after a47aff20b) |
 | Office vitest `design-reference.test.ts` + `catalog.test.ts` (after P3-A+B merge) | 35 passed; mutation run with the `catalog.ts` attachment guard removed: 3 refusal tests red |
 | Office tsc + eslint, e2e tsc + eslint | Clean |
 | Flow e2e `design-reference.spec.ts` (flow-desktop 1280, flow-mobile 375, + 834 describe), focused local config (mock + Flow only) | 6 passed; `--repeat-each=3` 18 passed |
@@ -50,7 +50,7 @@ Commits `0f7cab4df` (P3-A), `768e27f5a` (review fixes), `785ce5c4c` (P3-B), `0b6
 
 | Check | Result |
 | --- | --- |
-| Child runs (disposable PG 55490; 54320 never touched) | fmt/clippy clean; lib storefront 16, lib assistant 29, api storefront 43, api assistant 114 (incl. `assistant_storefront_design` 3: edit + publish dispatch through signed single-use cards, tampered body 409, write after review 409 with nothing stored, closed ops refused, member 403), openapi 70 (+2 paths, +5 schemas); `sqlx prepare --check` clean; api-client generate:check 0; `voice:check` 493 operations / 402 tools; Office lib/voice + i18n + eval 584; `@genesy/voice` 126 |
+| Child runs (disposable PG 55490; 54320 never touched) | fmt/clippy clean; lib storefront 16, lib assistant 29, api storefront 43, api assistant 114 (incl. `assistant_storefront_design` 3: edit + publish dispatch through signed single-use cards, tampered body 409, write after review 409 with nothing stored, closed ops refused, member 403), openapi 70 (+2 paths, +5 schemas); `sqlx prepare --check` clean; api-client generate:check 0; `voice:check` 493 operations / 402 tools; Office lib/voice + i18n + eval 584; `@verzo/voice` 126 |
 | Reviews (Rust + security, independent) | No critical/high. Fixed test-first: dry run reads in one READ ONLY REPEATABLE READ snapshot; new-section facts list every field; category rows carry `category_id`. Accepted: silent partial no-ops, O(n·m) category naming, unlocked capture (dispatch re-checks under lock) |
 | Bug found by the gate | Design facts used `base`; the dispatch claim requires `locked`, so no design write could dispatch. Fixed red→green (`785ce5c4c`) |
 | Full gate, clean detached checkout `39c0fd2f2` | API: fmt, clippy, migrations, 2113 cargo tests passed / 0 failed, OpenAPI committed spec; web turbo green; fake-API e2e 2135 passed / 17 skipped / 10 failed, all 30 s timeouts under load (Office voice, Field) → rerun 52/52 (2 repeats); storefront-design 21; voice-dev 12; stack 199 passed / 1 skipped |
@@ -108,7 +108,7 @@ Branch `flow/2a-shared-voice` (child commits `a0c7dcca5` move, `71a367267` injec
 | --- | --- |
 | Test parity across the move | Before: Office 61 files / 608 tests. After commit (a): Office 47/532 + voice 14/76 = 61/608 |
 | New injection tests (child, red first) | Observed red: `SAFE_HREF` not exported; `./fetch` module missing; controls `href="/assistant"`; provider `audioBase` mismatch; results `resolveHref` + `statusLabel`; suggestions rights (`'weekly_sales,todays_orders'` vs `''`). Default-path tests stayed green throughout |
-| `@genesy/voice` lint / typecheck / test | 0 / 0 / 20 files, 105 tests |
+| `@verzo/voice` lint / typecheck / test | 0 / 0 / 20 files, 105 tests |
 | Office lint / typecheck / test (alone) | 0 / 0 / 48 files, 608 tests |
 | `voice:check`, voice schema check, `deploy/assistant-agent.test.sh` | Pass |
 | `scripts/local-gate.sh` (`SKIP_API=1`: no `apps/api` file changed; CI runs API) | Deployment helper tests pass; fake-API e2e 6/6 tasks; `storefront-design` 21 passed; `voice-dev` 12 passed; full stack 189 passed, 1 skipped. **Web step red once**: `gap-triage.test.ts` `planHeal > skips one workspace's few gaps…` timed out at 5 s (6.9 s) under parallel turbo load. Untouched by 2A (no diff to the module or its imports); alone 27/27 three times; full Office suite alone 608/608 |
@@ -116,7 +116,7 @@ Branch `flow/2a-shared-voice` (child commits `a0c7dcca5` move, `71a367267` injec
 | Office voice e2e `voice.config.ts` desktop + mobile (child) | 1039 passed, 10 skipped, 1 failed: office-mobile `voice.spec.ts:489` (duplicate reference names/focus); rerun alone 5× per project: 10/10. Original error text not kept, so cause unconfirmed |
 | Office + Shop Docker images (`deploy/images/next.Dockerfile`, full build) | Both exit 0; Shop client-bundle check "no storefront key". First attempt failed only on a Docker Hub frontend fetch timeout (`docker/dockerfile:1`), retried after pulling it |
 
-Security: no new route, env read, header, CORS or CSP change. Provider defaults equal Office's previous literals (`/api/voice`, `/voice-audio`, identity `resolveHref`, `signOut("expired")`); `SAFE_HREF` unchanged; `@elevenlabs/react` 1.21.1 unchanged. Guards: `@genesy/voice/lib/*` stays plain TS; Office server code cannot import `@genesy/voice/components`.
+Security: no new route, env read, header, CORS or CSP change. Provider defaults equal Office's previous literals (`/api/voice`, `/voice-audio`, identity `resolveHref`, `signOut("expired")`); `SAFE_HREF` unchanged; `@elevenlabs/react` 1.21.1 unchanged. Guards: `@verzo/voice/lib/*` stays plain TS; Office server code cannot import `@verzo/voice/components`.
 
 ## Staging validation (2026-11-10) — PASS
 

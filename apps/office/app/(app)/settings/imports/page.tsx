@@ -3,11 +3,11 @@
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useImportsList } from "@genesy/api-client/endpoints/imports"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { formatDateTime } from "@genesy/ui/lib/format"
+import { useSession } from "@verzo/api-client/auth"
+import { useImportsList } from "@verzo/api-client/endpoints/imports"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { LoadError } from "@/components/states"

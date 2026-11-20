@@ -7,9 +7,9 @@ import type {
   PublicBlock,
   PublicLot,
   PublicPassport,
-} from "@genesy/api-client/model"
-import { formatDay, formatShare } from "@genesy/ui/lib/format"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/api-client/model"
+import { formatDay, formatShare } from "@verzo/ui/lib/format"
+import { cn } from "@verzo/ui/lib/utils"
 
 type Props = {
   /** The published passport, as the public and storefront lot replies carry it. */
@@ -24,7 +24,7 @@ type Props = {
 /**
  * A batch passport as the public sees it (shop `/b/{code}`, office preview). Display only:
  * data fetching and link freshness stay with the app. Every section hides when empty.
- * `t` reads the shared `batch` messages from @genesy/i18n.
+ * `t` reads the shared `batch` messages from @verzo/i18n.
  */
 export function PassportView({ passport, lot, locale, t }: Props) {
   const day = (d: string) => formatDay(d, locale)

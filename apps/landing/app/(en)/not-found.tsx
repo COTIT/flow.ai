@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { CompassIcon } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
 
 // An unknown path has no language, so the 404 offers all three. It renders in the English root layout.
 export default function NotFound() {
@@ -16,7 +16,7 @@ export default function NotFound() {
               This page does not exist
             </span>
           }
-          description="The link may be old or mistyped. Pick a language to go to the Genesy home page."
+          description="The link may be old or mistyped. Pick a language to go to the Verzo home page."
           action={
             <nav
               aria-label="Languages"

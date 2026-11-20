@@ -33,7 +33,7 @@ describe("pageMetadata", () => {
     expect(m.openGraph).toMatchObject({
       url: `${SITE}/nl`,
       locale: "nl",
-      siteName: "Genesy",
+      siteName: "Verzo",
     })
   })
 

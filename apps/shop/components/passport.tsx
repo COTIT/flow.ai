@@ -9,12 +9,12 @@ import type {
   PublicBlock,
   PublicFarmerGroup,
   PublicLot,
-} from "@genesy/api-client/model"
-import { Badge } from "@genesy/ui/components/badge"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDay, formatShare } from "@genesy/ui/lib/format"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/api-client/model"
+import { Badge } from "@verzo/ui/components/badge"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDay, formatShare } from "@verzo/ui/lib/format"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { card, cardTitle, h2, tag, tile } from "@/lib/look"
 

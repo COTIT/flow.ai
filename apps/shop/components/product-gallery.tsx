@@ -3,8 +3,8 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 
-import type { Link } from "@genesy/api-client/model"
-import { cn } from "@genesy/ui/lib/utils"
+import type { Link } from "@verzo/api-client/model"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { Glare } from "./motion"
 import { ProductImage } from "./product-image"

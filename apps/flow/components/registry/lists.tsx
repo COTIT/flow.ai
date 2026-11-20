@@ -2,8 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import { formatDate, formatQty } from "@genesy/ui/lib/format"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatDate, formatQty } from "@verzo/ui/lib/format"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { useAttention, useOpenOrders } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import { RecordTable } from "./record-table"

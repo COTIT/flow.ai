@@ -1,4 +1,4 @@
-import { apiRequest } from "@genesy/api-client/mutator"
+import { apiRequest } from "@verzo/api-client/mutator"
 
 export type Json =
   null | boolean | number | string | Json[] | { [key: string]: Json }

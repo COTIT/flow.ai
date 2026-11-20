@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmLoansList } from '@genesy/api-client/endpoints/farm-loans'
-import type { Money } from '@genesy/api-client/model'
+import { farmLoansList } from '@verzo/api-client/endpoints/farm-loans'
+import type { Money } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

@@ -5,15 +5,15 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useOrdersList } from "@genesy/api-client/endpoints/orders"
+import { useSession } from "@verzo/api-client/auth"
+import { useOrdersList } from "@verzo/api-client/endpoints/orders"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
+} from "@verzo/ui/components/select"
 import {
   Table,
   TableBody,
@@ -21,9 +21,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatMoney } from "@verzo/ui/lib/money"
+import { formatDate } from "@verzo/ui/lib/format"
 import {
   CardState,
   ListCard,

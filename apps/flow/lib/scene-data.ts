@@ -1,4 +1,4 @@
-import type { FlowPeriod } from "@genesy/api-client/model"
+import type { FlowPeriod } from "@verzo/api-client/model"
 
 /** Day bounds the sales routes take: `from` inclusive, `to` exclusive, workspace-local days. */
 export type Range = { from: string; to: string }

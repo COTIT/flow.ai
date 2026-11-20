@@ -1,8 +1,8 @@
 import { type CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import type { Money } from '@genesy/api-client/model'
-import { formatMoney } from '@genesy/ui/lib/money'
+import type { Money } from '@verzo/api-client/model'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'

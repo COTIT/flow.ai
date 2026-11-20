@@ -8,9 +8,9 @@ import {
   SproutIcon,
 } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { cn } from "@genesy/ui/lib/utils"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
 import { pageMetadata } from "@/lib/seo"

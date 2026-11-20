@@ -4,22 +4,22 @@ import * as React from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useSession } from "@genesy/api-client/auth"
-import { apiRequest } from "@genesy/api-client/mutator"
+import { useSession } from "@verzo/api-client/auth"
+import { apiRequest } from "@verzo/api-client/mutator"
 import { RefreshCw } from "lucide-react"
-import { Badge } from "@genesy/ui/components/badge"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
+import { Badge } from "@verzo/ui/components/badge"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Textarea } from "@verzo/ui/components/textarea"
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { Empty, LoadError, NoAccess } from "@/components/states"

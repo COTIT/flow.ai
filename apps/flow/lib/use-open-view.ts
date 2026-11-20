@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import type { OpenView } from "@genesy/voice/lib/open-view"
+import type { OpenView } from "@verzo/voice/lib/open-view"
 import { useScenes, useSceneTitle } from "@/components/scenes/scene-view"
 import { flowStore } from "@/lib/flow-store"
 import { resolveView, type View } from "@/lib/open-view"

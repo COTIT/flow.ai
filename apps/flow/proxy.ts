@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server"
 
-import { cspProxy } from "@genesy/security/proxy"
+import { cspProxy } from "@verzo/security/proxy"
 
 // FILES_ORIGIN: the file storage host serving signed product images (set by the uploads overlay).
 const imgSrc = process.env.FILES_ORIGIN

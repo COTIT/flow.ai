@@ -1,7 +1,7 @@
 import type {
   StorefrontDesignCollection,
   StorefrontDesignDocument,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 import { canRenderStorefrontPage } from "../lib/storefront-design"
 import { formatMoney } from "../lib/money"
 import { shownPrice } from "../lib/storefront-price"

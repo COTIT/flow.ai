@@ -2,7 +2,7 @@ import type { FarmRole } from '@/lib/farmMe'
 
 export type AppRole = FarmRole
 
-/** The subset of a farm role the routing decision needs. `project_id` is the Genesy workspace. */
+/** The subset of a farm role the routing decision needs. `project_id` is the Verzo workspace. */
 export interface ActiveMembership {
   id: string
   role: AppRole

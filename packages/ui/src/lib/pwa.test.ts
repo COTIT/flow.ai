@@ -4,7 +4,7 @@ import { serviceWorkerSource, webManifest } from "./pwa"
 
 describe("webManifest", () => {
   const manifest = webManifest({
-    name: "Genesy Till",
+    name: "Verzo Till",
     shortName: "Till",
     startUrl: "/sale",
     themeColor: "#1a1a19",
@@ -14,7 +14,7 @@ describe("webManifest", () => {
   it("opens full screen like an app, at the given start page", () => {
     expect(manifest).toMatchObject({
       id: "/",
-      name: "Genesy Till",
+      name: "Verzo Till",
       short_name: "Till",
       start_url: "/sale",
       scope: "/",

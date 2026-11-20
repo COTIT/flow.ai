@@ -49,7 +49,7 @@ export async function reportPdf(
   await font(pdf, "SemiBold", "bold")
   pdf.setProperties({
     title: labels.title,
-    author: labels.brand ?? "Genesy",
+    author: labels.brand ?? "Verzo",
     subject: labels.snapshot,
   })
   const margin = 15
@@ -87,7 +87,7 @@ export async function reportPdf(
     context = next
     pages.push(context)
     setText(14, true)
-    pdf.text(labels.brand ?? "GENESY", margin, 19)
+    pdf.text(labels.brand ?? "VERZO", margin, 19)
     if (labels.businessName) {
       setText(8, false, COLORS.muted)
       pdf.text(short(labels.businessName, width / 2), margin + width, 18, {

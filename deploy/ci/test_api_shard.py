@@ -135,7 +135,7 @@ class ApiShardTests(unittest.TestCase):
             shard.cargo(crate) + ["--", "--list", "--color", "never"] for crate in ("api_a", "api_b")
         ])
         self.assertEqual(calls[2].args[0], shard.cargo("api_a") + ["--", "--exact", *shard.PRECHECKS])
-        self.assertEqual(calls[3].args[0], ["/ci-target/debug/genesy-360-api", "migrate"])
+        self.assertEqual(calls[3].args[0], ["/ci-target/debug/verzo-360-api", "migrate"])
         self.assertEqual(calls[3].kwargs["env"], {**self.env, "DATABASE_URL": "postgres://postgres:ci-only@postgres:5432/template1"})
         ran = []
         self.assertEqual(len(calls), 6)

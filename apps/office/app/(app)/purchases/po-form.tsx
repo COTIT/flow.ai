@@ -5,25 +5,25 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
+import { useSession } from "@verzo/api-client/auth"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
 import {
   usePurchaseOrdersCreate,
   usePurchaseOrdersUpdate,
-} from "@genesy/api-client/endpoints/purchase-orders"
-import { usePurchaseUnitsList } from "@genesy/api-client/endpoints/purchase-units"
-import { useRelationsList } from "@genesy/api-client/endpoints/relations"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
+} from "@verzo/api-client/endpoints/purchase-orders"
+import { usePurchaseUnitsList } from "@verzo/api-client/endpoints/purchase-units"
+import { useRelationsList } from "@verzo/api-client/endpoints/relations"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
 import type {
   OrderPayload,
   PurchaseOrderResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"

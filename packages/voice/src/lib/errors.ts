@@ -19,7 +19,7 @@ export class VoiceRequestError extends Error {
   }
 }
 
-/** Genesy's own failure whose message is already translated text, safe to show. */
+/** Verzo's own failure whose message is already translated text, safe to show. */
 export class VoiceShownError extends Error {}
 
 const DEVICE_KEYS: Record<string, string> = {

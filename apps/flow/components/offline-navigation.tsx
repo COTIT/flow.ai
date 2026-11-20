@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { Notice } from "@genesy/ui/components/notice"
+import { Notice } from "@verzo/ui/components/notice"
 
 /** The part of the Navigation API this guard reads (not in TypeScript's DOM types yet). */
 type NavigateEvent = Event & {

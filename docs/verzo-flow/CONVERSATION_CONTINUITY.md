@@ -49,12 +49,12 @@ Development readback at `2026-11-13T13:17:46.276Z` confirmed the history prompt 
 Reproducible checks:
 
 ```sh
-pnpm --filter @genesy/voice test
-pnpm --filter @genesy/office test
-pnpm --filter @genesy/flow test
-pnpm --filter @genesy/office voice:check
-pnpm --filter @genesy/api-client generate:check
-pnpm --filter @genesy/e2e exec playwright test history.spec.ts --project=flow-desktop --project=flow-mobile --project=flow-tablet
+pnpm --filter @verzo/voice test
+pnpm --filter @verzo/office test
+pnpm --filter @verzo/flow test
+pnpm --filter @verzo/office voice:check
+pnpm --filter @verzo/api-client generate:check
+pnpm --filter @verzo/e2e exec playwright test history.spec.ts --project=flow-desktop --project=flow-mobile --project=flow-tablet
 ```
 
 The browser command requires current production builds and the configured mock servers. The provider smoke command below needs an explicitly selected development environment file and incurs provider usage; it validates the agent name before starting synthetic text sessions:

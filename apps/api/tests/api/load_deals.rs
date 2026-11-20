@@ -32,7 +32,7 @@ async fn fresh_db() -> (PgPool, PgConnectOptions, String) {
     let create = format!("CREATE DATABASE {name}");
     conn.execute(sqlx::AssertSqlSafe(create)).await.unwrap();
     let opts = admin.clone().database(&name);
-    genesy_360_api::db::migrate(&opts).await.unwrap();
+    verzo_360_api::db::migrate(&opts).await.unwrap();
     let pool = PgPoolOptions::new()
         .max_connections(20)
         .connect_with(opts)

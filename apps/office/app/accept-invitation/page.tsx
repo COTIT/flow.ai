@@ -7,20 +7,20 @@ import { useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
 import { MoonIcon, SunIcon } from "lucide-react"
 
-import { useLogout, useSession } from "@genesy/api-client/auth"
+import { useLogout, useSession } from "@verzo/api-client/auth"
 import {
   useInvitesAnswer,
   useInvitesRegister,
   useInvitesStatus,
-} from "@genesy/api-client/endpoints/invites"
-import type { InviteStatusResponse } from "@genesy/api-client/model"
-import { sessionStore } from "@genesy/api-client/session"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Logo } from "@genesy/ui/components/logo"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/invites"
+import type { InviteStatusResponse } from "@verzo/api-client/model"
+import { sessionStore } from "@verzo/api-client/session"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Logo } from "@verzo/ui/components/logo"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import { Field } from "@/components/field"
 import { LocaleMenu } from "@/components/shell"
 import { LoadError } from "@/components/states"
@@ -169,7 +169,7 @@ function InviteSkeleton() {
   )
 }
 
-/** New to Genesy: make a login, which joins the account at once. */
+/** New to Verzo: make a login, which joins the account at once. */
 function Register({
   invite,
   code,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 import type { FarmMe } from '@/lib/farmMe'
 
@@ -7,7 +7,7 @@ const getFarmMe = vi.fn()
 const authLogout = vi.fn()
 
 vi.mock('@/lib/farmMe', () => ({ getFarmMe: () => getFarmMe() }))
-vi.mock('@genesy/api-client/endpoints/auth', () => ({ authLogout: () => authLogout() }))
+vi.mock('@verzo/api-client/endpoints/auth', () => ({ authLogout: () => authLogout() }))
 
 const { fetchSession, signOut, sessionQuery, passwordChangeRequired } = await import('@/app/session')
 type AppSession = NonNullable<Awaited<ReturnType<typeof fetchSession>>>

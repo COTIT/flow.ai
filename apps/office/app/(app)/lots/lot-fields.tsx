@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
-import { Input } from "@genesy/ui/components/input"
+import { Input } from "@verzo/ui/components/input"
 import { Field, selectClass } from "@/components/field"
 
 // The statuses the API documents for a lot, for the list filter.

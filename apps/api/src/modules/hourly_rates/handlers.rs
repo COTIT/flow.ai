@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-// Laravel checked `hourlyrate.view` for one row; genesy uses the catalog's `get`.
+// Laravel checked `hourlyrate.view` for one row; Verzo uses the catalog's `get`.
 permissions! {
     HourlyRateCreate => "hourlyrate.create",
     HourlyRateList => "hourlyrate.list",

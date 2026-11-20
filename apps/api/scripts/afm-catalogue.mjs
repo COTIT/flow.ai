@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url"
 
 const SITE = "https://www.africanfarmersmarketonline.com"
 const AGENT =
-  "GenesyCatalogImport/1.0 (+https://genesy.app; AFM staging demo, with consent)"
+  "VerzoCatalogImport/1.0 (+https://genesy.app; AFM staging demo, with consent)"
 const PAUSE_MS = 1500
 const OUT = fileURLToPath(
   new URL("../src/demo/afm_catalogue.json", import.meta.url)

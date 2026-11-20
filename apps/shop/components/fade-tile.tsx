@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react"
 
-import { useMotionAllowed } from "@genesy/ui/components/island"
+import { useMotionAllowed } from "@verzo/ui/components/island"
 
 /**
  * A tile that fades in when scrolled to. Tiles already on screen when it mounts are left

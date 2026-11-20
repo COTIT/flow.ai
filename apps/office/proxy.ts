@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server"
-import { cspProxy } from "@genesy/security/proxy"
+import { cspProxy } from "@verzo/security/proxy"
 import { followGapNavigation } from "@/lib/voice/gap-follow-up"
 
 // FILES_ORIGIN: the file storage host serving signed image links (product images, passport preview).

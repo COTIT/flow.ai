@@ -4,11 +4,11 @@ import * as React from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   usePurchaseOrdersGet,
-} from "@genesy/api-client/endpoints/purchase-orders"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/purchase-orders"
+import { Notice } from "@verzo/ui/components/notice"
 import { DetailSkeleton } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"

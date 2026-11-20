@@ -3,21 +3,21 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useAccountingJournalsPost,
   useAccountingJournalsPostReview,
   useAccountingJournalsReverse,
   useAccountingJournalsReverseReview,
-} from "@genesy/api-client/endpoints/accounting"
-import type { JournalResource, ReviewResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/accounting"
+import type { JournalResource, ReviewResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 
 import {

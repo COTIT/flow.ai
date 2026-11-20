@@ -2,7 +2,7 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import { createStore } from "zustand/vanilla"
 import { useStore } from "zustand"
 
-import type { TillLoginResource } from "@genesy/api-client/model"
+import type { TillLoginResource } from "@verzo/api-client/model"
 
 /** This device's pairing: the workspace and the register's device key, from `POST /till/pair`. */
 export type Device = {

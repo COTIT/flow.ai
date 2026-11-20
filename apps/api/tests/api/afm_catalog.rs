@@ -6,9 +6,9 @@ use crate::common;
 use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
-use genesy_360_api::{bootstrap, demo, mail::Mailer};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{bootstrap, demo, mail::Mailer};
 
 const PNG: &[u8] = &[
     0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n', 0, 0, 0, 0,
@@ -28,7 +28,7 @@ async fn cdn() -> (demo::photos::Photos, Arc<Mutex<usize>>) {
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     let photos = demo::photos::Photos {
-        http: genesy_360_api::outbound::Outbound::new(&["127.0.0.1".into()]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&["127.0.0.1".into()]).unwrap(),
         origin: format!("http://{addr}"),
         pause: std::time::Duration::ZERO,
     };
@@ -43,7 +43,7 @@ async fn n(pool: &PgPool, ws: Uuid, q: &'static str) -> i64 {
         .unwrap()
 }
 
-async fn owner(state: &genesy_360_api::AppState, ws: &str) -> Uuid {
+async fn owner(state: &verzo_360_api::AppState, ws: &str) -> Uuid {
     bootstrap::create_owner(state, &format!("owner@{ws}.test"), ws, "A", "B")
         .await
         .unwrap()

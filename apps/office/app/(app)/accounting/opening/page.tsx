@@ -4,7 +4,7 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingOpeningBaselinesListQueryKey,
   getAccountingSetupGetQueryKey,
@@ -14,15 +14,15 @@ import {
   useAccountingOpeningCorrectionsReview,
   useAccountingOpeningValidate,
   useAccountingSetupGet,
-} from "@genesy/api-client/endpoints/accounting"
-import { useImportsList } from "@genesy/api-client/endpoints/imports"
-import type { SetupResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/accounting"
+import { useImportsList } from "@verzo/api-client/endpoints/imports"
+import type { SetupResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field } from "@/components/field"
 import { ListPager, PageHead } from "@/components/list"

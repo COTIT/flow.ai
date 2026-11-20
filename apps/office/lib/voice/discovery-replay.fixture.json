@@ -52,7 +52,7 @@
  },
  {
   "scenario": "admin-remove-access",
-  "query": "remove or revoke a staff member's access to Genesy Office; find Riley and disable access",
+  "query": "remove or revoke a staff member's access to Verzo Office; find Riley and disable access",
   "want": [
    "teams_remove_users",
    "invites_delete",

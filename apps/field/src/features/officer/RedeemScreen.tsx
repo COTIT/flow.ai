@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Notice } from '@genesy/ui/components/notice'
-import { formatMoney } from '@genesy/ui/lib/money'
+import { Notice } from '@verzo/ui/components/notice'
+import { formatMoney } from '@verzo/ui/lib/money'
 import { Camera, CameraOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -37,7 +37,7 @@ const ID_TYPES = ID_DOCUMENT_TYPES
  * An incentive is a fixed cash amount per household per survey, handed over
  * in cash here. Every rule that decides whether THIS staff member may hand it
  * over — four eyes on the household, the audit hold, expiry, a second redeem,
- * the ID and the name check — lives in the Genesy API. The screen shows the
+ * the ID and the name check — lives in the Verzo API. The screen shows the
  * API's answer and its sentence; it never decides.
  *
  * The lookup is a mutation, never a query: each one writes a 'scanned' event

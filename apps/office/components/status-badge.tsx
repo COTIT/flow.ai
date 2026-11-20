@@ -1,4 +1,4 @@
-import { Badge } from "@genesy/ui/components/badge"
+import { Badge } from "@verzo/ui/components/badge"
 
 type Tone = "teal" | "gold" | "red" | "slate"
 

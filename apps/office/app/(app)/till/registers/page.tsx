@@ -4,19 +4,19 @@ import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getTillRegistersListQueryKey,
   useTillRegistersCreate,
   useTillRegistersList,
   useTillRegistersPairing,
   useTillRegistersRotateKey,
-} from "@genesy/api-client/endpoints/till"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/till"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -33,8 +33,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime, formatTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDateTime, formatTime } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

@@ -15,12 +15,12 @@ use axum::{
     extract::ConnectInfo,
     http::{HeaderMap, Method, Request, StatusCode},
 };
-use genesy_360_api::{Slots, WorkspaceSlots, build_app, db, mail::Mailer};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::ServiceExt;
+use verzo_360_api::{Slots, WorkspaceSlots, build_app, db, mail::Mailer};
 
 async fn send(app: &Router, req: Request<Body>) -> (StatusCode, HeaderMap, Value) {
     let mut req = req;

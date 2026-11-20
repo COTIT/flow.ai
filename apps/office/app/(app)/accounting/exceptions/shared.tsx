@@ -2,8 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import type { ExceptionResource } from "@genesy/api-client/model"
-import { formatMoney } from "@genesy/ui/lib/money"
+import type { ExceptionResource } from "@verzo/api-client/model"
+import { formatMoney } from "@verzo/ui/lib/money"
 
 /** An exception's state as its label and badge tone (pending is the one to act on). */
 export function useExceptionBadge() {

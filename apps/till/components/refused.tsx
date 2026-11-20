@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 
-import { Notice } from "@genesy/ui/components/notice"
+import { Notice } from "@verzo/ui/components/notice"
 import { inWords, refusal } from "@/lib/refusal"
 
 /** The API's per-field messages of a 422, flat. */

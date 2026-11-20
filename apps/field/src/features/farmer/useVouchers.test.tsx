@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const farmVouchersMine = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({
   farmVouchersMine: (...args: unknown[]) => farmVouchersMine(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))

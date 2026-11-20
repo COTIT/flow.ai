@@ -1,4 +1,4 @@
-// P5: an answer shows inline under Genesy's reply as one small card; the Results screen is only
+// P5: an answer shows inline under Verzo's reply as one small card; the Results screen is only
 // "Show all" for an answer too big for it. SIMULATED voice + API.
 import { s } from "./shell"
 import { expect, test } from "./storefront-api"
@@ -76,7 +76,7 @@ test("an answer too big for the card offers Show all, which opens the Results sc
   await expect(page).toHaveURL(/\/$/)
 })
 
-test("while Genesy thinks the line says so without a running seconds counter", async ({
+test("while Verzo thinks the line says so without a running seconds counter", async ({
   page,
 }) => {
   await fakeAgent(page, (text, a) => setTimeout(() => a.say(`Noted: ${text}`), 4_000))

@@ -1,7 +1,7 @@
 // Plain <img>, not next/image: signed file links change on every fetch (see passport-view).
-import type { Link } from "@genesy/api-client/model"
-import { LogoIcon } from "@genesy/ui/components/logo"
-import { cn } from "@genesy/ui/lib/utils"
+import type { Link } from "@verzo/api-client/model"
+import { LogoIcon } from "@verzo/ui/components/logo"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { honey } from "@/lib/look"
 

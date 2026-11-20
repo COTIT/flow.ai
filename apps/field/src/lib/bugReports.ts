@@ -1,4 +1,4 @@
-import { farmBugReportsCreate } from '@genesy/api-client/endpoints/farm-bug-reports'
+import { farmBugReportsCreate } from '@verzo/api-client/endpoints/farm-bug-reports'
 
 import { workspaceId } from '@/app/workspace'
 import type { TrailEntry } from '@/lib/bugTrail'

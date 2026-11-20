@@ -31,7 +31,7 @@ function load<T>(file: string): T {
     return JSON.parse(readFileSync(join(dir, file), "utf8")) as T
   } catch {
     throw new Error(
-      `no full stack at ${dir}: run \`pnpm --filter @genesy/e2e stack:up\` first`
+      `no full stack at ${dir}: run \`pnpm --filter @verzo/e2e stack:up\` first`
     )
   }
 }

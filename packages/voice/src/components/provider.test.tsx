@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { GenesyVoiceProvider } from "./provider"
+import { VerzoVoiceProvider } from "./provider"
 
 const seen = vi.hoisted(() => ({ options: undefined as Record<string, unknown> | undefined }))
 
@@ -18,7 +18,7 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
 }))
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({}) }))
-vi.mock("@genesy/api-client/auth", () => ({
+vi.mock("@verzo/api-client/auth", () => ({
   useSession: (pick: (s: { workspaceId: string; token: string }) => unknown) =>
     pick({ workspaceId: "w1", token: "t1" }),
 }))
@@ -27,14 +27,14 @@ beforeEach(() => {
   seen.options = undefined
 })
 
-describe("GenesyVoiceProvider audio worklets", () => {
+describe("VerzoVoiceProvider audio worklets", () => {
   it("registers a report picker tool that is unavailable without a verified session", () => {
-    renderToStaticMarkup(<GenesyVoiceProvider>x</GenesyVoiceProvider>)
+    renderToStaticMarkup(<VerzoVoiceProvider>x</VerzoVoiceProvider>)
     const clientTools = seen.options?.clientTools as Record<string, () => string>
     expect(JSON.parse(clientTools.open_conversation_report!())).toEqual({ status: "unavailable" })
   })
   it("loads them from Office's /voice-audio by default", () => {
-    renderToStaticMarkup(<GenesyVoiceProvider>x</GenesyVoiceProvider>)
+    renderToStaticMarkup(<VerzoVoiceProvider>x</VerzoVoiceProvider>)
     expect(seen.options).toMatchObject({
       workletPaths: {
         rawAudioProcessor: "/voice-audio/rawAudioProcessor.js",
@@ -45,7 +45,7 @@ describe("GenesyVoiceProvider audio worklets", () => {
   })
 
   it("loads them from the host's audioBase when given", () => {
-    renderToStaticMarkup(<GenesyVoiceProvider audioBase="/assets/voice">x</GenesyVoiceProvider>)
+    renderToStaticMarkup(<VerzoVoiceProvider audioBase="/assets/voice">x</VerzoVoiceProvider>)
     expect(seen.options).toMatchObject({
       workletPaths: {
         rawAudioProcessor: "/assets/voice/rawAudioProcessor.js",

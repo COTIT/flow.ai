@@ -3,9 +3,9 @@
 import * as React from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
-import { GenesyVoiceProvider } from "@genesy/voice/components/provider"
+import { useSession } from "@verzo/api-client/auth"
+import { useUsersWorkspaces } from "@verzo/api-client/endpoints/users"
+import { VerzoVoiceProvider } from "@verzo/voice/components/provider"
 import { AppShell } from "@/components/shell"
 import { LoadError, NoAccess } from "@/components/states"
 import { rightFor, useRights } from "@/lib/can"
@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!hydrated || !token) return null
 
   return (
-    <GenesyVoiceProvider>
+    <VerzoVoiceProvider>
       <AppShell>
         {workspaces.isError ? (
           <LoadError
@@ -41,6 +41,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <NoAccess />
         ) : null}
       </AppShell>
-    </GenesyVoiceProvider>
+    </VerzoVoiceProvider>
   )
 }

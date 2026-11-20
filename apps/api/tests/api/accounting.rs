@@ -774,7 +774,7 @@ async fn commands_replay_identically_after_more_than_a_day(pool: PgPool) {
         .execute(&w.pool)
         .await
         .unwrap();
-    genesy_360_api::cleanup::prune(&w.pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&w.pool).await.unwrap();
     // A retry with another header key still replays: client_ref is the identity.
     let (s2, b2) = w
         .raw(

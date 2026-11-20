@@ -1,5 +1,5 @@
 {
-  "name": "@genesy/api-client",
+  "name": "@verzo/api-client",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -20,8 +20,8 @@
     "react": "^19"
   },
   "devDependencies": {
-    "@genesy/eslint-config": "workspace:*",
-    "@genesy/typescript-config": "workspace:*",
+    "@verzo/eslint-config": "workspace:*",
+    "@verzo/typescript-config": "workspace:*",
     "@types/react": "^19",
     "eslint": "^10",
     "orval": "8.42.0",

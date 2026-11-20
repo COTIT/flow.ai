@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { useVoice } from "@genesy/voice/components/provider"
+import { useVoice } from "@verzo/voice/components/provider"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import {
   orbMode,

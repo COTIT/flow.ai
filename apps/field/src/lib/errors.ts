@@ -81,7 +81,7 @@ const NETWORK = /^(network error|timeout of \d+ms exceeded)$/i
 const JS_EXCEPTION = /^(Type|Reference|Syntax|Range|Eval|URI|Internal)Error\b/
 
 function messageOf(error: unknown): string {
-  // A failed Genesy API call: its body says what went wrong, not axios's "Request failed with status code …".
+  // A failed Verzo API call: its body says what went wrong, not axios's "Request failed with status code …".
   const api = apiErrorMessage(error)
   if (api) return api
   if (error instanceof Error) return error.message

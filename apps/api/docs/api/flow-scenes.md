@@ -1,6 +1,6 @@
 # Your Flow scenes
 
-A member's own Genesy Flow layout per scene: position, hidden, and which components it shows. Display settings only. A component names a kind, a metric key and a period, never a value: the scene's data comes from the normal read routes at render time, so a data change never touches this config, and loading it needs no language model.
+A member's own Verzo Flow layout per scene: position, hidden, and which components it shows. Display settings only. A component names a kind, a metric key and a period, never a value: the scene's data comes from the normal read routes at render time, so a data change never touches this config, and loading it needs no language model.
 
 All routes need `Authorization: Bearer <token>` and an active membership of `{workspace}`. No extra permission. Each member reads and changes only their own rows (filtered by workspace and user): another member's settings are invisible and untouched, another workspace's paths are 404.
 

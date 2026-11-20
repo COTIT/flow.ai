@@ -4,11 +4,11 @@ import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useStorefrontDesignPreview } from "@genesy/api-client/endpoints/storefront-design"
-import { Notice } from "@genesy/ui/components/notice"
-import { StorefrontPage } from "@genesy/ui/components/storefront-page"
-import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
+import { useSession } from "@verzo/api-client/auth"
+import { useStorefrontDesignPreview } from "@verzo/api-client/endpoints/storefront-design"
+import { Notice } from "@verzo/ui/components/notice"
+import { StorefrontPage } from "@verzo/ui/components/storefront-page"
+import { canRenderStorefrontPage } from "@verzo/ui/lib/storefront-design"
 import { followOtherTabs } from "@/lib/other-tabs"
 import {
   PROPOSAL_READY,

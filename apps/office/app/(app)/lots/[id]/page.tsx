@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Check, Copy, Package, QrCode, Sprout, Truck } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getLotsEventsQueryKey,
   getLotsGetQueryKey,
@@ -18,16 +18,16 @@ import {
   useLotsHolds,
   useLotsPassportGet,
   useLotsUpdate,
-} from "@genesy/api-client/endpoints/lots"
-import { useProductsGet } from "@genesy/api-client/endpoints/products"
-import { useStorefrontConnectionGet } from "@genesy/api-client/endpoints/storefront-connection"
-import type { UpdateLotRequest } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/lots"
+import { useProductsGet } from "@verzo/api-client/endpoints/products"
+import { useStorefrontConnectionGet } from "@verzo/api-client/endpoints/storefront-connection"
+import type { UpdateLotRequest } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -35,9 +35,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { cn } from "@genesy/ui/lib/utils"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { cn } from "@verzo/ui/lib/utils"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { useCan } from "@/lib/can"
 import { Bento, Chip, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"

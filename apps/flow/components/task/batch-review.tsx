@@ -2,10 +2,10 @@
 
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { useVoice } from "@genesy/voice/components/provider"
-import { notIncludedRows } from "@genesy/voice/lib/presentation"
-import { batchCounts } from "@genesy/voice/lib/task"
+import { Button } from "@verzo/ui/components/button"
+import { useVoice } from "@verzo/voice/components/provider"
+import { notIncludedRows } from "@verzo/voice/lib/presentation"
+import { batchCounts } from "@verzo/voice/lib/task"
 import { useOnceIntent } from "@/lib/use-once-intent"
 
 /**

@@ -1,5 +1,5 @@
 //! HTTP edge for /v1/workspace/{workspace}/erp/product-brands: `productbrand.*` permission.
-// Laravel checked `.view` for one row; genesy uses the catalog's `get`.
+// Laravel checked `.view` for one row; Verzo uses the catalog's `get`.
 
 use axum::{
     Json,

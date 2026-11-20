@@ -9,7 +9,7 @@ const farmRecordsHouseholdsCorrect = vi.fn()
 const farmRecordsFarmsCorrect = vi.fn()
 const farmRecordsPlotsCorrect = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsHarvestReportsRevise: (...args: unknown[]) => farmRecordsHarvestReportsRevise(...args),
   farmRecordsCropCyclesCorrect: (...args: unknown[]) => farmRecordsCropCyclesCorrect(...args),
   farmRecordsPersonsCorrect: (...args: unknown[]) => farmRecordsPersonsCorrect(...args),

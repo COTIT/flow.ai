@@ -12,7 +12,7 @@ const views: View[] = [
     path: "/scenes/sales_last_month",
   },
   { view: "storefront", title: "Storefront", path: "/storefront" },
-  { view: "explore", title: "What can Genesy do?", path: "/explore" },
+  { view: "explore", title: "What can Verzo do?", path: "/explore" },
 ]
 
 describe("resolveView (P4)", () => {
@@ -26,7 +26,7 @@ describe("resolveView (P4)", () => {
     expect(resolveView("Morning Pulse", views)?.view).toBe("pulse")
     expect(resolveView("  my morning-pulse! ", views)?.view).toBe("pulse")
     expect(resolveView("the Stock Wätch", views)?.view).toBe("stock")
-    expect(resolveView("what can genesy do", views)?.view).toBe("explore")
+    expect(resolveView("what can verzo do", views)?.view).toBe("explore")
     expect(resolveView("Sales last month", views)?.view).toBe(
       "sales_last_month"
     )

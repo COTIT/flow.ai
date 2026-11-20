@@ -14,11 +14,11 @@ pub(super) const BRIDGE: &str = "assistant-preconditions-test-bridge-at-least-th
 
 pub(super) async fn world(pool: PgPool) -> (Api, String, String) {
     let mut api = Api::new(pool.clone(), "/orders").await;
-    let mut state = common::state(pool, genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(pool, verzo_360_api::mail::Mailer::capture().0);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(BRIDGE.into()).unwrap(),
+        verzo_360_api::AssistantSecret::new(BRIDGE.into()).unwrap(),
     ));
-    api.app = genesy_360_api::build_app(state);
+    api.app = verzo_360_api::build_app(state);
     let warehouse = api
         .with_base("/warehouses")
         .create(

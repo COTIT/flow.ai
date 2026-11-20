@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla"
 import { useStore } from "zustand"
 
-import type { PrivilegedSessionResource } from "@genesy/api-client/model"
+import type { PrivilegedSessionResource } from "@verzo/api-client/model"
 import { tillStore } from "@/lib/till-store"
 
 /** A member's approval login for refunds, returns and drawer adjustments. */

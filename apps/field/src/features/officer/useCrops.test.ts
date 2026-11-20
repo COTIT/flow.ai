@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const farmCropsList = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-crops', () => ({
   farmCropsList: (...args: unknown[]) => farmCropsList(...args),
 }))
 

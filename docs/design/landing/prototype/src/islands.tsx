@@ -73,7 +73,7 @@ export const ISLANDS: Record<string, (i: Island) => ReactNode> = {
       logoHeight={40}
       fadeOut
       pauseOnHover
-      ariaLabel="What Genesy does"
+      ariaLabel="What Verzo does"
     />
   ),
   glare: ({ html }) => (

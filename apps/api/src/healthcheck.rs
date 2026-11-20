@@ -1,4 +1,4 @@
-//! `genesy-360-api healthcheck`: probe own /healthz over raw HTTP/1.1. The distroless image has
+//! `verzo-360-api healthcheck`: probe own /healthz over raw HTTP/1.1. The distroless image has
 //! no shell, curl or wget, so the compose healthcheck runs the binary itself.
 
 use std::time::Duration;

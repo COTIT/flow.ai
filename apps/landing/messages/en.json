@@ -1,39 +1,32 @@
 {
   "landing": {
-    "title": "Genesy",
-    "description": "Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells.",
+    "title": "Verzo",
+    "description": "Connect your existing software, create workflows in natural language, and automate work across systems.",
     "skip": "Skip to content",
     "nav": {
       "label": "Main",
-      "how": "How it works",
+      "how": "See a use case",
       "who": "Who it’s for",
       "passport": "The passport",
       "contact": "Contact",
       "language": "Language",
       "theme": "Switch light or dark",
-      "home": "Genesy home"
+      "home": "Verzo home"
     },
     "cta": "Talk to us",
     "hero": {
-      "tag": "Farm to kitchen, in the open",
-      "title": "Every jar has a story. Every farmer gets their share.",
-      "lead": "Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells. One system, from the field to the till.",
-      "how": "How it works",
-      "scene": "Illustration: a beehive in hills, a dotted route leading to a honey jar",
-      "rotating": {
-        "prefix": "Traced from the",
-        "words": [
-          "hive",
-          "harvest",
-          "batch",
-          "passport",
-          "shop",
-          "passbook"
-        ]
-      }
+      "tag": "The AI-native operating platform for businesses",
+      "title": "Turn your intentions into actions.",
+      "lead": "Connect your existing software, create workflows in natural language, and automate work across systems.",
+      "how": "See a use case",
+      "steps": [
+        "Connect your software",
+        "Describe a workflow",
+        "Automate across systems"
+      ]
     },
     "journey": {
-      "tag": "How it works",
+      "tag": "Farm-to-retail use case",
       "title": "Watch one jar travel — and the money travel back.",
       "steps": {
         "hive": {
@@ -136,12 +129,12 @@
     },
     "contact": {
       "tag": "Talk to us",
-      "title": "Grow, pack or sell something worth tracing? Let’s talk.",
+      "title": "What would you like to automate?",
       "button": "Email us",
       "note": "English, Dutch or Swahili. We reply within two working days."
     },
     "footer": {
-      "tagline": "From the farm to the shelf, in the open — and the farmer paid along the way.",
+      "tagline": "Turn your intentions into actions.",
       "shop": "Shop",
       "buy": "Buy honey",
       "check": "Check a passport",
@@ -151,11 +144,11 @@
       "till": "Till",
       "about": "About",
       "contact": "Contact",
-      "copyright": "© {year} Genesy",
+      "copyright": "© {year} Verzo",
       "languages": "Languages"
     },
     "features": {
-      "label": "What Genesy does",
+      "label": "Farm-to-retail capabilities",
       "items": [
         "Works offline in the field",
         "Kiswahili · English · Nederlands",
@@ -166,7 +159,7 @@
         "Money exact to the cent"
       ]
     },
-    "seoTitle": "Genesy — every jar has a story, every farmer gets their share",
-    "ogAlt": "Genesy: from the hive to your kitchen, and the farmer paid along the way"
+    "seoTitle": "Verzo | The AI-native operating platform for businesses",
+    "ogAlt": "Verzo. Turn your intentions into actions."
   }
 }

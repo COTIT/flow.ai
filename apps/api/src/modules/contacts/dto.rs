@@ -372,7 +372,7 @@ impl Validate for CreateContactRequest {
 }
 
 // POST /relations/{relation}/contacts/{contact}: every key is a patch (absent = keep).
-// Laravel nulled `email`/`phone_number` whenever they were left out; genesy keeps them.
+// Laravel nulled `email`/`phone_number` whenever they were left out; Verzo keeps them.
 /// POST /relations/{relation}/contacts/{contact}.
 #[derive(Deserialize, ToSchema)]
 #[schema(

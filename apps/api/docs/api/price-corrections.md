@@ -65,7 +65,7 @@ Each has an `_incl` twin (× (100 + v) / 100, 2 dp). Offers: `special-offers.md`
 
 ## Laravel differences
 
-| Genesy | Laravel |
+| Verzo | Laravel |
 |---|---|
 | Bands are read on every render; an edit shows at once | `Cache::rememberForever` per workspace, never cleared on create, update or delete: edits showed only after a cache flush |
 | At most 1000 live bands per workspace | No cap |

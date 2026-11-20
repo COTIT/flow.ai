@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import {
   bulkRequest,
   type BulkRow,

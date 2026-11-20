@@ -1,4 +1,4 @@
-{"v":3,"createdOnFiles":{"v":1,"at":"2026-11-03T10:00:00Z"},"title":"Genesy web redesign","launch":{"view":"canvas","page":"system"},
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-11-03T10:00:00Z"},"title":"Verzo web redesign","launch":{"view":"canvas","page":"system"},
 "pages":[{"id":"system","name":"1 · Glass system"},{"id":"office","name":"2 · Office"},{"id":"shop","name":"3 · Shop"},{"id":"till","name":"4 · Till (iPad)"}],
 "boards":{
 "Main.dc.html":{"x":0,"y":0,"w":1440,"h":1900,"title":"A · Frosted mist — light","page":"system","expand":"fill"},

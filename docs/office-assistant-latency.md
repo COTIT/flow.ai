@@ -77,7 +77,7 @@ Two staging conversations in text mode (6 requests): the first five orders, the 
 
 ## ElevenLabs side
 
-Measured 2026-11-08 on the **Staging** agent (`agent_8401m6t5sahxf1wbbmsy01jkeqhw`, "Genesy Office · Staging") through https://staging-office.genesy.app/voice (AFM Shop, voice mode, microphone muted, typed requests). The Development agent was only read, never changed. Staging uses the Staging agent: the provider WebSocket opened with that `agent_id` on every conversation.
+Measured 2026-11-08 on the **Staging** agent (`agent_8401m6t5sahxf1wbbmsy01jkeqhw`, "Verzo Office · Staging") through https://staging-office.genesy.app/voice (AFM Shop, voice mode, microphone muted, typed requests). The Development agent was only read, never changed. Staging uses the Staging agent: the provider WebSocket opened with that `agent_id` on every conversation.
 
 ### What the dashboard exposes
 

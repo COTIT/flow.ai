@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import { PROPOSAL, readyFromFrame, type Proposal } from "@/lib/storefront-proposal"
 
 const devices = {

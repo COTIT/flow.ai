@@ -610,8 +610,8 @@ pub enum RowKind {
     /// `deleted: true`: remove the line; an id that isn't on the invoice is skipped.
     Delete(Option<Uuid>),
     /// A set child (`multi_set_product_id`) or a row whose set parent was deleted: Laravel
-    /// rebuilt those from the parent; genesy has no product sets yet.
-    // shortcut: no multi-set products in genesy; port set children with the product sets.
+    /// rebuilt those from the parent; Verzo has no product sets yet.
+    // shortcut: no multi-set products in Verzo; port set children with the product sets.
     Skip,
 }
 

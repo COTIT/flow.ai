@@ -1,4 +1,4 @@
-// Mock of the Genesy storefront API for e2e runs of server-rendered apps (the shop).
+// Mock of the Verzo storefront API for e2e runs of server-rendered apps (the shop).
 // No dependencies; listens on 127.0.0.1 only. Signed file links point back at this server.
 import console from "node:console"
 import { randomUUID } from "node:crypto"

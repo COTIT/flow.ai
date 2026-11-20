@@ -1,4 +1,4 @@
-> Historical: describes RUAHA's pre-port Supabase design; the app now runs on the Genesy API (see apps/api/docs).
+> Historical: describes RUAHA's pre-port Supabase design; the app now runs on the Verzo API (see apps/api/docs).
 
 # RUAHA design notes
 

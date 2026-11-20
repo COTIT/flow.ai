@@ -357,7 +357,7 @@ pub async fn sale_statics(
     })))
 }
 
-/// GET /products/{product}/linked-products: links can't be created in genesy yet, so none.
+/// GET /products/{product}/linked-products: links can't be created in Verzo yet, so none.
 #[utoipa::path(
     get, path = "/workspace/{workspace}/products/{product}/linked-products", tag = "products",
     operation_id = "products_linked_products", summary = "List linked products",

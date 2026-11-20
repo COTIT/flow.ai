@@ -3,9 +3,9 @@ import "server-only"
 import type {
   StorefrontPreviewDesign,
   StorefrontPublishedDesign,
-} from "@genesy/api-client/model"
-import { apiRequest } from "@genesy/api-client/mutator"
-import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
+} from "@verzo/api-client/model"
+import { apiRequest } from "@verzo/api-client/mutator"
+import { canRenderStorefrontPage } from "@verzo/ui/lib/storefront-design"
 
 import "./api"
 import { getShopBase } from "./shop-scope"

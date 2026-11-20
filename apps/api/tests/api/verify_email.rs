@@ -6,9 +6,9 @@ use axum::http::{Method, StatusCode};
 use common::{
     API_PUBLIC_URL, FRONTEND_URL, app_with_mail, get_redirect, send, signup, verification_mails,
 };
-use genesy_360_api::{build_app, mail::Mailer};
 use serde_json::json;
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer};
 
 const RESEND: &str = "/v1/email/verification-notification";
 
@@ -21,7 +21,7 @@ fn failed_location() -> Option<String> {
 }
 
 /// Token from the newest verification mail.
-fn last_token(outbox: &genesy_360_api::mail::Outbox) -> String {
+fn last_token(outbox: &verzo_360_api::mail::Outbox) -> String {
     let mails = verification_mails(outbox);
     let body = &mails.last().expect("no verification mail").body;
     let marker = format!("{API_PUBLIC_URL}/v1/verify-email/");
@@ -194,7 +194,7 @@ async fn garbage_or_unknown_token_fails(pool: PgPool) {
 
 #[sqlx::test]
 async fn signup_succeeds_even_if_verification_mail_fails(pool: PgPool) {
-    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
+    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Verzo <no-reply@genesy.test>").unwrap();
     let app = build_app(common::state(pool.clone(), broken));
 
     let (status, _) = common::post(
@@ -332,7 +332,7 @@ async fn failed_resend_does_not_use_up_quota(pool: PgPool) {
     let (ok_app, _) = app_with_mail(pool.clone());
     let (token, _) = signup(&ok_app, "ada@example.com", "acme").await;
     age_tokens(&pool, 2).await;
-    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
+    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Verzo <no-reply@genesy.test>").unwrap();
     let broken_app = build_app(common::state(pool.clone(), broken));
 
     let (status, _) = send(&broken_app, Method::POST, RESEND, None, Some(&token)).await;

@@ -1,4 +1,4 @@
-import { createRequestConfig } from "@genesy/i18n/request"
+import { createRequestConfig } from "@verzo/i18n/request"
 
 export default createRequestConfig(
   "en",

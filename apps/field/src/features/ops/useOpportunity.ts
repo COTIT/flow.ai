@@ -5,7 +5,7 @@ import {
   farmMarketOpportunitiesGet,
   farmMarketOpportunitiesStatus,
   farmMarketSupplyCreate,
-} from '@genesy/api-client/endpoints/farm-market'
+} from '@verzo/api-client/endpoints/farm-market'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

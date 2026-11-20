@@ -1,4 +1,4 @@
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney } from "@verzo/ui/lib/money"
 
 /** Safe payment fields shared by the public checkout and workspace reconciliation. */
 export type PaymentView = {

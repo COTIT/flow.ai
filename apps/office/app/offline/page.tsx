@@ -1,8 +1,8 @@
 import { WifiOffIcon } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
-import { Card, CardContent } from "@genesy/ui/components/card"
-import { EmptyState } from "@genesy/ui/components/empty-state"
+import { Card, CardContent } from "@verzo/ui/components/card"
+import { EmptyState } from "@verzo/ui/components/empty-state"
 import { Retry } from "./retry"
 
 /** Shown by the service worker for a page it doesn't have when there is no connection. */

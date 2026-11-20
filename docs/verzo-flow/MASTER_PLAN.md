@@ -1,4 +1,4 @@
-# Genesy Flow master plan
+# Verzo Flow master plan
 
 Status: Phase 1 merged and staging-validated (flag false). Phase 2: 2A merged (#16), 2B merged (#17), 2C merged (#23, `dd8d4ad2f`). Phase 3 merged (#28, #30); agent prompt block waits for the D9 staging validation. Phase 4A (files only) PR open; its prompt rule and live probe also wait for D9. Phase 5 component demand built (SQL `assistant_gap_demand`, k ≥ 3 workspaces; Office `voice:demand`), merged (#25). Phases 4 (files only) and 6 planned; Phase 6 choices deferred. 2D proposed only. Updated 2026-11-10.
 
@@ -7,7 +7,7 @@ Read [CURRENT_HANDOFF.md](CURRENT_HANDOFF.md) before resuming. Actual check evid
 ## Instructions and approved scope
 
 Read root `CLAUDE.md`, the user's supplied AGENTS rules, relevant per-app instructions,
-`.claude/skills/genesy-360-api/SKILL.md` and its checklist before work. Office also has
+`.claude/skills/verzo-360-api/SKILL.md` and its checklist before work. Office also has
 `apps/office/AGENTS.md`; consult installed Next.js docs. Read
 `docs/design/web-redesign/README.md` and the closest approved artboards before UI edits.
 No root `AGENTS.md` existed during this implementation.
@@ -52,8 +52,8 @@ configuration; they must never generate and execute arbitrary production React c
 - `apps/office/lib/voice/`: `provider.ts`, `bridge.ts`, `server.ts`, `workflow.ts`,
   `checkpoint.ts`, `catalog.ts`, operation policy/authority/generated files and gap capture.
 - `apps/office/app/api/voice/`: session admission/binding, references and bridge routes (server stays in Office).
-- `apps/flow` (PR 2B): sign-in, workspace, shell, `/healthz`, and the restricted voice proxy `app/api/voice/[route]` → `lib/voice-proxy.ts` (allowlisted routes/methods/headers, fixed `VOICE_UPSTREAM_URL`, bounded streaming, no retries). Voice texts: `@genesy/i18n/voice` (opt-in for Office and Flow); audio: `packages/voice/scripts/prepare-voice-audio.mjs <publicDir>`.
-- `packages/voice` (`@genesy/voice`, PR 2A): client engine `components/provider.tsx` (host props
+- `apps/flow` (PR 2B): sign-in, workspace, shell, `/healthz`, and the restricted voice proxy `app/api/voice/[route]` → `lib/voice-proxy.ts` (allowlisted routes/methods/headers, fixed `VOICE_UPSTREAM_URL`, bounded streaming, no retries). Voice texts: `@verzo/i18n/voice` (opt-in for Office and Flow); audio: `packages/voice/scripts/prepare-voice-audio.mjs <publicDir>`.
+- `packages/voice` (`@verzo/voice`, PR 2A): client engine `components/provider.tsx` (host props
   `apiBase`, `audioBase`, `resolveHref`, `onUnauthorized`), reusable cards/results/controls, and pure
   `lib/*` contracts (`client-contract`, `views`, `confirmation`, `capabilities`) plus client helpers.
   `apps/office/components/voice/` keeps Office-only UI: `conversation.tsx`, `secure-form.tsx`, `design-preview.tsx`.
@@ -78,7 +78,7 @@ Canonical schema, fields, routes and migration behavior: `apps/api/docs/api/stor
 
 ## Product direction (approved 2026-11-10; guides future planning, not scheduled work)
 
-**"Genesy Flow — A business operating system that adapts to how you work."** Voice-first, adaptive business operating environment: value without learning navigation, building dashboards or configuring UI first.
+**"Verzo Flow — A business operating system that adapts to how you work."** Voice-first, adaptive business operating environment: value without learning navigation, building dashboards or configuring UI first.
 
 Target experience:
 1. Users tell Flow, in plain conversation, which information and workflows matter to them.
@@ -118,7 +118,7 @@ Goal: personalized, live business briefings with zero routine LLM calls on page 
 7. AI runs only for new instructions or explanations.
 8. Rendering a saved briefing never starts an ElevenLabs conversation.
 
-Reuse, don't duplicate: `apps/api/src/modules/{analytics,attention,scheduled_reports}`, the job scheduler (`apps/api/src/jobs`), existing reporting services, the API client with React Query, and `@genesy/ui` components.
+Reuse, don't duplicate: `apps/api/src/modules/{analytics,attention,scheduled_reports}`, the job scheduler (`apps/api/src/jobs`), existing reporting services, the API client with React Query, and `@verzo/ui` components.
 
 Caching: no Redis by default. Start with existing request caching, measure query cost, and add Redis only when measurements justify new infrastructure. Preserve workspace isolation, user authorization, metric correctness, the reporting timezone, currency semantics (integer cents), explicit freshness indicators and safe invalidation.
 

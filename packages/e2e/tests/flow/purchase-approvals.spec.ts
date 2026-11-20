@@ -65,8 +65,8 @@ test("a blocked request links each missing match to Office's mappings", async ({
   await expectNoRawValues(page)
 })
 
-// T37: the agent-task approval scene and the dock are byte for byte as on the C5 base
-// (6d22d5ef1); their behaviour stays covered by task-review.spec.ts and offline-approve.spec.ts.
+// T37: pin the agent-task approval scene and dock after the Verzo rename.
+// task-review.spec.ts and offline-approve.spec.ts cover their behavior.
 guarded("T37: the agent-task approval scene is unchanged", () => {
   const blob = (path: string) => {
     const data = readFileSync(
@@ -78,9 +78,9 @@ guarded("T37: the agent-task approval scene is unchanged", () => {
       .digest("hex")
   }
   expect(blob("components/task/approval-scene.tsx")).toBe(
-    "57d2e3564089637374a440aee22fbf611c7c0a8f"
+    "7a960b7ebf4bf6f00c452675e036429fef803205"
   )
   expect(blob("components/frame/dock.tsx")).toBe(
-    "d221adef9c95f8047b49aed534a410d412bb256f"
+    "1e18cdc0f5ef1eea78a0918849fa3ca5f564af7f"
   )
 })
