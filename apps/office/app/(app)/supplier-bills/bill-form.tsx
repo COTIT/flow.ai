@@ -35,7 +35,8 @@ import { AccountPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, today } from "../purchases/shared"
+import { useBookToday } from "../accounting/shared"
+import { isStale } from "../purchases/shared"
 
 type Line = {
   key: string
@@ -65,6 +66,7 @@ const blankLine = (): Line => ({
  */
 export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const router = useRouter()
   const queryClient = useQueryClient()
   const reasons = usePayReasons()
@@ -230,7 +232,7 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
             <Input name="evidence_ref" maxLength={255} defaultValue={bill?.evidence_ref ?? ""} />
           </Field>
           <Field id="bill-invoice-date" label={t("payables.invoiceDate")} errors={err("invoice_date")}>
-            <Input type="date" name="invoice_date" required defaultValue={bill?.invoice_date ?? today()} />
+            <Input type="date" name="invoice_date" required key={bookToday} defaultValue={bill?.invoice_date ?? bookToday} />
           </Field>
           <Field id="bill-due" label={t("payables.dueDate")} errors={err("due_date")}>
             <Input type="date" name="due_date" defaultValue={bill?.due_date ?? ""} />
@@ -244,7 +246,8 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
               type="date"
               name="accounting_date"
               required
-              defaultValue={bill?.accounting_date ?? today()}
+              key={bookToday}
+              defaultValue={bill?.accounting_date ?? bookToday}
             />
           </Field>
         </div>

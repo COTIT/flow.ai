@@ -23,7 +23,7 @@ import { showMoney } from "../../../purchases/shared"
 
 import {
   Shell,
-  today,
+  useBookToday,
   useAction,
   useCountReasons,
   type Outcome,
@@ -179,11 +179,13 @@ export function CancelDialog({ stocktake, outcome, button }: Props) {
 /** Post: a date, the server's review (difference and value per changed line), then its fingerprint back. */
 export function PostDialog({ stocktake, outcome, button }: Props) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const reasons = useCountReasons()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const a = useAction(outcome)
-  const [date, setDate] = React.useState(today())
+  const [picked, setDate] = React.useState("")
+  const date = picked || bookToday
   const review = useStocktakesPostReview()
   const post = useStocktakesPost({
     ...a.options,

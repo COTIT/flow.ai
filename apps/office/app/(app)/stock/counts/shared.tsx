@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl"
 import { PillLinks } from "@/components/list"
 import { useCan } from "@/lib/can"
 
-export { Shell, today, useAction, type Outcome } from "../../accounting/shared"
+export { Shell, today, useAction, useBookToday, type Outcome } from "../../accounting/shared"
 
 /** The stock views as one pill bar: all rows, below zero, counts and valuation (when allowed). */
 export function StockPills({

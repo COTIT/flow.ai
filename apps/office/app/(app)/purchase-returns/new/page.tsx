@@ -28,7 +28,7 @@ import { LoadError, NoAccess } from "@/components/states"
 import { useCan, useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
 
 type Pick = { source: string; quantity: string }
 
@@ -43,6 +43,7 @@ export default function NewPurchaseReturnPage({
   searchParams: Promise<{ receipt?: string }>
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const router = useRouter()
   const word = usePayWord()
@@ -61,7 +62,8 @@ export default function NewPurchaseReturnPage({
   const [picks, setPicks] = React.useState<Record<string, Pick>>({})
   const [purpose, setPurpose] = React.useState("vendor_return")
   const [reason, setReason] = React.useState("")
-  const [date, setDate] = React.useState(today())
+  const [picked, setDate] = React.useState("")
+  const date = picked || bookToday
   const [apply, setApply] = React.useState(false)
   const [evidence, setEvidence] = React.useState("")
   const create = usePurchaseReturnsCreate({

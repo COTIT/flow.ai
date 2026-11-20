@@ -28,7 +28,8 @@ import { Field, selectClass } from "@/components/field"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, today, useReasons, useRefreshOrder } from "./shared"
+import { useBookToday } from "../accounting/shared"
+import { isStale, useReasons, useRefreshOrder } from "./shared"
 
 type Line = {
   key: string
@@ -54,6 +55,7 @@ const blankLine = (): Line => ({
  */
 export function PoForm({ order }: { order?: PurchaseOrderResource }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const router = useRouter()
   const reasons = useReasons()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
@@ -181,7 +183,8 @@ export function PoForm({ order }: { order?: PurchaseOrderResource }) {
               type="date"
               name="purchase_date"
               required
-              defaultValue={order?.purchase_date ?? today()}
+              key={bookToday}
+              defaultValue={order?.purchase_date ?? bookToday}
             />
           </Field>
           <Field id="po-expected" label={t("purchases.expectedDate")} errors={err("expected_date")}>

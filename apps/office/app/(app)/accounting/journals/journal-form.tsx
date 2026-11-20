@@ -24,7 +24,7 @@ import { Field } from "@/components/field"
 import { AccountPicker, CurrencyPicker } from "@/components/pickers"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, today, useReasons } from "../shared"
+import { isStale, useBookToday, useReasons } from "../shared"
 
 type Line = {
   key: string
@@ -51,6 +51,7 @@ const shown = (amount: string) => (/^0(\.0+)?$/.test(amount) ? "" : amount)
  */
 export function JournalForm({ journal }: { journal?: JournalResource }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const router = useRouter()
   const reasons = useReasons()
   const queryClient = useQueryClient()
@@ -152,7 +153,8 @@ export function JournalForm({ journal }: { journal?: JournalResource }) {
               type="date"
               name="accounting_date"
               required
-              defaultValue={journal?.accounting_date ?? today()}
+              key={bookToday}
+              defaultValue={journal?.accounting_date ?? bookToday}
             />
           </Field>
           <Field

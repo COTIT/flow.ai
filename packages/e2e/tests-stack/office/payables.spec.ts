@@ -376,9 +376,13 @@ test.describe("payables", () => {
     ).toBeVisible()
 
     const freight = `DHL-${w.tag}`
-    const booked = await bookedReceipt(request, w.api, w, "2", [
-      { amount: "7.00", evidence_ref: freight },
-    ])
+    const booked = await bookedReceipt(
+      request,
+      await apiAs(request, w.login),
+      w,
+      "2",
+      [{ amount: "7.00", evidence_ref: freight }]
+    )
     await page.reload()
     await page
       .getByLabel("Supplier", { exact: true })
