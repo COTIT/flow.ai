@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { useSession } from "@verzo/api-client/auth"
 import { useAccountingSetupGet } from "@verzo/api-client/endpoints/accounting"
 import { PillLinks } from "@/components/list"
+import { useCan } from "@/lib/can"
 
 import { today } from "../purchases/shared"
 
@@ -118,8 +119,10 @@ export const monthOf = (day: string) => {
 /** The book's current month: today in the accounting timezone, from the API (`business_date`). */
 export function useBookMonth() {
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
+  // Date fields on non-accounting pages call this too; without accounting.read the API refuses.
+  const mayRead = useCan("accounting.read")
   const setup = useAccountingSetupGet(workspaceId, {
-    query: { enabled: Boolean(workspaceId), staleTime: 60_000 },
+    query: { enabled: Boolean(workspaceId) && mayRead, staleTime: 60_000 },
   })
   const day = setup.data?.data.business_date
   return { month: day ? monthOf(day) : undefined, today: day, setup }
