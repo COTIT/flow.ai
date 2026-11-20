@@ -26,11 +26,9 @@ const NO_MAIN_CURRENCY: &str = "No default currency has been found. Please creat
 /// A calculate request with products applied and every line priced.
 pub struct Priced {
     pub input: Calculate,
-    /// The lines of `input.items`, same order.
-    pub lines: Vec<engine::Line>,
     pub summary: engine::Summary,
-    /// Currency decimals the amounts are rounded to.
-    pub dp: u32,
+    /// Margin of the lines, or the line its cost overflowed on.
+    pub margin: Result<engine::Margin, usize>,
 }
 
 /// Price `input` in `workspace_id`. Every id must be a live row of this workspace (422 else).
@@ -57,8 +55,13 @@ pub async fn price(
     }
     apply_products(state, workspace_id, &mut input, view_products).await?;
     let lines: Vec<engine::Line> = input.items.iter().map(|i| i.line).collect();
-    let mut summary = engine::summarise(&lines, dp).map_err(out_of_range)?;
     let mut conn = state.db.acquire().await?;
+    let engine::Priced {
+        mut summary,
+        margin,
+    } = engine::price(&mut conn, &lines, dp)
+        .await?
+        .map_err(out_of_range)?;
     if crate::modules::stock::value::active(&mut conn, workspace_id).await? {
         // Active books: the verified tax path; the client's `vat` never overrides it.
         let products: Vec<Option<Uuid>> = input
@@ -80,15 +83,14 @@ pub async fn price(
     }
     Ok(Priced {
         input,
-        lines,
         summary,
-        dp,
+        margin,
     })
 }
 
 /// Margin of a priced request; 422 on the line whose cost overflowed.
 pub fn margin(priced: &Priced) -> Result<engine::Margin, AppError> {
-    engine::margin(&priced.lines, &priced.summary.lines, priced.dp).map_err(out_of_range)
+    priced.margin.map_err(out_of_range)
 }
 
 fn out_of_range(n: usize) -> AppError {

@@ -37,7 +37,6 @@ const NOT_PAYABLE: &str = "This order takes no payment.";
 
 /// The shop's view of an order.
 pub fn minimal(o: &OrderRow, lines: &[LineRow]) -> StorefrontOrder {
-    let dp = u32::try_from(o.decimals).unwrap_or(2);
     StorefrontOrder {
         lines: lines
             .iter()
@@ -46,7 +45,7 @@ pub fn minimal(o: &OrderRow, lines: &[LineRow]) -> StorefrontOrder {
                 product_id: l.product_id,
                 product_variant_id: l.product_variant_id,
                 quantity: format!("{:.2}", l.quantity),
-                unit_price_gross: service::unit_gross(l.unit_price, l.vat_rate, dp),
+                unit_price_gross: l.unit_price_gross,
                 total_gross: l.line_excl + l.line_vat,
             })
             .collect(),

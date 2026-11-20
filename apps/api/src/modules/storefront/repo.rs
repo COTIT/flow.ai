@@ -1,7 +1,6 @@
 //! Storefront SQL: one statement per page or product; store-only products never show. Prices become integer minor units of the
 //! product's currency; available stock sums every live stock row.
 
-use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::{PgExecutor, types::Json};
 use uuid::Uuid;
@@ -18,8 +17,9 @@ pub struct ProductRow {
     pub barcode: Option<String>,
     /// Catalog price excl VAT, minor units (what checkout charges per unit before VAT).
     pub price_net: i64,
-    /// The product's VAT rate in % (0 without a VAT group), as checkout applies it.
-    pub vat: Decimal,
+    /// One unit incl the product's VAT (0 without a VAT group), minor units, as a quantity-1
+    /// checkout totals it (`money_unit_gross`); None past range.
+    pub price_gross: Option<i64>,
     pub currency: String,
     pub currency_decimals: i16,
     pub available_stock: Option<String>,
@@ -42,6 +42,8 @@ pub struct VariantRow {
     pub ean13: Option<String>,
     pub is_default: bool,
     pub price_net: i64,
+    /// As the product's `price_gross`.
+    pub price_gross: Option<i64>,
     pub options: Vec<OptionRow>,
 }
 
@@ -81,9 +83,8 @@ pub async fn products(
            SELECT pg.id, pg.name, pg.brand, pg.type, pg.short_description, pg.description,
                   pg.ean13, pg.barcode,
                   round(pg.price * 10::numeric ^ c.decimals)::bigint AS "price_net!",
-                  coalesce((SELECT vg.vat_amount FROM vat_groups vg
-                            WHERE vg.workspace_id = $1 AND vg.id = pg.vat_group_id
-                              AND vg.deleted_at IS NULL), 0) AS "vat!",
+                  money_unit_gross(round(pg.price * 10::numeric ^ c.decimals)::bigint, vt.vat,
+                                   c.decimals) AS price_gross,
                   upper(c.asset_type) AS "currency!", c.decimals AS currency_decimals,
                   CASE WHEN pg.has_stock THEN (
                       -- Sale availability (masterplan §7): checkout's warehouse (the default),
@@ -121,6 +122,9 @@ pub async fn products(
                               'id', v.id, 'sku', v.sku, 'barcode', v.barcode, 'ean13', v.ean13,
                               'is_default', v.is_default,
                               'price_net', round(v.price * 10::numeric ^ c.decimals)::bigint,
+                              'price_gross', money_unit_gross(
+                                  round(v.price * 10::numeric ^ c.decimals)::bigint, vt.vat,
+                                  c.decimals),
                               'options', (
                                   SELECT coalesce(json_agg(json_build_object(
                                              'type', ot.display_name,
@@ -148,6 +152,10 @@ pub async fn products(
                   pg.total AS "total!"
            FROM page pg
            JOIN currencies c ON c.workspace_id = $1 AND c.id = pg.currency_id
+           CROSS JOIN LATERAL (SELECT coalesce((SELECT vg.vat_amount FROM vat_groups vg
+                                                WHERE vg.workspace_id = $1
+                                                  AND vg.id = pg.vat_group_id
+                                                  AND vg.deleted_at IS NULL), 0) AS vat) vt
            LEFT JOIN product_categories pc ON pc.workspace_id = $1 AND pc.id = pg.category_id
                                           AND pc.deleted_at IS NULL
            ORDER BY pg.name, pg.id"#,

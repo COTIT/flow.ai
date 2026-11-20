@@ -2,7 +2,6 @@
 //! register's currency; stock sums the register warehouse's usable rows.
 
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::{PgExecutor, types::Json};
 use uuid::Uuid;
@@ -20,11 +19,9 @@ pub struct ProductRow {
     pub has_stock: bool,
     pub sellable: bool,
     pub vat_rate: String,
-    /// The VAT percentage itself, for the gross price.
-    pub vat: Decimal,
     pub unit_price: i64,
-    /// The register currency's decimals.
-    pub decimals: i16,
+    /// One unit incl VAT, minor units (`money_unit_gross`); None past range.
+    pub unit_price_gross: Option<i64>,
     pub stock: Option<String>,
     pub variants: Json<Vec<VariantRow>>,
     pub updated_at: DateTime<Utc>,
@@ -40,6 +37,8 @@ pub struct VariantRow {
     pub barcode: Option<String>,
     pub is_default: bool,
     pub unit_price: i64,
+    /// One unit incl VAT, minor units (`money_unit_gross`); None past range.
+    pub unit_price_gross: Option<i64>,
     pub options: Vec<OptionRow>,
 }
 
@@ -100,9 +99,9 @@ pub async fn products(
            SELECT pg.id, pg.name, pg.type, pg.ean13, pg.barcode, pg.store_only, pg.has_stock,
                   pg.sellable AS "sellable!",
                   trim_scale(coalesce(g.vat_amount, 0))::text AS "vat_rate!",
-                  coalesce(g.vat_amount, 0) AS "vat!",
                   round(pg.price * 10::numeric ^ c.decimals)::bigint AS "unit_price!",
-                  c.decimals,
+                  money_unit_gross(round(pg.price * 10::numeric ^ c.decimals)::bigint,
+                                   coalesce(g.vat_amount, 0), c.decimals) AS unit_price_gross,
                   CASE WHEN pg.has_stock THEN (
                       -- What a sale can take (masterplan §7): dispatch rows, never below 0.
                       SELECT coalesce(sum(greatest(s.stock_lvl - s.reserved, 0)),
@@ -119,6 +118,9 @@ pub async fn products(
                               'id', v.id, 'sku', v.sku, 'ean13', v.ean13, 'barcode', v.barcode,
                               'is_default', v.is_default,
                               'unit_price', round(v.price * 10::numeric ^ c.decimals)::bigint,
+                              'unit_price_gross', money_unit_gross(
+                                  round(v.price * 10::numeric ^ c.decimals)::bigint,
+                                  coalesce(g.vat_amount, 0), c.decimals),
                               'options', (
                                   SELECT coalesce(json_agg(json_build_object(
                                              'type', ot.display_name,
