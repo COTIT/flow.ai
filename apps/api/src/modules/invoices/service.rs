@@ -955,7 +955,7 @@ async fn create_quote(
             set_child: false,
         })
         .collect();
-    let (mut summary, _) = price_values(&values, decimals)?;
+    let (mut summary, _) = price_values(&mut *conn, &values, decimals).await?;
     if crate::modules::stock::value::active(&mut *conn, workspace_id).await? {
         // Same path as the commit (`store_totals`): the quote is the commit.
         let facts = sale::Facts {
@@ -971,22 +971,26 @@ async fn create_quote(
     Ok(super::approval::bounded_review(full))
 }
 
-/// Totals and margin of `lines` at `dp`; 422 when a figure leaves Decimal's range.
-pub(super) fn price(
+/// Totals and margin of `lines` at `dp` (priced in Postgres); 422 when a figure leaves
+/// Decimal's range.
+pub(super) async fn price(
+    conn: &mut PgConnection,
     lines: &[repo::ItemRow],
     dp: u32,
 ) -> Result<(engine::Summary, engine::Margin), AppError> {
     let engine_lines: Vec<engine::Line> = lines.iter().map(engine_line).collect();
-    price_values(&engine_lines, dp)
+    price_values(conn, &engine_lines, dp).await
 }
 
-fn price_values(
+async fn price_values(
+    conn: &mut PgConnection,
     engine_lines: &[engine::Line],
     dp: u32,
 ) -> Result<(engine::Summary, engine::Margin), AppError> {
-    let summary = engine::summarise(engine_lines, dp).map_err(|_| out_of_range())?;
-    let margin = engine::margin(engine_lines, &summary.lines, dp).map_err(|_| out_of_range())?;
-    Ok((summary, margin))
+    let p = engine::price(conn, engine_lines, dp)
+        .await?
+        .map_err(|_| out_of_range())?;
+    Ok((p.summary, p.margin.map_err(|_| out_of_range())?))
 }
 
 /// Recompute the totals from the stored lines and write them (C1: same transaction); the
@@ -1012,7 +1016,7 @@ pub(crate) async fn store_totals(
         repo::set_totals(conn, workspace_id, invoice_id, l.net, l.gross, &summary).await?;
         return Ok(l.gross);
     }
-    let (mut s, _) = price(&lines, dp)?;
+    let (mut s, _) = price(&mut *conn, &lines, dp).await?;
     if crate::modules::stock::value::active(&mut *conn, workspace_id).await? {
         active_tax(conn, workspace_id, invoice_id, &lines, &mut s, dp).await?;
     }
@@ -1103,12 +1107,14 @@ pub(super) async fn summary_of(
     match billing::linked_summary(&mut *conn, workspace_id, invoice_id, dp).await? {
         Some(l) => {
             let engine_lines: Vec<engine::Line> = lines.iter().map(engine_line).collect();
-            let margin =
-                engine::margin(&engine_lines, &l.summary.lines, dp).map_err(|_| out_of_range())?;
+            let revenues: Vec<_> = l.summary.lines.iter().map(|a| a.excl).collect();
+            let margin = engine::margin_of(conn, &engine_lines, &revenues, dp)
+                .await?
+                .map_err(|_| out_of_range())?;
             Ok((l.summary, margin))
         }
         None => {
-            let (mut s, m) = price(lines, dp)?;
+            let (mut s, m) = price(&mut *conn, lines, dp).await?;
             let ids: Vec<Uuid> = lines.iter().map(|l| l.id).collect();
             let amounts = sale::amounts(&s, dp)?;
             if let Some(t) = sale::stored_items(conn, workspace_id, &ids, &amounts).await? {

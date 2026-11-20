@@ -1,9 +1,13 @@
-//! Item line maths (Laravel HasItemPricing + BuildItemsSummary), exact decimals. Each line's
-//! amounts round to the currency's decimals; VAT is computed once per rate on the summed line
-//! amounts (user decision 2026-10-21), so total = excl + VAT always.
+//! Item line maths (Laravel HasItemPricing + BuildItemsSummary). Each line's amounts round to
+//! the currency's decimals; VAT is computed once per rate on the summed line amounts (user
+//! decision 2026-10-21), so total = excl + VAT always. Documents are priced in Postgres
+//! (`price_lines`, `price_margin`) by [`price`] / [`margin_of`]; the Rust maths below is the
+//! frozen reference `tests/fixtures/pricing_golden.json` was written from.
 
 use rust_decimal::Decimal;
+use sqlx::PgConnection;
 
+use super::repo;
 use crate::money::round;
 
 /// One validated item line.
@@ -108,7 +112,7 @@ pub fn summarise(lines: &[Line], dp: u32) -> Result<Summary, usize> {
 }
 
 /// Margin of the item lines (Laravel BuildItemsMargeCalculationSummary, `items` part).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Margin {
     /// Σ purchase price × quantity, each rounded.
     pub cost: Decimal,
@@ -116,13 +120,116 @@ pub struct Margin {
     pub revenue: Decimal,
     /// revenue − cost.
     pub amount: Decimal,
-    /// amount / revenue × 100, unrounded. Laravel divides by 1 when revenue is 0.
-    pub percentage: Decimal,
+    /// amount / revenue × 100 as a float (only ever shown as a JSON number). Laravel divides
+    /// by 1 when revenue is 0.
+    pub percentage: f64,
+}
+
+/// A document priced in Postgres: summary, and its margin or the line it overflowed on.
+#[derive(Debug, Clone)]
+pub struct Priced {
+    pub summary: Summary,
+    pub margin: Result<Margin, usize>,
+}
+
+fn need(v: Option<Decimal>) -> Result<Decimal, sqlx::Error> {
+    v.ok_or_else(|| sqlx::Error::Decode("price_lines: amount missing without overflow".into()))
+}
+
+fn margin_row(
+    cost: Option<Decimal>,
+    revenue: Option<Decimal>,
+    amount: Option<Decimal>,
+    percentage: Option<f64>,
+    over: Option<i32>,
+) -> Result<Result<Margin, usize>, sqlx::Error> {
+    if let Some(i) = over {
+        return Ok(Err(i as usize));
+    }
+    let percentage = percentage
+        .ok_or_else(|| sqlx::Error::Decode("price_margin: percentage missing".into()))?;
+    Ok(Ok(Margin {
+        cost: need(cost)?,
+        revenue: need(revenue)?,
+        amount: need(amount)?,
+        percentage,
+    }))
+}
+
+/// Price `lines` at `dp` in one query (`price_lines`). Ok(Err(i)): line i (the last line for
+/// a rate's VAT or the total) left Decimal's range, as `summarise` named it.
+pub async fn price(
+    conn: &mut PgConnection,
+    lines: &[Line],
+    dp: u32,
+) -> Result<Result<Priced, usize>, sqlx::Error> {
+    let rows = repo::price_lines(&mut *conn, dp, lines).await?;
+    let Some(first) = rows.first() else {
+        return Ok(Ok(Priced {
+            summary: Summary::default(),
+            margin: Ok(Margin::default()),
+        }));
+    };
+    if let Some(i) = first.overflow_at {
+        return Ok(Err(i as usize));
+    }
+    let mut s = Summary {
+        gross: need(first.gross_total)?,
+        discount: need(first.discount_total)?,
+        excl: need(first.excl_total)?,
+        vat: need(first.vat_total)?,
+        total: need(first.total)?,
+        ..Summary::default()
+    };
+    for r in &rows {
+        s.lines.push(Amounts {
+            gross: need(r.gross)?,
+            discount: need(r.discount)?,
+            excl: need(r.excl)?,
+            line_vat: need(r.line_vat)?,
+        });
+        // Rows come in line order, so rates come in first-seen order.
+        if r.n == r.rate_first {
+            s.vats.push(RateTotal {
+                rate: r.rate,
+                base: need(r.rate_base)?,
+                vat: need(r.rate_vat)?,
+            });
+        }
+    }
+    let margin = margin_row(
+        first.cost,
+        first.revenue,
+        first.margin_amount,
+        first.margin_percentage,
+        first.margin_overflow_at,
+    )?;
+    Ok(Ok(Priced { summary: s, margin }))
+}
+
+/// Margin of `lines` whose revenue per line is `revenues` (priced elsewhere, e.g. copied from
+/// recognitions), in Postgres (`price_margin`). Ok(Err(i)) as [`price`]'s margin.
+pub async fn margin_of(
+    conn: &mut PgConnection,
+    lines: &[Line],
+    revenues: &[Decimal],
+    dp: u32,
+) -> Result<Result<Margin, usize>, sqlx::Error> {
+    let r = repo::price_margin(&mut *conn, dp, lines, revenues).await?;
+    margin_row(
+        r.cost,
+        r.revenue,
+        r.margin_amount,
+        r.margin_percentage,
+        r.margin_overflow_at,
+    )
 }
 
 /// Margin over `lines` priced as `amounts` (same order). Set children are skipped (their
 /// set line carries the price). Err(index) names the line whose cost or running sum
 /// overflowed; an overflow in the final amount or percentage names the last line counted.
+/// Reference for `price_margin` only.
+#[cfg(test)]
 pub fn margin(lines: &[Line], amounts: &[Amounts], dp: u32) -> Result<Margin, usize> {
     let mut m = Margin::default();
     let mut last = 0;
@@ -142,11 +249,12 @@ pub fn margin(lines: &[Line], amounts: &[Amounts], dp: u32) -> Result<Margin, us
     } else {
         m.revenue
     };
-    m.percentage = m
+    let percentage = m
         .amount
         .checked_div(divisor)
         .and_then(|r| r.checked_mul(Decimal::ONE_HUNDRED))
         .ok_or(last)?;
+    m.percentage = rust_decimal::prelude::ToPrimitive::to_f64(&percentage).ok_or(last)?;
     Ok(m)
 }
 
@@ -390,13 +498,13 @@ mod tests {
             (m.cost, m.revenue, m.amount),
             (d("34.5"), d("59"), d("24.5"))
         );
-        assert_eq!(m.percentage.round_dp(6), d("41.525424"));
+        assert!((m.percentage - 41.525424).abs() < 1e-6, "{}", m.percentage);
     }
 
     #[test]
     fn margin_without_revenue_divides_by_one() {
         let m = margin_of(&[bought("1", "0", "0", "5")]);
-        assert_eq!((m.amount, m.percentage), (d("-5"), d("-500")));
+        assert_eq!((m.amount, m.percentage), (d("-5"), -500.0));
     }
 
     #[test]
@@ -464,7 +572,7 @@ mod tests {
             }
             let theirs = fixture_number(&items["margin_percentage"]);
             assert!(
-                (m.percentage - theirs).abs() <= d("0.01"),
+                (m.percentage - items["margin_percentage"].as_f64().unwrap()).abs() <= 0.01,
                 "{name} margin_percentage: {} vs {theirs}",
                 m.percentage
             );
@@ -628,7 +736,6 @@ mod tests {
     }
 
     fn golden_out(lines: &[Line], dp: u32) -> (serde_json::Value, bool) {
-        use rust_decimal::prelude::ToPrimitive;
         use serde_json::json;
         let n = |v: Decimal| v.normalize().to_string();
         let s = match summarise(lines, dp) {
@@ -636,7 +743,7 @@ mod tests {
             Err(i) => return (json!({ "err": i }), false),
         };
         let margin = match margin(lines, &s.lines, dp) {
-            Ok(m) => json!([n(m.cost), n(m.revenue), n(m.amount), m.percentage.to_f64()]),
+            Ok(m) => json!([n(m.cost), n(m.revenue), n(m.amount), m.percentage]),
             Err(i) => json!({ "err": i }),
         };
         let out = json!({

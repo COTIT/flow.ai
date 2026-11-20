@@ -249,7 +249,10 @@ pub async fn price(
             format!("The lines.{n} is out of range."),
         )
     };
-    let s = engine::summarise(&engine_lines, dp).map_err(out_of_range)?;
+    let s = engine::price(&mut *conn, &engine_lines, dp)
+        .await?
+        .map_err(out_of_range)?
+        .summary;
     for (n, (line, a)) in priced.iter_mut().zip(&s.lines).enumerate() {
         line.line_excl = minor(a.excl, dp).ok_or_else(|| out_of_range(n))?;
         line.line_vat = minor(a.line_vat, dp).ok_or_else(|| out_of_range(n))?;
