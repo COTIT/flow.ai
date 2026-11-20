@@ -45,7 +45,8 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
 
-import { bookAmount, showMoney, showRate, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { bookAmount, showMoney, showRate } from "../../purchases/shared"
 import type { Outcome } from "../../purchases/[id]/dialogs"
 
 /** A supplier payment or refund received: facts, unapplied amount, allocations, next step. */
@@ -306,6 +307,7 @@ function AllocateDialog({ payment, button, outcome }: Props) {
 /** Reverse an unapplied, wrongly recorded payment: date + reason, review, reversal. */
 function ReversePaymentDialog({ payment, button, outcome }: Props) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
   const inputs = useReverseInputs("pay-rev")
@@ -317,7 +319,7 @@ function ReversePaymentDialog({ payment, button, outcome }: Props) {
       title={t("payables.payments.reverseTitle", { number: payment.number })}
       description={t("payables.payments.reverseText")}
       done={t("payables.done.reversed")}
-      onOpen={() => inputs.reset(today())}
+      onOpen={() => inputs.reset(bookToday)}
       ready={inputs.ready}
       fields={inputs.fields}
       review={async () => (await supplierPaymentsReverseReview(ws, payment.id, inputs.body)).data}

@@ -39,7 +39,8 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
 
-import { bookAmount, showMoney, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { bookAmount, showMoney } from "../../purchases/shared"
 import type { Outcome } from "../../purchases/[id]/dialogs"
 
 /** A purchase return: lines (goods out, credit), next step (post, reverse), facts. */
@@ -223,6 +224,7 @@ function PostReturnDialog({ ret, button, outcome }: Props) {
 /** Reverse: goods back at their original value and the credit closed, both together. */
 function ReverseReturnDialog({ ret, button, outcome }: Props) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
   const inputs = useReverseInputs("ret-rev")
@@ -236,7 +238,7 @@ function ReverseReturnDialog({ ret, button, outcome }: Props) {
       title={t("payables.returns.reverseTitle", { number: ret.number })}
       description={t("payables.returns.reverseText")}
       done={t("payables.done.reversed")}
-      onOpen={() => inputs.reset(today())}
+      onOpen={() => inputs.reset(bookToday)}
       ready={inputs.ready}
       fields={inputs.fields}
       review={async () => (await purchaseReturnsReverseReview(ws, ret.id, body())).data}
