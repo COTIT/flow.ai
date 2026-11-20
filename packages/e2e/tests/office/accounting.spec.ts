@@ -1262,3 +1262,65 @@ test.describe("cash", () => {
     await expectFits(page)
   })
 })
+
+test.describe("opening balances", () => {
+  const baseline = (n: number) => ({
+    id: `b-${n}`,
+    source_kind: "invoice",
+    source_id: `inv-${n}`,
+    number: String(1000 + n),
+    party: `Customer ${n}`,
+    currency: "TZS",
+    face: "100.00",
+    settled: "40.00",
+    outstanding: "60.00",
+    corrected_outstanding: "60.00",
+    corrections: 0,
+  })
+
+  test("a long opening pages through the API's pages", async ({ page, api }) => {
+    book(api, {
+      setup: setup({
+        state: "active",
+        activated_at: "2026-11-01T06:00:00Z",
+        missing_roles: [],
+        configured: true,
+      }),
+    })
+    const all = Array.from({ length: 60 }, (_, i) => baseline(i + 1))
+    const asked: (string | null)[] = []
+    api.on("GET", "/workspace/:ws/accounting/opening-baselines", ({ query }) => {
+      asked.push(query.get("page"))
+      return paged(all, Number(query.get("page") ?? 1), 50)
+    })
+    await page.goto("/accounting/opening")
+    await expect(page.getByText("Invoice 1001")).toBeVisible()
+    await expect(page.getByText("1–50 of 60")).toBeVisible()
+    await expect(page.getByText("Invoice 1051")).toHaveCount(0)
+    await page.getByRole("button", { name: "Next" }).click()
+    await expect(page.getByText("Invoice 1051")).toBeVisible()
+    await expect(page.getByText("51–60 of 60")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Next" })).toBeDisabled()
+    expect(asked).toEqual(["1", "2"])
+    await expectFits(page)
+    await expectNoRawValues(page)
+  })
+
+  test("one page shows no pager", async ({ page, api }) => {
+    book(api, {
+      setup: setup({
+        state: "active",
+        activated_at: "2026-11-01T06:00:00Z",
+        missing_roles: [],
+        configured: true,
+      }),
+    })
+    api.on("GET", "/workspace/:ws/accounting/opening-baselines", () =>
+      paged([baseline(1)])
+    )
+    await page.goto("/accounting/opening")
+    await expect(page.getByText("Invoice 1001")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Next" })).toHaveCount(0)
+    await expectFits(page)
+  })
+})

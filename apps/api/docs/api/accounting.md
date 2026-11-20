@@ -370,7 +370,7 @@ A envelope `{client_ref, expected_version (setup version), payload: {batch_ids, 
 
 ### GET /accounting/opening-baselines (`accounting_opening_baselines_list`, `accounting.read`)
 
-Every receivable/payable the opening carried: `id` (the correction's `baseline_id`), `source_kind`, `source_id`, `number` (invoice number or supplier invoice number), `party`, `currency`, `face`, `settled`, `outstanding` (at cutover), `corrected_outstanding` (+ Σ corrections), `corrections` (count). Amounts are decimal text from SQL. Empty in a setup book. Shortcut: first 500, no paging.
+Every receivable/payable the opening carried: `id` (the correction's `baseline_id`), `source_kind`, `source_id`, `number` (invoice number or supplier invoice number), `party`, `currency`, `face`, `settled`, `outstanding` (at cutover), `corrected_outstanding` (+ Σ corrections), `corrections` (count). Amounts are decimal text from SQL. Paginated (`page`, `page_size` default 50 max 100; `{data, meta}`), ordered by source kind, number, id. Empty in a setup book.
 
 ### Activation core (`opening::apply`; `POST /accounting/activate` wraps it)
 

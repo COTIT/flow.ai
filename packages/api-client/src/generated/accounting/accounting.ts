@@ -32,6 +32,7 @@ import type {
   AccountingGeneralLedgerParams,
   AccountingInventoryValuationParams,
   AccountingJournalsListParams,
+  AccountingOpeningBaselinesListParams,
   AccountingPartyLedgerParams,
   AccountingPayablesAgingParams,
   AccountingPeriodsListParams,
@@ -87,6 +88,7 @@ import type {
   PaginatedAccountResource,
   PaginatedJournalResource,
   PaginatedPeriodResource,
+  PaginatedValue,
   PaginatedYearResource,
   ResolveReviewBody,
   RevalueReviewBody,
@@ -2236,12 +2238,14 @@ export const useAccountingJournalsReverseReview = <TError = ErrorType<MessageBod
  */
 export const accountingOpeningBaselinesList = (
     workspace: string,
+    params?: AccountingOpeningBaselinesListParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
 
-      return apiRequest<EnvelopeValue>(
-      {url: `/workspace/${workspace}/accounting/opening-baselines`, method: 'GET', signal
+      return apiRequest<PaginatedValue>(
+      {url: `/workspace/${workspace}/accounting/opening-baselines`, method: 'GET',
+        params, signal
     },
       options);
     }
@@ -2249,23 +2253,25 @@ export const accountingOpeningBaselinesList = (
 
 
 
-export const getAccountingOpeningBaselinesListQueryKey = (workspace: string,) => {
+export const getAccountingOpeningBaselinesListQueryKey = (workspace: string,
+    params?: AccountingOpeningBaselinesListParams,) => {
     return [
-    `/workspace/${workspace}/accounting/opening-baselines`
+    `/workspace/${workspace}/accounting/opening-baselines`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getAccountingOpeningBaselinesListQueryOptions = <TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getAccountingOpeningBaselinesListQueryOptions = <TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: AccountingOpeningBaselinesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getAccountingOpeningBaselinesListQueryKey(workspace);
+  const queryKey =  queryOptions?.queryKey ?? getAccountingOpeningBaselinesListQueryKey(workspace,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>> = ({ signal }) => accountingOpeningBaselinesList(workspace, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>> = ({ signal }) => accountingOpeningBaselinesList(workspace,params, requestOptions, signal);
 
 
 
@@ -2279,7 +2285,8 @@ export type AccountingOpeningBaselinesListQueryError = ErrorType<MessageBody>
 
 
 export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
- workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
+ workspace: string,
+    params: undefined |  AccountingOpeningBaselinesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof accountingOpeningBaselinesList>>,
           TError,
@@ -2289,7 +2296,8 @@ export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typ
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
+ workspace: string,
+    params?: AccountingOpeningBaselinesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof accountingOpeningBaselinesList>>,
           TError,
@@ -2299,7 +2307,8 @@ export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typ
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ workspace: string,
+    params?: AccountingOpeningBaselinesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -2307,11 +2316,12 @@ export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typ
  */
 
 export function useAccountingOpeningBaselinesList<TData = Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ workspace: string,
+    params?: AccountingOpeningBaselinesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accountingOpeningBaselinesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getAccountingOpeningBaselinesListQueryOptions(workspace,options)
+  const queryOptions = getAccountingOpeningBaselinesListQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

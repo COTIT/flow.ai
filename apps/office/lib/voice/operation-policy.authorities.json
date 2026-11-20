@@ -16,7 +16,7 @@
   "apps/api/src/jobs/kinds.rs": "15536e2c68b45471f2ec4ec8ab86f1bf26f2c87032856293e036db185537b05e",
   "apps/api/src/lib.rs": "9a7e917e42161319ae323f2dcf85088138b64c23bc8f1f8c10bf545d5601a60d",
   "apps/api/src/main.rs": "85e4e1e02d046bf39f2e2b2eed336f6d6c9e43de93437e13437c290abf600222",
-  "apps/api/src/modules/accounting/handlers.rs": "d768c752188b031a0d2deacf54d0fb1b6ddac1e8daf9d05cbc480d4eee34b769",
+  "apps/api/src/modules/accounting/handlers.rs": "af6f3fb7d6d032382fb858e62c981923a82ce36777a1012902d3d4861d353793",
   "apps/api/src/modules/accounting/service.rs": "ff791ced670cd6a6cba8202aacdf18b67b0d2c8b347ef63af740a5ec341af7af",
   "apps/api/src/modules/analytics/handlers.rs": "89ff160005fbc07654d6a9f885863a4b0615188b8d424dc859a75a485c864b04",
   "apps/api/src/modules/analytics/service.rs": "76cf76008280be0f474c0b9871655e567bfdfc65d4d0b9125658be0caa981b7a",
@@ -288,5 +288,5 @@
   "apps/api/src/modules/accounting/banking.rs": "f24fd369baef7a06f97276465b43cbc25cc11f73f0353855eefe91765d3c5127",
   "apps/api/src/modules/till_refunds/handlers.rs": "394a7ba3863861766bc5d0728645dbf0ee7e36a32474f72d6028cbf76d4b4aa1",
   "apps/api/src/modules/accounting/close.rs": "bbcf0a46342f530bbf2d2a2492699304c2ed63a22a8abbad25eb6ce495e9b023",
-  "apps/api/src/modules/accounting/opening.rs": "ddeb1534f83589fe968fff0c120e4f74d62b41398d7d8fd7d15b1ebc15f44e85"
+  "apps/api/src/modules/accounting/opening.rs": "74d0cead6dc01508af44059f501130a04df24f0a94da46b723420fae47ba1c7a"
 }
