@@ -146,8 +146,8 @@ fn margin_row(
     if let Some(i) = over {
         return Ok(Err(i as usize));
     }
-    let percentage = percentage
-        .ok_or_else(|| sqlx::Error::Decode("price_margin: percentage missing".into()))?;
+    let percentage =
+        percentage.ok_or_else(|| sqlx::Error::Decode("price_margin: percentage missing".into()))?;
     Ok(Ok(Margin {
         cost: need(cost)?,
         revenue: need(revenue)?,
