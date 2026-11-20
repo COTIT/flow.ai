@@ -24,12 +24,13 @@ use crate::{
         payables::{
             bills, costs,
             dto::{
-                AllocatePayload, AllocateReview, BillMatchCandidates, BillPayload, BillPostReview,
-                CostAdjustmentPayload, CostAdjustmentResource, CostAdjustmentReview, CostListQuery,
-                ListQuery, MatchPayload, PaymentPayload, PaymentReview, PaymentTarget,
-                PurchaseReturnResource, ReturnCandidates, ReturnCandidatesQuery, ReturnPayload,
-                ReturnPostReview, ReturnReverseBody, ReverseBody, ReversePayload, ReverseReview,
-                ReviewedPayload, SupplierBillResource, SupplierPaymentResource,
+                AllocatePayload, AllocateReview, BillLandedCandidates, BillMatchCandidates,
+                BillPayload, BillPostReview, CostAdjustmentPayload, CostAdjustmentResource,
+                CostAdjustmentReview, CostListQuery, LandedCandidatesQuery, ListQuery,
+                MatchPayload, PaymentPayload, PaymentReview, PaymentTarget, PurchaseReturnResource,
+                ReturnCandidates, ReturnCandidatesQuery, ReturnPayload, ReturnPostReview,
+                ReturnReverseBody, ReverseBody, ReversePayload, ReverseReview, ReviewedPayload,
+                SupplierBillResource, SupplierPaymentResource,
             },
             payments, returns,
         },
@@ -877,6 +878,33 @@ pub async fn bills_match_candidates(
 ) -> Result<Data<BillMatchCandidates>, AppError> {
     Ok(Data(
         bills::match_candidates(&state, access.workspace_id, id(&raw)?).await?,
+    ))
+}
+
+/// supplier_bills_landed_candidates: Booked landed components a bill line may clear.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/supplier-bills/landed-candidates", tag = "supplier_bills",
+    operation_id = "supplier_bills_landed_candidates",
+    summary = "Booked landed components a bill line may clear",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), LandedCandidatesQuery),
+    responses(
+        (status = 200, body = Envelope<BillLandedCandidates>, description = "Success; components in the currency on no live bill"),
+        (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`currency_id` missing"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn bills_landed_candidates(
+    State(state): State<AppState>,
+    access: Can<BillCreate>,
+    Query(q): Query<LandedCandidatesQuery>,
+) -> Result<Data<BillLandedCandidates>, AppError> {
+    let currency = q
+        .currency_id
+        .ok_or_else(|| AppError::field("currency_id", "Choose a currency."))?;
+    Ok(Data(
+        bills::landed_candidates(&state, access.workspace_id, currency, q.bill_id).await?,
     ))
 }
 

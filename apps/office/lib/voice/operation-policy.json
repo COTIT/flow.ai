@@ -25388,6 +25388,41 @@
     },
     "confirmationFields": []
   },
+  "supplier_bills_landed_candidates": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/supplier-bills/landed-candidates",
+    "disposition": "internal",
+    "reason": "Flow ERP lookup for a native write form; gated on the write permission, so internal while ERP writes are Office only.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal until ERP M7 assistant review; native Office/Till use only"
+      ],
+      "authority": [
+        "apps/api/src/modules/payables/handlers.rs#bills_landed_candidates",
+        "apps/api/src/modules/payables/bills.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "supplier_bills_match_candidates": {
     "method": "GET",
     "path": "/workspace/{workspace}/supplier-bills/{bill}/match-candidates",

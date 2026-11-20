@@ -381,6 +381,8 @@ pub struct BillLineResource {
     pub product_id: Option<Uuid>,
     pub product_name: Option<String>,
     pub landed_cost_id: Option<Uuid>,
+    /// The booked component a landed_cost line clears; null on other kinds.
+    pub landed: Option<BillLandedRef>,
     pub expense_account_id: Option<Uuid>,
     pub quantity: String,
     pub unit_price: String,
@@ -1196,6 +1198,43 @@ pub struct MatchCandidate {
 pub struct BillMatchCandidates {
     pub bill_id: Uuid,
     pub candidates: Vec<MatchCandidate>,
+}
+
+/// A booked landed component: its order, receipt, evidence and booked amount (its currency).
+#[derive(Serialize, ToSchema)]
+pub struct BillLandedRef {
+    pub purchase_order_id: Uuid,
+    pub purchase_order_number: i64,
+    pub receipt_id: Uuid,
+    pub receipt_number: i64,
+    pub evidence_ref: String,
+    pub amount: String,
+}
+
+/// A landed component a bill line may clear: not on a live bill.
+#[derive(Serialize, ToSchema)]
+pub struct LandedCandidate {
+    pub landed_cost_id: Uuid,
+    #[serde(flatten)]
+    pub component: BillLandedRef,
+}
+
+/// GET /supplier-bills/landed-candidates.
+#[derive(Serialize, ToSchema)]
+pub struct BillLandedCandidates {
+    pub candidates: Vec<LandedCandidate>,
+}
+
+/// GET /supplier-bills/landed-candidates query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct LandedCandidatesQuery {
+    /// The bill currency (required); a component is billed in its own currency.
+    #[param(value_type = Uuid)]
+    pub currency_id: Option<Uuid>,
+    /// A draft bill being edited: its own components stay listed.
+    #[param(value_type = Option<Uuid>)]
+    pub bill_id: Option<Uuid>,
 }
 
 /// GET /purchase-returns/candidates query.
