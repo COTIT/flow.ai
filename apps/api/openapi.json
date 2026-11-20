@@ -3101,6 +3101,57 @@
         ],
         "type": "object"
       },
+      "BillLandedCandidates": {
+        "description": "GET /supplier-bills/landed-candidates.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/LandedCandidate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "candidates"
+        ],
+        "type": "object"
+      },
+      "BillLandedRef": {
+        "description": "A booked landed component: its order, receipt, evidence and booked amount (its currency).",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "purchase_order_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "receipt_number": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "purchase_order_id",
+          "purchase_order_number",
+          "receipt_id",
+          "receipt_number",
+          "evidence_ref",
+          "amount"
+        ],
+        "type": "object"
+      },
       "BillLinePayload": {
         "description": "One bill line as sent: exactly one of `product_id` (goods, matched to receipt lines),\n`landed_cost_id` (clears one landed component; quantity 1) or `expense_account_id`.",
         "properties": {
@@ -3182,6 +3233,17 @@
           "kind": {
             "description": "goods, landed_cost or expense.",
             "type": "string"
+          },
+          "landed": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BillLandedRef",
+                "description": "The booked component a landed_cost line clears; null on other kinds."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "landed_cost_id": {
             "format": "uuid",
@@ -11088,6 +11150,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/BatchResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_BillLandedCandidates": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BillLandedCandidates"
           }
         },
         "required": [
@@ -19377,6 +19451,26 @@
           "key"
         ],
         "type": "object"
+      },
+      "LandedCandidate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BillLandedRef"
+          },
+          {
+            "properties": {
+              "landed_cost_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "landed_cost_id"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A landed component a bill line may clear: not on a live bill."
       },
       "LandedCostPayload": {
         "description": "One freight/duty component to capitalise.",
@@ -152689,6 +152783,170 @@
           }
         ],
         "summary": "Create a draft supplier bill",
+        "tags": [
+          "supplier_bills"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supplier-bills/landed-candidates": {
+      "get": {
+        "operationId": "supplier_bills_landed_candidates",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The bill currency (required); a component is billed in its own currency.",
+            "in": "query",
+            "name": "currency_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A draft bill being edited: its own components stay listed.",
+            "in": "query",
+            "name": "bill_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BillLandedCandidates"
+                }
+              }
+            },
+            "description": "Success; components in the currency on no live bill"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing permission or inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`currency_id` missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Booked landed components a bill line may clear",
         "tags": [
           "supplier_bills"
         ]

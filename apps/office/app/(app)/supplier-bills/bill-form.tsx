@@ -14,6 +14,7 @@ import {
   getSupplierBillsGetQueryKey,
   getSupplierBillsListQueryKey,
   useSupplierBillsCreate,
+  useSupplierBillsLandedCandidates,
   useSupplierBillsUpdate,
 } from "@genesy/api-client/endpoints/supplier-bills"
 import { useTaxProfilesList } from "@genesy/api-client/endpoints/tax-profiles"
@@ -26,6 +27,7 @@ import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { Card } from "@genesy/ui/components/card"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { usePayReasons } from "@/components/payables"
@@ -37,7 +39,7 @@ import { isStale, today } from "../purchases/shared"
 
 type Line = {
   key: string
-  kind: "goods" | "expense"
+  kind: "goods" | "expense" | "landed_cost"
   target: string
   quantity: string
   unit_price: string
@@ -57,8 +59,9 @@ const blankLine = (): Line => ({
 
 /**
  * The draft bill form (Form card of the purchase order form): create, or full replace of a
- * draft. Each line is goods (a product, matched to receipts later) or an expense account.
- * Extensions and totals come back from the API.
+ * draft. Each line is goods (a product, matched to receipts later), an extra cost booked on a
+ * receipt (landed cost, quantity 1) or an expense account. Extensions and totals come back from
+ * the API.
  */
 export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const t = useTranslations()
@@ -75,12 +78,10 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const key = useIdempotencyKey()
   const [lines, setLines] = React.useState<Line[]>(() =>
     bill?.lines.length
-      ? bill.lines
-          .filter((l) => l.kind !== "landed_cost")
-          .map((l) => ({
+      ? bill.lines.map((l) => ({
             key: l.id,
-            kind: l.kind === "expense" ? "expense" : "goods",
-            target: l.product_id ?? l.expense_account_id ?? "",
+            kind: l.kind === "expense" || l.kind === "landed_cost" ? l.kind : "goods",
+            target: l.product_id ?? l.landed_cost_id ?? l.expense_account_id ?? "",
             quantity: l.quantity,
             unit_price: l.unit_price,
             tax_profile_id: l.tax_profile_id ?? "",
@@ -119,6 +120,24 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const setLine = (k: string, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)))
   const defaultCurrency = currencies.data?.data.find((c) => c.default_currency)?.id
+  const [currencyId, setCurrencyId] = React.useState(bill?.currency.id ?? "")
+  const currency = currencyId || defaultCurrency || ""
+  const wantsLanded = lines.some((l) => l.kind === "landed_cost")
+  // shortcut: first 500 extra costs (API cap); page when a workspace books more.
+  const landed = useSupplierBillsLandedCandidates(
+    workspaceId,
+    { currency_id: currency, bill_id: bill?.id },
+    { query: { enabled: Boolean(workspaceId && currency && wantsLanded) } }
+  )
+  const candidates = landed.data?.data.candidates ?? []
+  // Server amounts as strings: the booked amount is the price shown first, never computed here.
+  const landedLabel = (c: (typeof candidates)[number]) =>
+    t("payables.extraCostOption", {
+      order: c.purchase_order_number,
+      receipt: c.receipt_number,
+      evidence: c.evidence_ref,
+      amount: c.amount,
+    })
   // Display only: the API refuses a mapped control or inactive account.
   const expenseAccount = (a: AccountResource) =>
     a.type === "expense" && a.active && a.roles.length === 0
@@ -144,6 +163,7 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
           corrects_bill_id: bill?.corrects_bill_id ?? null,
           lines: lines.map((l) => ({
             product_id: l.kind === "goods" ? l.target : null,
+            landed_cost_id: l.kind === "landed_cost" ? l.target : null,
             expense_account_id: l.kind === "expense" ? l.target : null,
             quantity: l.quantity.trim(),
             unit_price: l.unit_price.trim(),
@@ -178,11 +198,11 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
           </Field>
           <Field id="bill-currency" label={t("payables.currency")} errors={err("currency_id")}>
             <select
-              key={defaultCurrency ?? "none"}
               name="currency_id"
               className={selectClass}
               required
-              defaultValue={bill?.currency.id ?? defaultCurrency ?? ""}
+              value={currency}
+              onChange={(e) => setCurrencyId(e.target.value)}
             >
               <option value="" disabled>
                 {t("payables.chooseCurrency")}
@@ -238,6 +258,11 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
           {t("payables.lines")}
         </h2>
         {err("lines")?.length ? <p className="text-sm text-destructive">{err("lines")!.join(" ")}</p> : null}
+        {wantsLanded && landed.isError ? (
+          <Notice variant="error" title={t("common.error")} />
+        ) : wantsLanded && landed.isSuccess && candidates.length === 0 ? (
+          <Notice variant="info" title={t("payables.noExtraCosts")} />
+        ) : null}
         {lines.map((l, i) => {
           const le = (f: string) => err(`lines.${i}.${f}`)
           return (
@@ -250,18 +275,47 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
                 <select
                   className={selectClass}
                   value={l.kind}
-                  onChange={(e) => setLine(l.key, { kind: e.target.value as Line["kind"], target: "" })}
+                  onChange={(e) => {
+                    const kind = e.target.value as Line["kind"]
+                    setLine(l.key, { kind, target: "", ...(kind === "landed_cost" ? { quantity: "1" } : {}) })
+                  }}
                 >
                   <option value="goods">{t("payables.kinds.goods")}</option>
+                  <option value="landed_cost">{t("payables.kinds.landed_cost")}</option>
                   <option value="expense">{t("payables.kinds.expense")}</option>
                 </select>
               </Field>
               <Field
                 id={`bl-${l.key}-target`}
-                label={l.kind === "goods" ? t("payables.product") : t("payables.expenseAccount")}
-                errors={le("product_id") ?? le("expense_account_id") ?? err(`lines.${i}`)}
+                label={
+                  l.kind === "goods"
+                    ? t("payables.product")
+                    : l.kind === "landed_cost"
+                      ? t("payables.extraCost")
+                      : t("payables.expenseAccount")
+                }
+                errors={le("product_id") ?? le("landed_cost_id") ?? le("expense_account_id") ?? err(`lines.${i}`)}
               >
-                {l.kind === "goods" ? (
+                {l.kind === "landed_cost" ? (
+                  <select
+                    className={selectClass}
+                    required
+                    value={l.target}
+                    onChange={(e) => {
+                      const c = candidates.find((x) => x.landed_cost_id === e.target.value)
+                      setLine(l.key, { target: e.target.value, unit_price: c?.amount ?? l.unit_price })
+                    }}
+                  >
+                    <option value="" disabled>
+                      {t("payables.chooseExtraCost")}
+                    </option>
+                    {candidates.map((c) => (
+                      <option key={c.landed_cost_id} value={c.landed_cost_id}>
+                        {landedLabel(c)}
+                      </option>
+                    ))}
+                  </select>
+                ) : l.kind === "goods" ? (
                   <select
                     className={selectClass}
                     required
@@ -290,6 +344,7 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
                 <Input
                   inputMode="decimal"
                   required
+                  readOnly={l.kind === "landed_cost"}
                   value={l.quantity}
                   onChange={(e) => setLine(l.key, { quantity: e.target.value })}
                 />

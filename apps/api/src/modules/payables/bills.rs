@@ -35,9 +35,10 @@ use crate::{
         payables::{
             common::{self, dependent, journal_preview, role_side},
             dto::{
-                BillInput, BillLineResource, BillMatchCandidates, BillMatchResource, BillPayload,
-                BillPostReview, BillTotals, LineTarget, ListQuery, MatchCandidate, MatchInput,
-                MatchPayload, ReverseInput, ReversePayload, ReverseReview, ReviewLine, ReviewMatch,
+                BillInput, BillLandedCandidates, BillLandedRef, BillLineResource,
+                BillMatchCandidates, BillMatchResource, BillPayload, BillPostReview, BillTotals,
+                LandedCandidate, LineTarget, ListQuery, MatchCandidate, MatchInput, MatchPayload,
+                ReverseInput, ReversePayload, ReverseReview, ReviewLine, ReviewMatch,
                 ReviewedPayload, SupplierBillResource, TaxComponent,
             },
         },
@@ -112,6 +113,13 @@ struct LineRow {
     tax_profile_id: Option<Uuid>,
     description: Option<String>,
     tax: Option<i64>,
+    landed_po_id: Option<Uuid>,
+    landed_po_number: Option<i64>,
+    landed_receipt_id: Option<Uuid>,
+    landed_receipt_number: Option<i64>,
+    landed_evidence: Option<String>,
+    landed_amount: Option<i64>,
+    landed_decimals: Option<i16>,
 }
 
 #[derive(FromRow)]
@@ -158,9 +166,19 @@ async fn resources(
     let lines: Vec<LineRow> = sqlx::query_as(
         "SELECT l.id, l.bill_id, l.line_no, l.kind, l.product_id, p.name AS product_name,
                 l.landed_cost_id, l.expense_account_id, l.quantity, l.unit_price, l.extension,
-                l.tax_profile_id, l.description, (l.tax_recoverable + l.tax_nonrecoverable) AS tax
+                l.tax_profile_id, l.description, (l.tax_recoverable + l.tax_nonrecoverable) AS tax,
+                lo.id AS landed_po_id, lo.number AS landed_po_number,
+                lr.id AS landed_receipt_id, lr.number AS landed_receipt_number,
+                lc.evidence_ref AS landed_evidence, lc.amount AS landed_amount,
+                lcc.decimals AS landed_decimals
          FROM supplier_bill_lines l
          LEFT JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+         LEFT JOIN purchase_landed_costs lc
+                ON lc.workspace_id = l.workspace_id AND lc.id = l.landed_cost_id
+         LEFT JOIN purchase_receipts lr ON lr.workspace_id = lc.workspace_id AND lr.id = lc.receipt_id
+         LEFT JOIN purchase_orders lo
+                ON lo.workspace_id = lc.workspace_id AND lo.id = lc.purchase_order_id
+         LEFT JOIN currencies lcc ON lcc.workspace_id = lc.workspace_id AND lcc.id = lc.currency_id
          WHERE l.workspace_id = $1 AND l.bill_id = ANY($2) ORDER BY l.bill_id, l.line_no",
     )
     .bind(ws)
@@ -236,6 +254,7 @@ async fn resources(
                         product_id: l.product_id,
                         product_name: l.product_name.clone(),
                         landed_cost_id: l.landed_cost_id,
+                        landed: landed_ref(l),
                         expense_account_id: l.expense_account_id,
                         quantity: qty(l.quantity),
                         unit_price: qty(l.unit_price),
@@ -273,6 +292,17 @@ async fn resources(
             }
         })
         .collect())
+}
+
+fn landed_ref(l: &LineRow) -> Option<BillLandedRef> {
+    Some(BillLandedRef {
+        purchase_order_id: l.landed_po_id?,
+        purchase_order_number: l.landed_po_number?,
+        receipt_id: l.landed_receipt_id?,
+        receipt_number: l.landed_receipt_number?,
+        evidence_ref: l.landed_evidence.clone()?,
+        amount: amount(l.landed_amount?, l.landed_decimals?),
+    })
 }
 
 async fn row(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<BillRow, AppError> {
@@ -397,6 +427,65 @@ pub async fn match_candidates(
                     booked_at: c.booked_at,
                     matchable: qty(c.matchable?),
                 })
+            })
+            .collect(),
+    })
+}
+
+#[derive(FromRow)]
+struct LandedCandidateRow {
+    landed_cost_id: Uuid,
+    purchase_order_id: Uuid,
+    purchase_order_number: i64,
+    receipt_id: Uuid,
+    receipt_number: i64,
+    evidence_ref: String,
+    amount: i64,
+    decimals: i16,
+}
+
+/// GET /supplier-bills/landed-candidates: booked landed components in `currency` on no live bill
+/// (draft or posted; `bill`'s own stay listed). Read-only, one query; workspace-scoped.
+// shortcut: first 500 components, page when a workspace outgrows it.
+pub async fn landed_candidates(
+    state: &AppState,
+    ws: Uuid,
+    currency: Uuid,
+    bill: Option<Uuid>,
+) -> Result<BillLandedCandidates, AppError> {
+    let rows: Vec<LandedCandidateRow> = sqlx::query_as(
+        "SELECT lc.id AS landed_cost_id, o.id AS purchase_order_id,
+                o.number AS purchase_order_number, r.id AS receipt_id, r.number AS receipt_number,
+                lc.evidence_ref, lc.amount, c.decimals
+         FROM purchase_landed_costs lc
+         JOIN purchase_receipts r ON r.workspace_id = lc.workspace_id AND r.id = lc.receipt_id
+         JOIN purchase_orders o ON o.workspace_id = lc.workspace_id AND o.id = lc.purchase_order_id
+         JOIN currencies c ON c.workspace_id = lc.workspace_id AND c.id = lc.currency_id
+         WHERE lc.workspace_id = $1 AND lc.currency_id = $2
+           AND NOT EXISTS (SELECT 1 FROM supplier_bill_matches m
+                           WHERE m.workspace_id = lc.workspace_id AND m.landed_cost_id = lc.id
+                             AND m.state <> 'reversed' AND m.bill_id IS DISTINCT FROM $3)
+         ORDER BY lc.created_at DESC, lc.id
+         LIMIT 500",
+    )
+    .bind(ws)
+    .bind(currency)
+    .bind(bill)
+    .fetch_all(&state.db)
+    .await?;
+    Ok(BillLandedCandidates {
+        candidates: rows
+            .into_iter()
+            .map(|c| LandedCandidate {
+                landed_cost_id: c.landed_cost_id,
+                component: BillLandedRef {
+                    purchase_order_id: c.purchase_order_id,
+                    purchase_order_number: c.purchase_order_number,
+                    receipt_id: c.receipt_id,
+                    receipt_number: c.receipt_number,
+                    evidence_ref: c.evidence_ref,
+                    amount: amount(c.amount, c.decimals),
+                },
             })
             .collect(),
     })

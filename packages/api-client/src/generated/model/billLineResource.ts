@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { BillLandedRef } from './billLandedRef';
 import type { BillMatchResource } from './billMatchResource';
 
 /**
@@ -19,6 +20,7 @@ export interface BillLineResource {
   id: string;
   /** goods, landed_cost or expense. */
   kind: string;
+  landed?: BillLandedRef | null;
   /** @nullable */
   landed_cost_id?: string | null;
   line_no: number;
