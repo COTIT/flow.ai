@@ -5,41 +5,41 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { X } from "lucide-react"
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "@genesy/ui/components/dialog"
+} from "@verzo/ui/components/dialog"
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetFooter,
-} from "@genesy/ui/components/sheet"
-import { VoiceActivity, VoiceThinking } from "@genesy/voice/components/activity"
-import { useVoice } from "@genesy/voice/components/provider"
-import { VoiceControls } from "@genesy/voice/components/controls"
-import { StrandsStatus } from "@genesy/voice/components/strands-status"
-import { VoiceUnfinished } from "@genesy/voice/components/unfinished"
-import { ConversationResults } from "@genesy/voice/components/conversation-results"
-import { ReviewDiff } from "@genesy/voice/components/review-diff"
+} from "@verzo/ui/components/sheet"
+import { VoiceActivity, VoiceThinking } from "@verzo/voice/components/activity"
+import { useVoice } from "@verzo/voice/components/provider"
+import { VoiceControls } from "@verzo/voice/components/controls"
+import { StrandsStatus } from "@verzo/voice/components/strands-status"
+import { VoiceUnfinished } from "@verzo/voice/components/unfinished"
+import { ConversationResults } from "@verzo/voice/components/conversation-results"
+import { ReviewDiff } from "@verzo/voice/components/review-diff"
 import {
   NotIncluded,
   ReviewButtons,
   ReviewHints,
   ReviewList,
   ReviewTitle,
-} from "@genesy/voice/components/review-details"
-import { TranscriptRows } from "@genesy/voice/components/transcript"
-import { AttachmentPreview } from "@genesy/voice/components/attachments"
-import { VoiceComposer } from "@genesy/voice/components/composer"
+} from "@verzo/voice/components/review-details"
+import { TranscriptRows } from "@verzo/voice/components/transcript"
+import { AttachmentPreview } from "@verzo/voice/components/attachments"
+import { VoiceComposer } from "@verzo/voice/components/composer"
 import {
   useVoiceTips,
   VoiceSuggestions,
-} from "@genesy/voice/components/suggestions"
-import type { Available } from "@genesy/voice/lib/capabilities"
+} from "@verzo/voice/components/suggestions"
+import type { Available } from "@verzo/voice/lib/capabilities"
 import { useRights } from "@/lib/can"
 
 export function VoiceConversation({

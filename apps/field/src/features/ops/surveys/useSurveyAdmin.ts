@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { currenciesList } from '@genesy/api-client/endpoints/currencies'
+import { currenciesList } from '@verzo/api-client/endpoints/currencies'
 import {
   farmSurveysAddQuestion,
   farmSurveysClose,
@@ -12,8 +12,8 @@ import {
   farmSurveysResults,
   farmSurveysUpdate,
   farmSurveysVouchers,
-} from '@genesy/api-client/endpoints/farm-surveys'
-import { farmVouchersVoid } from '@genesy/api-client/endpoints/farm-vouchers'
+} from '@verzo/api-client/endpoints/farm-surveys'
+import { farmVouchersVoid } from '@verzo/api-client/endpoints/farm-vouchers'
 import type {
   CurrencyResource,
   QuestionRequest,
@@ -22,7 +22,7 @@ import type {
   SurveyResource,
   SurveyResults,
   SurveyVoucher as SurveyVoucherRow,
-} from '@genesy/api-client/model'
+} from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
@@ -40,10 +40,10 @@ export type SurveyResultsData = SurveyResults
 export type SurveyVoucher = Omit<SurveyVoucherRow, 'status'> & { status: 'issued' | 'redeemed' | 'void' }
 /** A survey body as the forms send it: a blank or unreadable reward goes as null, for the API to refuse. */
 export type SurveyBody = Omit<SurveyRequest, 'reward_minor'> & { reward_minor?: number | null }
-export type { NumberSummary as NumberSummaryRow, TallyRow } from '@genesy/api-client/model'
+export type { NumberSummary as NumberSummaryRow, TallyRow } from '@verzo/api-client/model'
 
 /**
- * Surveys, results and vouchers for ops and admin, on the Genesy API.
+ * Surveys, results and vouchers for ops and admin, on the Verzo API.
  *
  * Every figure on these screens is the API's: GET .../results counts
  * responses and vouchers and sums their cash. Nothing here sums or counts

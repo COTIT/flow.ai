@@ -7,16 +7,16 @@ use axum::{
     http::{Method, StatusCode},
 };
 use common::{FRONTEND_URL, PASSWORD, app_with_mail, post, send, signup};
-use genesy_360_api::{build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer};
 
 const NOT_FOUND: &str = "The requested resource could not be found.";
 
 struct World {
     app: Router,
-    outbox: genesy_360_api::mail::Outbox,
+    outbox: verzo_360_api::mail::Outbox,
     pool: PgPool,
     owner_token: String,
     ws: String,
@@ -253,7 +253,7 @@ async fn smtp_failure_is_500_without_internals(pool: PgPool) {
     let (token, ws) = signup(&ok_app, "ada@example.com", "acme").await;
     common::verify_email(&pool, "ada@example.com").await;
     // Port 1: nothing listens, connect fails fast.
-    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
+    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Verzo <no-reply@genesy.test>").unwrap();
     let app = build_app(common::state(pool, broken));
 
     let (status, res) = send(
@@ -272,7 +272,7 @@ async fn smtp_failure_is_500_without_internals(pool: PgPool) {
 #[sqlx::test]
 async fn smtp_failure_leaves_no_invite_and_keeps_the_last_code(pool: PgPool) {
     let w = world(pool.clone()).await;
-    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
+    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Verzo <no-reply@genesy.test>").unwrap();
     let app = build_app(common::state(pool, broken));
     let uri = format!("/v1/workspace/{}/invites", w.ws);
     let invite = |email: &'static str| {

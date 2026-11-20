@@ -9,7 +9,9 @@ use axum::{
     routing::post,
 };
 use common::{app_with_mail, member_with, send, signup, state};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::{
     build_app,
     integrations::{
         Runtime,
@@ -21,8 +23,6 @@ use genesy_360_api::{
     mail::Mailer,
     outbound::Outbound,
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 const NOT_FOUND: &str = "The requested resource could not be found.";
 const UNAUTHORIZED: &str = "This action is unauthorized.";
@@ -367,7 +367,7 @@ async fn test_probe_sets_status(pool: PgPool) {
         error_class: Some(class),
         detail: Some("refused".into()),
     };
-    use genesy_360_api::integrations::capability::ErrorClass;
+    use verzo_360_api::integrations::capability::ErrorClass;
     w.fake
         .script(&id, vec![fail("purchase_request.read", ErrorClass::Auth)]);
     let (_, b) = w.post(&test, json!({})).await;

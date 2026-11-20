@@ -1,5 +1,5 @@
 import type { TranscriptRow } from "./helpers"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { drawnAs, type ResultView } from "./views"
 
 export type ReportCell = string | number | boolean | null

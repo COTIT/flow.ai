@@ -4,8 +4,8 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 
 /**
  * Shown while an order awaits payment. Re-reads the page every 3 s (the provider's webhook

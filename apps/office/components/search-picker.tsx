@@ -4,9 +4,9 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 import { ChevronDown, Loader2 } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { cn } from "@genesy/ui/lib/utils"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { cn } from "@verzo/ui/lib/utils"
 import { selectClass } from "@/components/field"
 
 export type Option = { id: string; label: string; hint?: string }

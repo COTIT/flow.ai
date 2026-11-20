@@ -3,7 +3,7 @@ import type {
   Passport,
   PublicBlock,
   PublicPassport,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 /**
  * The draft in the public page's shape, for the preview only. File ids become the

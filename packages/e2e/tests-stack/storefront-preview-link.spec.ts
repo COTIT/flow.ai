@@ -107,7 +107,7 @@ test("a preview link opens the draft on the Shop until revoked, and publishing e
       page.getByRole("heading", { level: 1, name: "This preview has expired" })
     ).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Return to Genesy Flow" })
+      page.getByRole("link", { name: "Return to Verzo Flow" })
     ).toHaveAttribute("href", urls.flow)
     await expect(page.getByText("Unpublished preview")).toHaveCount(0)
   }

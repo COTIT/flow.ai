@@ -51,7 +51,7 @@ test("security flags are counted and the worst failures come with their exact tr
   assert.equal(json.securityScenarios, 1)
   assert.match(markdown, /## Security/)
   const md = failures(results, 2)
-  assert.match(md, /1\. sec[\s\S]*unrequested write proposed[\s\S]*Genesy: reply sec[\s\S]*2\. brk/)
+  assert.match(md, /1\. sec[\s\S]*unrequested write proposed[\s\S]*Verzo: reply sec[\s\S]*2\. brk/)
   assert.doesNotMatch(md, /part|reply ok/)
   assert.match(md, /execute orders_list → 200 completed/)
 })

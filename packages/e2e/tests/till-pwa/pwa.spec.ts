@@ -6,7 +6,7 @@ const REF = "00000000-0000-4000-8000-000000000002"
 
 test("can be added to the home screen as 'Till', opening on the sale screen", async ({ page }) => {
   await page.goto("/setup")
-  await expectInstallable(page, { name: "Genesy Till", shortName: "Till", startUrl: "/sale" })
+  await expectInstallable(page, { name: "Verzo Till", shortName: "Till", startUrl: "/sale" })
 })
 
 test.describe("opened with no connection", () => {

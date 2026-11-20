@@ -9,15 +9,15 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { useVoice } from "@genesy/voice/components/provider"
-import { TranscriptRows } from "@genesy/voice/components/transcript"
-import { VoiceRequestError, voiceErrorMessage } from "@genesy/voice/lib/errors"
-import { requestFailureKey } from "@genesy/voice/lib/helpers"
+import { useSession } from "@verzo/api-client/auth"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { useVoice } from "@verzo/voice/components/provider"
+import { TranscriptRows } from "@verzo/voice/components/transcript"
+import { VoiceRequestError, voiceErrorMessage } from "@verzo/voice/lib/errors"
+import { requestFailureKey } from "@verzo/voice/lib/helpers"
 import {
   historyRequest,
   type HistoryConversation,

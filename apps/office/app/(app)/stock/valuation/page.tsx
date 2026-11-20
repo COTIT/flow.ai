@@ -4,11 +4,11 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAccountingInventoryValuation } from "@genesy/api-client/endpoints/accounting"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+import { useSession } from "@verzo/api-client/auth"
+import { useAccountingInventoryValuation } from "@verzo/api-client/endpoints/accounting"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -17,8 +17,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { WarehousePicker } from "@/components/pickers"

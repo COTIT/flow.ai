@@ -6,23 +6,23 @@ import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-import { useIsMobile } from "@genesy/ui/hooks/use-mobile"
-import { Button } from "@genesy/ui/components/button"
-import { Input } from "@genesy/ui/components/input"
-import { Separator } from "@genesy/ui/components/separator"
+import { useIsMobile } from "@verzo/ui/hooks/use-mobile"
+import { Button } from "@verzo/ui/components/button"
+import { Input } from "@verzo/ui/components/input"
+import { Separator } from "@verzo/ui/components/separator"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@genesy/ui/components/sheet"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/ui/components/sheet"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@genesy/ui/components/tooltip"
+} from "@verzo/ui/components/tooltip"
 import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"

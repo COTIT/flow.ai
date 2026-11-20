@@ -7,11 +7,11 @@ import {
   getScheduledReportsListQueryKey,
   useScheduledReportsDelete,
   useScheduledReportsUpdate,
-} from "@genesy/api-client/endpoints/scheduled-reports"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/scheduled-reports"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { useReports, useWorkspace } from "@/lib/use-scene-data"
 import { capability, useRunCapability } from "@/lib/pills"
 import { useSyncGuard } from "@/lib/use-sync-guard"

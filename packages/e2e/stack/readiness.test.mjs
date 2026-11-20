@@ -126,10 +126,10 @@ test("preparation uses candidates and publishes its manifest only after scan and
 })
 
 test("CI checks reviewed voice contracts and pinned checkpoint schema before builds", () => {
-  assert.match(workflow, /run: pnpm --filter @genesy\/office voice:check/)
+  assert.match(workflow, /run: pnpm --filter @verzo\/office voice:check/)
   assert.match(
     workflow,
-    /run: pnpm --filter @genesy\/office exec node scripts\/check-voice-schema\.mjs/
+    /run: pnpm --filter @verzo\/office exec node scripts\/check-voice-schema\.mjs/
   )
   assert.ok(
     workflow.indexOf("voice:check") <
@@ -140,7 +140,7 @@ test("CI checks reviewed voice contracts and pinned checkpoint schema before bui
 test("the stack Office build uses its package preparation while other build paths stay unchanged", () => {
   assert.deepEqual(nextBuildArgs("office"), [
     "--filter",
-    "@genesy/office",
+    "@verzo/office",
     "build",
   ])
   const office = JSON.parse(
@@ -154,11 +154,11 @@ test("the stack Office build uses its package preparation while other build path
       office.scripts.build.indexOf("next build")
   )
   // Flow runs its own package build too, so the voice audio step the parent adds is picked up.
-  assert.deepEqual(nextBuildArgs("flow"), ["--filter", "@genesy/flow", "build"])
+  assert.deepEqual(nextBuildArgs("flow"), ["--filter", "@verzo/flow", "build"])
   for (const app of ["shop", "till", "landing"])
     assert.deepEqual(nextBuildArgs(app), [
       "--filter",
-      `@genesy/${app}`,
+      `@verzo/${app}`,
       "exec",
       "next",
       "build",

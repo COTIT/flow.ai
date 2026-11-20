@@ -6,10 +6,10 @@ use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::{Api, signup};
-use genesy_360_api::{CredentialKey, build_app, mail::Mailer};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{CredentialKey, build_app, mail::Mailer};
 
 const MASK: &str = "********";
 const RE_ENTER: &str = "Enter this credential again.";

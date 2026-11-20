@@ -28,7 +28,7 @@ test("home leads with the mission, the trace box and AFM's categories", async ({
     HEADLINE
   )
   await expect(page.getByLabel("Batch code")).toBeVisible()
-  // What Genesy adds, said plainly: passport, live stock, farmers per batch.
+  // What Verzo adds, said plainly: passport, live stock, farmers per batch.
   const promises = page.getByRole("region", {
     name: "What you can check yourself",
   })
@@ -61,11 +61,11 @@ test("home leads with the mission, the trace box and AFM's categories", async ({
 
   const footer = page.getByRole("contentinfo")
   await expect(footer).toContainText(HEADLINE)
-  // AFM's shop under AFM's name; Genesy is credited for the tracing.
+  // AFM's shop under AFM's name; Verzo is credited for the tracing.
   await expect(
     header.getByRole("link", { name: "African Farmers Market home" })
   ).toContainText("African Farmers Market")
-  await expect(footer).toContainText("Batches traced with Genesy")
+  await expect(footer).toContainText("Batches traced with Verzo")
   await expect(footer.getByLabel("Language")).toBeVisible()
   await expect(header.getByLabel("Language")).toBeVisible({
     visible: !isMobile,

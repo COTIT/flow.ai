@@ -1,39 +1,32 @@
 {
   "landing": {
-    "title": "Genesy",
-    "description": "Genesy inarekodi mavuno, inafuatilia kundi, inachapisha pasipoti kwa kila chupa na inamlipa mkulima bidhaa inapouzwa.",
+    "title": "Verzo",
+    "description": "Unganisha programu unazotumia, unda taratibu za kazi kwa lugha ya kawaida, na endesha kazi kiotomatiki katika mifumo mbalimbali.",
     "skip": "Ruka hadi maudhui",
     "nav": {
       "label": "Menyu kuu",
-      "how": "Jinsi inavyofanya kazi",
+      "how": "Tazama mfano wa matumizi",
       "who": "Ni kwa ajili ya nani",
       "passport": "Pasipoti",
       "contact": "Wasiliana",
       "language": "Lugha",
       "theme": "Badilisha mwanga au giza",
-      "home": "Mwanzo wa Genesy"
+      "home": "Mwanzo wa Verzo"
     },
     "cta": "Ongea nasi",
     "hero": {
-      "tag": "Kutoka shambani hadi jikoni, kwa uwazi",
-      "title": "Kila chupa ina hadithi. Kila mkulima anapata sehemu yake.",
-      "lead": "Genesy inarekodi mavuno, inafuatilia kundi, inachapisha pasipoti kwa kila chupa na inamlipa mkulima bidhaa inapouzwa. Mfumo mmoja, kutoka shambani hadi kaunta.",
-      "how": "Jinsi inavyofanya kazi",
-      "scene": "Mchoro: mzinga wa nyuki milimani, njia ya nukta inayoelekea chupa ya asali",
-      "rotating": {
-        "prefix": "Inafuatiliwa kutoka",
-        "words": [
-          "mzinga",
-          "mavuno",
-          "kundi",
-          "pasipoti",
-          "duka",
-          "kitabu cha akiba"
-        ]
-      }
+      "tag": "Jukwaa la uendeshaji wa biashara lililojengwa kwa AI",
+      "title": "Geuza nia zako kuwa vitendo.",
+      "lead": "Unganisha programu unazotumia, unda taratibu za kazi kwa lugha ya kawaida, na endesha kazi kiotomatiki katika mifumo mbalimbali.",
+      "how": "Tazama mfano wa matumizi",
+      "steps": [
+        "Unganisha programu zako",
+        "Eleza utaratibu wa kazi",
+        "Endesha kazi kiotomatiki katika mifumo mbalimbali"
+      ]
     },
     "journey": {
-      "tag": "Jinsi inavyofanya kazi",
+      "tag": "Mfano wa matumizi kutoka shambani hadi dukani",
       "title": "Tazama chupa moja ikisafiri — na pesa ikirudi.",
       "steps": {
         "hive": {
@@ -136,12 +129,12 @@
     },
     "contact": {
       "tag": "Ongea nasi",
-      "title": "Unalima, unafunga au unauza kitu kinachostahili kufuatiliwa? Tuongee.",
+      "title": "Ungependa kuendesha kazi gani kiotomatiki?",
       "button": "Tutumie barua pepe",
       "note": "Kiingereza, Kiholanzi au Kiswahili. Tunajibu ndani ya siku mbili za kazi."
     },
     "footer": {
-      "tagline": "Kutoka shambani hadi rafuni, kwa uwazi — na mkulima analipwa njiani.",
+      "tagline": "Geuza nia zako kuwa vitendo.",
       "shop": "Duka",
       "buy": "Nunua asali",
       "check": "Angalia pasipoti",
@@ -151,11 +144,11 @@
       "till": "Kaunta",
       "about": "Kuhusu",
       "contact": "Wasiliana",
-      "copyright": "© {year} Genesy",
+      "copyright": "© {year} Verzo",
       "languages": "Lugha"
     },
     "features": {
-      "label": "Genesy inafanya nini",
+      "label": "Vipengele vya kufuatilia kutoka shambani hadi dukani",
       "items": [
         "Inafanya kazi bila mtandao shambani",
         "Kiswahili · English · Nederlands",
@@ -166,7 +159,7 @@
         "Pesa sahihi hadi senti"
       ]
     },
-    "seoTitle": "Genesy — kila chupa ina hadithi, kila mkulima anapata sehemu yake",
-    "ogAlt": "Genesy: kutoka mzingani hadi jikoni kwako, na mkulima analipwa njiani"
+    "seoTitle": "Verzo | Jukwaa la uendeshaji wa biashara lililojengwa kwa AI",
+    "ogAlt": "Verzo. Geuza nia zako kuwa vitendo."
   }
 }

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest"
 
-vi.mock("@genesy/api-client/auth", () => ({ useSession: vi.fn() }))
-vi.mock("@genesy/api-client/endpoints/users", () => ({ useUsersMe: vi.fn() }))
+vi.mock("@verzo/api-client/auth", () => ({ useSession: vi.fn() }))
+vi.mock("@verzo/api-client/endpoints/users", () => ({ useUsersMe: vi.fn() }))
 
 it("each office route keeps the right its page list needs, readable on the server", async () => {
   const { rightFor } = await import("./routes")
@@ -33,8 +33,8 @@ it("the client helper still answers with the same rule", async () => {
 it.each(["invoice.list", "order.list", "product.list"])(
   "payments navigation checks %s",
   async (right) => {
-    const { useSession } = await import("@genesy/api-client/auth")
-    const { useUsersMe } = await import("@genesy/api-client/endpoints/users")
+    const { useSession } = await import("@verzo/api-client/auth")
+    const { useUsersMe } = await import("@verzo/api-client/endpoints/users")
     const { useRights } = await import("./can")
     vi.mocked(useSession).mockReturnValue("w1")
     vi.mocked(useUsersMe).mockReturnValue({

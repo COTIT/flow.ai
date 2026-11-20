@@ -1,9 +1,9 @@
 {
-  "extends": "@genesy/typescript-config/nextjs.json",
+  "extends": "@verzo/typescript-config/nextjs.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./*"],
-      "@genesy/ui/*": ["../../packages/ui/src/*"]
+      "@verzo/ui/*": ["../../packages/ui/src/*"]
     },
     "plugins": [{ "name": "next" }]
   },

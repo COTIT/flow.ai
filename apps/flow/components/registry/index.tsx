@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react"
 
-import type { FlowComponentType } from "@genesy/api-client/model"
+import type { FlowComponentType } from "@verzo/api-client/model"
 import { AttentionPanel } from "./attention-panel"
 import { Chart } from "./chart"
 import { Comparison } from "./comparison"

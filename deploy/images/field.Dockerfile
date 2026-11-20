@@ -16,7 +16,7 @@ WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=genesy-pnpm-store,target=/pnpm-store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir /pnpm-store
-RUN pnpm --filter @genesy/field build
+RUN pnpm --filter @verzo/field build
 
 # Non-root nginx (uid 101), listens on 8080.
 FROM nginxinc/nginx-unprivileged:1.31.6-alpine3.24@sha256:884e0b7f42f303641b0f4e78755aea647521dca0b89ca3be7992ad78b5c07434 AS runtime

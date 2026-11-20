@@ -10,7 +10,7 @@ const api = {
   farmMarketOpportunitiesStatus: vi.fn(),
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
-vi.mock('@genesy/api-client/endpoints/farm-market', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-market', () => ({
   farmMarketOpportunitiesGet: forward('farmMarketOpportunitiesGet'),
   farmMarketHarvestAvailable: forward('farmMarketHarvestAvailable'),
   farmMarketSupplyCreate: forward('farmMarketSupplyCreate'),

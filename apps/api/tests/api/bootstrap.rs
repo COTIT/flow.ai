@@ -4,9 +4,9 @@ use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::send;
-use genesy_360_api::{bootstrap, build_app, mail::Mailer};
 use serde_json::json;
 use sqlx::PgPool;
+use verzo_360_api::{bootstrap, build_app, mail::Mailer};
 
 fn signup() -> serde_json::Value {
     json!({ "first_name": "Ada", "last_name": "Owner", "email": "ada@prod.test",

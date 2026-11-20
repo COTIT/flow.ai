@@ -2,7 +2,7 @@ import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 // An HTTP answer, so the session query's connection retry does not apply.
 const FAILURE = Object.assign(new Error('Request failed with status code 500'), {

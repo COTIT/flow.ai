@@ -3,17 +3,17 @@
 import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingSetupGetQueryKey,
   useAccountingOpeningValidate,
-} from "@genesy/api-client/endpoints/accounting"
-import { useImportsList } from "@genesy/api-client/endpoints/imports"
-import type { CurrencyRef } from "@genesy/api-client/model"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatDateTime, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/accounting"
+import { useImportsList } from "@verzo/api-client/endpoints/imports"
+import type { CurrencyRef } from "@verzo/api-client/model"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatDateTime, formatQty } from "@verzo/ui/lib/format"
 import { useQueryClient } from "@tanstack/react-query"
 import { Bento, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"

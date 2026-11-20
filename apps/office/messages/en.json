@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Genesy Office",
+    "title": "Verzo Office",
     "tagline": "Back office: products, stock, batches, invoices and orders."
   },
   "products": {
@@ -182,7 +182,7 @@
     "revoke": "Revoke",
     "revokeTitle": "Revoke {name}?",
     "revokeText": "Apps using this key stop working at once. This cannot be undone.",
-    "intro": "Keys let the web shop and the till talk to Genesy. Each account has its own.",
+    "intro": "Keys let the web shop and the till talk to Verzo. Each account has its own.",
     "created": "Key created",
     "secretHint": "Store it where the shop server can read it.",
     "kinds": {
@@ -219,7 +219,7 @@
     "deleteText": "{url} will get no more events. This cannot be undone.",
     "intro": "Webhooks tell your other systems when something changes in this account.",
     "created": "Endpoint created",
-    "secretHint": "Use it to check that events really come from Genesy.",
+    "secretHint": "Use it to check that events really come from Verzo.",
     "eventNames": {
       "lot_created": "Batch created",
       "lot_status_changed": "Batch status changed",
@@ -1747,7 +1747,7 @@
       "backToJournal": "Back to the journal",
       "totalDebit": "Total debit",
       "totalCredit": "Total credit",
-      "serverAmounts": "Totals as calculated by Genesy.",
+      "serverAmounts": "Totals as calculated by Verzo.",
       "nextStep": "Next step",
       "next": {
         "post": "Check the entry, then post it to the book.",
@@ -1856,7 +1856,7 @@
       "timezone": "Timezone",
       "chooseTimezone": "Choose a timezone",
       "roles": "Accounts per role",
-      "rolesHint": "Genesy books each kind of business event to the account you pick here.",
+      "rolesHint": "Verzo books each kind of business event to the account you pick here.",
       "unmapped": "No account yet",
       "save": "Save setup"
     },

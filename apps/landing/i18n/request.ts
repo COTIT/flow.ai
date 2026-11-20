@@ -1,6 +1,6 @@
 import { getRequestConfig } from "next-intl/server"
 
-import { loadMessages, locales, type Locale } from "@genesy/i18n/locales"
+import { loadMessages, locales, type Locale } from "@verzo/i18n/locales"
 
 // The landing page puts the language in the path (/, /nl, /sw) for search engines, not in a cookie.
 export default getRequestConfig(async ({ requestLocale }) => {

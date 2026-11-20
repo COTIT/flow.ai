@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { farmLoginsHistory, farmLoginsIssue } from '@genesy/api-client/endpoints/farm-logins'
-import type { IssuedLogin, LoginIssue } from '@genesy/api-client/model'
+import { farmLoginsHistory, farmLoginsIssue } from '@verzo/api-client/endpoints/farm-logins'
+import type { IssuedLogin, LoginIssue } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { queryKeys } from '@/lib/queryKeys'

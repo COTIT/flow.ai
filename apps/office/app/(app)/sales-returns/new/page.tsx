@@ -5,18 +5,18 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getSalesReturnsListQueryKey,
   useSalesReturnsCandidates,
   useSalesReturnsCreate,
-} from "@genesy/api-client/endpoints/sales-returns"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/sales-returns"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatQty } from "@verzo/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"

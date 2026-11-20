@@ -2,13 +2,13 @@
 
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useStockWithBins } from "@genesy/api-client/endpoints/stock"
-import { Button } from "@genesy/ui/components/button"
-import { useVoice } from "@genesy/voice/components/provider"
-import { ReviewTitle } from "@genesy/voice/components/review-details"
-import type { VoiceOutcome, VoiceReview } from "@genesy/voice/lib/client-contract"
-import { receiptOf, slotKey, stockAt, type ReadBack } from "@genesy/voice/lib/task"
+import { useSession } from "@verzo/api-client/auth"
+import { useStockWithBins } from "@verzo/api-client/endpoints/stock"
+import { Button } from "@verzo/ui/components/button"
+import { useVoice } from "@verzo/voice/components/provider"
+import { ReviewTitle } from "@verzo/voice/components/review-details"
+import type { VoiceOutcome, VoiceReview } from "@verzo/voice/lib/client-contract"
+import { receiptOf, slotKey, stockAt, type ReadBack } from "@verzo/voice/lib/task"
 import { stockLevels } from "@/lib/proposed"
 import { useOnceIntent } from "@/lib/use-once-intent"
 import { useTakeFocus } from "@/lib/use-take-focus"
@@ -150,7 +150,7 @@ export function Receipt({
       {receipt.status === "unknown" ? (
         <div className="flex flex-wrap items-center gap-2">
           <p className="mr-auto text-sm">{t("unknownText")}</p>
-          {/* A status question to Genesy; the write itself is never sent again. */}
+          {/* A status question to Verzo; the write itself is never sent again. */}
           {voice.connected ? (
             <Button
               variant="outline"

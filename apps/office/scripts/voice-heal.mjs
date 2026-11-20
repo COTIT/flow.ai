@@ -2,10 +2,10 @@
 // Developer-only voice gap triage and trigger-word heal. Never pushes, merges or opens a PR.
 //
 //   psql "$DATABASE_URL" -At -v triage=1 -v days=7 -f apps/api/scripts/voice-gaps.sql \
-//     | pnpm --filter @genesy/office voice:triage -- --days 7 [--out report.md]
-//   ... | pnpm --filter @genesy/office voice:heal -- [--dry-run]
+//     | pnpm --filter @verzo/office voice:triage -- --days 7 [--out report.md]
+//   ... | pnpm --filter @verzo/office voice:heal -- [--dry-run]
 //   psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql \
-//     | pnpm --filter @genesy/office voice:demand -- --days 7 [--out demand]   (writes demand.json + demand.md)
+//     | pnpm --filter @verzo/office voice:demand -- --days 7 [--out demand]   (writes demand.json + demand.md)
 //
 // Flags: --input <file> (instead of stdin), --min-gaps 2, --min-workspaces 2, --solo-gaps 5.
 import { execFileSync } from "node:child_process"

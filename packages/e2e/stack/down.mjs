@@ -1,4 +1,4 @@
-// `pnpm --filter @genesy/e2e stack:down`: stops this offset's processes and removes its container.
+// `pnpm --filter @verzo/e2e stack:down`: stops this offset's processes and removes its container.
 import console from "node:console"
 import { spawnSync } from "node:child_process"
 import process from "node:process"

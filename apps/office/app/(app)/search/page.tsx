@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useSearchQuick } from "@genesy/api-client/endpoints/search"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+import { useSession } from "@verzo/api-client/auth"
+import { useSearchQuick } from "@verzo/api-client/endpoints/search"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -18,8 +18,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
+} from "@verzo/ui/components/table"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { Tile } from "@/components/bento"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"

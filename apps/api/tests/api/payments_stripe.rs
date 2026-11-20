@@ -20,7 +20,11 @@ use axum::{
     routing::{get, post},
 };
 use common::{Api, invoicing::stock, send};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use tower::ServiceExt;
+use uuid::Uuid;
+use verzo_360_api::{
     build_app,
     jobs::{
         kinds::{self, Ctx},
@@ -33,10 +37,6 @@ use genesy_360_api::{
         stripe::{self, Settings, Stripe},
     },
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
-use tower::ServiceExt;
-use uuid::Uuid;
 
 const KEY: &str = "sk_test_fake";
 const WHSEC: &str = "whsec_fake_endpoint";
@@ -409,7 +409,7 @@ async fn drain(w: &W) {
         assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
         payments: w.stripe.clone().into(),
     };

@@ -233,7 +233,7 @@ describe('nothing at all', () => {
   })
 })
 
-describe('a failed Genesy API call', () => {
+describe('a failed Verzo API call', () => {
   test('shows the message the API wrote, not the HTTP library summary', () => {
     const error = Object.assign(new Error('Request failed with status code 422'), {
       response: { status: 422, data: { message: 'a household must be verified by someone other than the officer who registered it' } },

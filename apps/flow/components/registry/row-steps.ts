@@ -3,16 +3,16 @@
 import { useLocale, useTranslations } from "next-intl"
 import { useStore } from "zustand"
 
-import { useRights } from "@genesy/api-client/rights"
-import { formatQty } from "@genesy/ui/lib/format"
-import { useVoice } from "@genesy/voice/components/provider"
-import { statusOf } from "@genesy/voice/lib/capabilities"
+import { useRights } from "@verzo/api-client/rights"
+import { formatQty } from "@verzo/ui/lib/format"
+import { useVoice } from "@verzo/voice/components/provider"
+import { statusOf } from "@verzo/voice/lib/capabilities"
 import { flowStore } from "@/lib/flow-store"
 import { capability, dockAsk } from "@/lib/pills"
 import type { RowAction } from "./record-table"
 
 /**
- * Asks Genesy through the dock, as typing it would: a write comes back as the normal review
+ * Asks Verzo through the dock, as typing it would: a write comes back as the normal review
  * card, never straight to the API. Null while a review waits, without the right, or with no dock.
  */
 export function useAskStep(capabilityId: string) {
@@ -25,8 +25,8 @@ export function useAskStep(capabilityId: string) {
 
 /**
  * "Restock" on a product below its minimum: names the product and its shortfall (API values) and
- * decides no amount, so Genesy asks what arrived before it prepares the review. The product is
- * selected for Genesy (id only).
+ * decides no amount, so Verzo asks what arrived before it prepares the review. The product is
+ * selected for Verzo (id only).
  */
 export function useRestock() {
   const t = useTranslations("scenes")

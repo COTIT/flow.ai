@@ -17,7 +17,7 @@ test("logging in opens the overview", async ({ page }) => {
     },
   })
   await page.goto("/login")
-  await expect(page.getByRole("img", { name: "Genesy" })).toBeVisible()
+  await expect(page.getByRole("img", { name: "Verzo" })).toBeVisible()
   await expectNoHorizontalScroll(page)
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Language" })).toBeVisible()

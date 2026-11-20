@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const cycleGet = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesGet: (...args: unknown[]) => cycleGet(...args),
   farmRecordsPlotsGet: () => Promise.resolve({ data: { label: 'Kipande cha juu' } }),
   farmRecordsHarvestReportsList: () =>

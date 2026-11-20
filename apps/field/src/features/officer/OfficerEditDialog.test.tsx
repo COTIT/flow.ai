@@ -72,7 +72,7 @@ describe('OfficerEditDialog', () => {
     }
   })
 
-  // A failed Genesy API call is an axios error: its body, not axios's summary, is what to read.
+  // A failed Verzo API call is an axios error: its body, not axios's summary, is what to read.
   test('an API refusal shows the API message', () => {
     const error = Object.assign(new Error('Request failed with status code 422'), {
       response: { status: 422, data: { message: 'harvest window must end on or after it starts' } },

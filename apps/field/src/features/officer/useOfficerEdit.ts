@@ -6,7 +6,7 @@ import {
   farmRecordsHouseholdsCorrect,
   farmRecordsPersonsCorrect,
   farmRecordsPlotsCorrect,
-} from '@genesy/api-client/endpoints/farm-records'
+} from '@verzo/api-client/endpoints/farm-records'
 
 import { workspaceId } from '@/app/workspace'
 

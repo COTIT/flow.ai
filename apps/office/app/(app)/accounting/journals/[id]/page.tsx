@@ -5,16 +5,16 @@ import Link from "next/link"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingJournalsGetQueryKey,
   getAccountingJournalsListQueryKey,
   useAccountingAccountsList,
   useAccountingJournalsGet,
-} from "@genesy/api-client/endpoints/accounting"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/accounting"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -22,8 +22,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime, formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDateTime, formatDay } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"

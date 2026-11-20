@@ -4,13 +4,13 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
-use genesy_360_api::{
-    AppState,
-    jobs::{self, kinds::Ctx, runner::Step},
-};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::{
+    AppState,
+    jobs::{self, kinds::Ctx, runner::Step},
+};
 
 struct World {
     app: Router,
@@ -20,8 +20,8 @@ struct World {
 }
 
 async fn world(db: PgPool) -> World {
-    let state = common::state(db, genesy_360_api::mail::Mailer::capture().0);
-    let app = genesy_360_api::build_app(state.clone());
+    let state = common::state(db, verzo_360_api::mail::Mailer::capture().0);
+    let app = verzo_360_api::build_app(state.clone());
     let (token, ws) = signup(&app, "imports@example.test", "imports").await;
     World {
         app,
@@ -153,7 +153,7 @@ impl World {
             assistant_api_key: None,
             db: self.state.db.clone(),
             files: self.state.files.clone(),
-            http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+            http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
             credentials: self.state.credentials.clone(),
             payments: self.state.payments.clone(),
         };
@@ -259,7 +259,7 @@ async fn products_import_creates_only_valid_rows(db: PgPool) {
         .execute(&w.state.db)
         .await
         .unwrap();
-    genesy_360_api::imports::service::enqueue_apply(
+    verzo_360_api::imports::service::enqueue_apply(
         &w.state.db,
         Uuid::parse_str(&w.ws).unwrap(),
         Uuid::parse_str(batch["id"].as_str().unwrap()).unwrap(),

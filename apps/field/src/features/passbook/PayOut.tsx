@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import type { Money } from '@genesy/api-client/model'
-import { Notice } from '@genesy/ui/components/notice'
+import type { Money } from '@verzo/api-client/model'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'

@@ -225,7 +225,7 @@ pub struct LaneProps {
     pub is_lost: bool,
 }
 
-// POST /deal-pipelines. Laravel's store rules had no `type`, so it was dropped; genesy keeps it.
+// POST /deal-pipelines. Laravel's store rules had no `type`, so it was dropped; Verzo keeps it.
 /// POST /deal-pipelines.
 #[derive(Deserialize, ToSchema)]
 #[schema(description = "New pipeline.")]

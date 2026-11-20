@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { AppKeyKind, AppKeyScope, WebhookEvent } from "@genesy/api-client/model"
+import { AppKeyKind, AppKeyScope, WebhookEvent } from "@verzo/api-client/model"
 import en from "../messages/en.json"
 import nl from "../messages/nl.json"
 import sw from "../messages/sw.json"

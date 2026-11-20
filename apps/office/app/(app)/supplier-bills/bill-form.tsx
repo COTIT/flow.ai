@@ -6,36 +6,37 @@ import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
-import { useRelationsList } from "@genesy/api-client/endpoints/relations"
+import { useSession } from "@verzo/api-client/auth"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
+import { useRelationsList } from "@verzo/api-client/endpoints/relations"
 import {
   getSupplierBillsGetQueryKey,
   getSupplierBillsListQueryKey,
   useSupplierBillsCreate,
   useSupplierBillsLandedCandidates,
   useSupplierBillsUpdate,
-} from "@genesy/api-client/endpoints/supplier-bills"
-import { useTaxProfilesList } from "@genesy/api-client/endpoints/tax-profiles"
+} from "@verzo/api-client/endpoints/supplier-bills"
+import { useTaxProfilesList } from "@verzo/api-client/endpoints/tax-profiles"
 import type {
   AccountResource,
   BillPayload,
   SupplierBillResource,
-} from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { usePayReasons } from "@/components/payables"
 import { AccountPicker } from "@/components/pickers"
 import { Capped } from "@/components/states"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { isStale, today } from "../purchases/shared"
+import { useBookToday } from "../accounting/shared"
+import { isStale } from "../purchases/shared"
 
 type Line = {
   key: string
@@ -65,6 +66,7 @@ const blankLine = (): Line => ({
  */
 export function BillForm({ bill }: { bill?: SupplierBillResource }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const router = useRouter()
   const queryClient = useQueryClient()
   const reasons = usePayReasons()
@@ -230,7 +232,7 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
             <Input name="evidence_ref" maxLength={255} defaultValue={bill?.evidence_ref ?? ""} />
           </Field>
           <Field id="bill-invoice-date" label={t("payables.invoiceDate")} errors={err("invoice_date")}>
-            <Input type="date" name="invoice_date" required defaultValue={bill?.invoice_date ?? today()} />
+            <Input type="date" name="invoice_date" required key={bookToday} defaultValue={bill?.invoice_date ?? bookToday} />
           </Field>
           <Field id="bill-due" label={t("payables.dueDate")} errors={err("due_date")}>
             <Input type="date" name="due_date" defaultValue={bill?.due_date ?? ""} />
@@ -244,7 +246,8 @@ export function BillForm({ bill }: { bill?: SupplierBillResource }) {
               type="date"
               name="accounting_date"
               required
-              defaultValue={bill?.accounting_date ?? today()}
+              key={bookToday}
+              defaultValue={bill?.accounting_date ?? bookToday}
             />
           </Field>
         </div>

@@ -6,26 +6,26 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 import { LogOut } from "lucide-react"
 
-import { useLogout, useSession } from "@genesy/api-client/auth"
+import { useLogout, useSession } from "@verzo/api-client/auth"
 import {
   useUsersMe,
   useUsersWorkspaces,
-} from "@genesy/api-client/endpoints/users"
-import { sessionStore } from "@genesy/api-client/session"
-import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { LogoIcon } from "@genesy/ui/components/logo"
+} from "@verzo/api-client/endpoints/users"
+import { sessionStore } from "@verzo/api-client/session"
+import { LocaleSwitcher } from "@verzo/i18n/locale-switcher"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { LogoIcon } from "@verzo/ui/components/logo"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
-import { useVoice } from "@genesy/voice/components/provider"
-import type { SessionPhase } from "@genesy/voice/lib/presentation"
+} from "@verzo/ui/components/select"
+import { ThemeToggle } from "@verzo/ui/components/theme-toggle"
+import { useVoice } from "@verzo/voice/components/provider"
+import type { SessionPhase } from "@verzo/voice/lib/presentation"
 import { settleWithin } from "@/lib/settle"
 import { useHeaderReveal } from "./use-header-reveal"
 import { useWorkspaceSwitch } from "./use-workspace-switch"

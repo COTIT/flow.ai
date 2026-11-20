@@ -3,8 +3,8 @@ import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 import { PaletteIcon } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { cn } from "@genesy/ui/lib/utils"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { PageIntro } from "@/components/page-intro"
 import { pageMetadata } from "@/lib/seo"

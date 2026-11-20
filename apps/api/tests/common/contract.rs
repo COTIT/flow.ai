@@ -57,7 +57,7 @@ fn record_coverage(method: &Method, uri: &str, status: StatusCode) {
 
 fn spec() -> &'static Value {
     static SPEC: OnceLock<Value> = OnceLock::new();
-    SPEC.get_or_init(|| genesy_360_api::openapi::spec().unwrap())
+    SPEC.get_or_init(|| verzo_360_api::openapi::spec().unwrap())
 }
 
 /// Documented operation for a concrete `/v1/...` URI. Ties go to the template with the

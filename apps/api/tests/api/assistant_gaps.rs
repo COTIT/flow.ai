@@ -3,10 +3,10 @@
 use crate::assistant::{signed, signed_app};
 use crate::common::{self, send_raw, signup};
 use axum::http::{Method, StatusCode};
-use genesy_360_api::cleanup;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::cleanup;
 
 type GapRow = (
     Uuid,

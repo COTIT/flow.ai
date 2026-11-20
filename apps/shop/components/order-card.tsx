@@ -1,4 +1,4 @@
-import { cn } from "@genesy/ui/lib/utils"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { card } from "@/lib/look"
 

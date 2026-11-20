@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, getRouteApi } from '@tanstack/react-router'
 import { useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'

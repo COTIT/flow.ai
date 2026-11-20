@@ -104,7 +104,7 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - name: Keep only dependencies in the cache
         if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
-        run: cargo clean -p genesy-360-api
+        run: cargo clean -p verzo-360-api
       - if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -210,7 +210,7 @@ jobs:
         run: test "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0
       - name: Keep only dependencies in the cache
         if: matrix.shard == 0 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
-        run: cargo clean -p genesy-360-api
+        run: cargo clean -p verzo-360-api
       - if: matrix.shard == 0 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -257,22 +257,22 @@ jobs:
       # The Playwright image's Node no longer ships corepack; install the pinned pnpm from package.json.
       - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
       - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
-      # --only: skip @genesy/api#openapi (it sets UPDATE_OPENAPI, which tests/openapi.rs
+      # --only: skip @verzo/api#openapi (it sets UPDATE_OPENAPI, which tests/openapi.rs
       # refuses under CI). Uses the committed openapi.json; the api job proves it fresh.
       - name: Generated API client matches openapi.json
-        run: pnpm turbo run generate:check --filter=@genesy/api-client --only
+        run: pnpm turbo run generate:check --filter=@verzo/api-client --only
       - name: Reviewed voice catalog matches OpenAPI and authorization sources
-        run: pnpm --filter @genesy/office voice:check
+        run: pnpm --filter @verzo/office voice:check
       # Summary only; the parity guards fail through vitest (office-parity.test.ts, keywords.test.ts).
       - name: Office voice coverage summary
-        run: pnpm --filter @genesy/office voice:coverage
+        run: pnpm --filter @verzo/office voice:coverage
       - name: Checkpoint schema matches pinned saver
-        run: pnpm --filter @genesy/office exec node scripts/check-voice-schema.mjs
-      - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
+        run: pnpm --filter @verzo/office exec node scripts/check-voice-schema.mjs
+      - run: pnpm turbo run typecheck lint test build --filter='!@verzo/api' --concurrency=2
       - name: Browser shards cover the complete suite
-        run: pnpm --filter @genesy/e2e exec node verify-shards.mjs playwright.config.ts 8
+        run: pnpm --filter @verzo/e2e exec node verify-shards.mjs playwright.config.ts 8
       - name: Secure form survives development Strict Mode
-        run: pnpm --filter @genesy/e2e exec playwright test -c voice-dev.config.ts --workers=1
+        run: pnpm --filter @verzo/e2e exec playwright test -c voice-dev.config.ts --workers=1
       - name: Upload report and traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -334,11 +334,11 @@ jobs:
       # The Playwright image's Node no longer ships corepack; install the pinned pnpm from package.json.
       - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
       - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
-      - run: pnpm turbo run build --filter='!@genesy/api' --concurrency=2
-      - run: pnpm --filter @genesy/e2e e2e --shard=${{ matrix.shard }}/8 --workers=3
+      - run: pnpm turbo run build --filter='!@verzo/api' --concurrency=2
+      - run: pnpm --filter @verzo/e2e e2e --shard=${{ matrix.shard }}/8 --workers=3
       - name: Published storefront design browser checks
         if: matrix.shard == 1
-        run: pnpm --filter @genesy/e2e exec playwright test -c storefront-design.config.ts
+        run: pnpm --filter @verzo/e2e exec playwright test -c storefront-design.config.ts
       - name: Upload report and traces
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -394,16 +394,16 @@ jobs:
       - run: pnpm install --frozen-lockfile --store-dir /home/runner/pnpm-store
       # Browser only: the ubuntu-24.04 image already has Chromium's system libraries, so no apt
       # (the Azure apt mirror outage of 2026-11-11 failed every --with-deps install).
-      - run: pnpm --filter @genesy/e2e exec playwright install chromium
+      - run: pnpm --filter @verzo/e2e exec playwright install chromium
       # Up, specs, down; any failed step, console error or failed request fails the job.
       - name: Full-stack test shard
         run: |
-          trap 'pnpm --filter @genesy/e2e stack:down' EXIT
-          pnpm --filter @genesy/e2e stack:up
+          trap 'pnpm --filter @verzo/e2e stack:down' EXIT
+          pnpm --filter @verzo/e2e stack:up
           if [ "${{ matrix.shard }}" = 1 ]; then
-            pnpm --filter @genesy/e2e exec node verify-shards.mjs playwright.stack.config.ts 2
+            pnpm --filter @verzo/e2e exec node verify-shards.mjs playwright.stack.config.ts 2
           fi
-          pnpm --filter @genesy/e2e stack:test --shard=${{ matrix.shard }}/2
+          pnpm --filter @verzo/e2e stack:test --shard=${{ matrix.shard }}/2
       - name: Upload report, traces and stack logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -418,7 +418,7 @@ jobs:
       - name: Keep only dependencies in the cache
         if: matrix.shard == 1 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         working-directory: apps/api
-        run: cargo clean -p genesy-360-api
+        run: cargo clean -p verzo-360-api
       - if: matrix.shard == 1 && github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

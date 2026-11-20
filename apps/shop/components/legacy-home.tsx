@@ -8,9 +8,9 @@ import {
   UsersIcon,
 } from "lucide-react"
 
-import { buttonVariants } from "@genesy/ui/components/button"
-import { formatMoney } from "@genesy/ui/lib/money"
-import { cn } from "@genesy/ui/lib/utils"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { formatMoney } from "@verzo/ui/lib/money"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { FadeIn } from "@/components/motion"
 import { ProductCard } from "@/components/product-card"

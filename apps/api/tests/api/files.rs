@@ -8,11 +8,11 @@ use axum::{
     http::{Method, Request, StatusCode},
 };
 use common::{Api, member_with};
-use genesy_360_api::{build_app, cleanup, mail::Mailer, storage::Store};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use tower::ServiceExt;
+use verzo_360_api::{build_app, cleanup, mail::Mailer, storage::Store};
 
 const PDF_B64: &str = "JVBERi0xLjQKJcOkw7zDtsOfCg=="; // "%PDF-1.4\n%äüöß\n"
 
@@ -586,7 +586,7 @@ async fn without_storage_file_routes_are_503(pool: PgPool) {
 #[sqlx::test]
 async fn uploads_take_the_workspace_heavy_slot(pool: PgPool) {
     let mut state = common::state(pool.clone(), Mailer::capture().0);
-    state.slots = genesy_360_api::Slots::new(genesy_360_api::WorkspaceSlots {
+    state.slots = verzo_360_api::Slots::new(verzo_360_api::WorkspaceSlots {
         per_workspace: 100,
         per_user: 100,
         wait: std::time::Duration::from_millis(200),

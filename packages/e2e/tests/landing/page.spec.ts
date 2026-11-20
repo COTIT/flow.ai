@@ -8,7 +8,7 @@ test("the page tells who it is for, shows the passport and the promise", async (
     "Built for the people along the route.",
     "Scan the jar. Read its whole story.",
     "Plain rules the system keeps for you.",
-    "Grow, pack or sell something worth tracing? Let’s talk.",
+    "What would you like to automate?",
   ])
     await expect(page.getByRole("heading", { level: 2, name })).toBeVisible()
   for (const name of [
@@ -32,7 +32,7 @@ test("the one call to action opens an email to the configured address", async ({
   await page.goto("/")
   await expect(page.getByRole("link", { name: "Email us" })).toHaveAttribute(
     "href",
-    "mailto:team@genesy.test?subject=Genesy%20for%20my%20organisation"
+    "mailto:team@genesy.test?subject=Verzo%20for%20my%20organisation"
   )
   await expect(
     page.getByRole("link", { name: "team@genesy.test" })
@@ -67,8 +67,8 @@ test("light and dark: the switch flips the theme", async ({ page }) => {
 })
 
 for (const [path, lang, title] of [
-  ["/nl", "nl", "Elke pot heeft een verhaal. Elke boer krijgt zijn deel."],
-  ["/sw", "sw", "Kila chupa ina hadithi. Kila mkulima anapata sehemu yake."],
+  ["/nl", "nl", "Zet uw intenties om in acties."],
+  ["/sw", "sw", "Geuza nia zako kuwa vitendo."],
 ] as const)
   test(`${path} speaks ${lang}`, async ({ page }) => {
     await page.goto(path)

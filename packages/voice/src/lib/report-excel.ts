@@ -1,5 +1,5 @@
 import type { Cell, Workbook, Worksheet } from "exceljs"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney } from "@verzo/ui/lib/money"
 import {
   reportPeriod,
   reportSummary,
@@ -104,7 +104,7 @@ function setup(
     },
   }
   sheet.headerFooter = {
-    oddFooter: `&L${(labels.brand ?? "Genesy").replaceAll("&", "&&")}&R&P / &N`,
+    oddFooter: `&L${(labels.brand ?? "Verzo").replaceAll("&", "&&")}&R&P / &N`,
   }
   sheet.getColumn(1).width = 3
   for (let col = 2; col <= end; col++) sheet.getColumn(col).width = 22
@@ -113,7 +113,7 @@ function setup(
     2,
     2,
     end,
-    (labels.brand ?? "Genesy").toUpperCase(),
+    (labels.brand ?? "Verzo").toUpperCase(),
     10,
     true,
     GOLD
@@ -140,7 +140,7 @@ export async function reportWorkbook(
 ): Promise<Uint8Array> {
   const { Workbook } = await import("exceljs")
   const workbook = new Workbook()
-  workbook.creator = labels.brand ?? "Genesy"
+  workbook.creator = labels.brand ?? "Verzo"
   workbook.title = labels.title
   const summary = workbook.addWorksheet(
     name(workbook, labels.summary ?? "Summary", "Summary")
@@ -213,7 +213,7 @@ export async function reportWorkbook(
       })
     )
     sheet.addTable({
-      name: `GenesyData${++tableId}`,
+      name: `VerzoData${++tableId}`,
       ref: `B${start}`,
       headerRow: true,
       totalsRow: false,

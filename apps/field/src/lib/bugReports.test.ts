@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
 const farmBugReportsCreate = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-bug-reports', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-bug-reports', () => ({
   farmBugReportsCreate: (...args: unknown[]) => farmBugReportsCreate(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))

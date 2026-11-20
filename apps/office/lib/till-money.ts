@@ -2,10 +2,10 @@
 
 import { useLocale } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import { useTillRegistersList } from "@genesy/api-client/endpoints/till"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { useSession } from "@verzo/api-client/auth"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import { useTillRegistersList } from "@verzo/api-client/endpoints/till"
+import { formatMoney } from "@verzo/ui/lib/money"
 
 /**
  * Till amounts come in minor units with only a currency or register id: this looks up the

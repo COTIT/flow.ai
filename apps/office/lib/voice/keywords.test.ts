@@ -119,7 +119,7 @@ describe("voice trigger words", () => {
     ["net sales ex VAT for October", "orders_sales_summary"],
     ["omzet deze maand ex btw", "orders_sales_summary"],
     ["mapato ya mwezi huu bila VAT", "orders_sales_summary"],
-    // Genesy Flow (v9): noticed priorities, marks, daily sales, own scenes
+    // Verzo Flow (v9): noticed priorities, marks, daily sales, own scenes
     ["what needs my attention today", "attention_summary"],
     [
       "what should I look at first, most important priorities",

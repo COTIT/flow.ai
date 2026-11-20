@@ -1,13 +1,13 @@
--- Voice gap ledger report, Genesy developers only (run on the server, never exposed to Office).
+-- Voice gap ledger report, Verzo developers only (run on the server, never exposed to Office).
 --
 -- All workspaces, redacted (no workspace ids), last 30 days:
 --   psql "$DATABASE_URL" -f apps/api/scripts/voice-gaps.sql
 -- One workspace's rows:
 --   psql "$DATABASE_URL" -v workspace=<uuid> -f apps/api/scripts/voice-gaps.sql
 -- Other window: add -v days=7
--- Triage input for `pnpm --filter @genesy/office voice:triage` (one JSON array, one row per gap):
+-- Triage input for `pnpm --filter @verzo/office voice:triage` (one JSON array, one row per gap):
 --   psql "$DATABASE_URL" -At -v triage=1 -v days=7 -f apps/api/scripts/voice-gaps.sql
--- Component demand for `pnpm --filter @genesy/office voice:demand` (k-anonymous clusters only,
+-- Component demand for `pnpm --filter @verzo/office voice:demand` (k-anonymous clusters only,
 -- floor of 3 workspaces enforced by SQL function assistant_gap_demand; -v k raises it):
 --   psql "$DATABASE_URL" -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sql
 

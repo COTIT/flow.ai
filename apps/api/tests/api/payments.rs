@@ -12,7 +12,10 @@ use axum::{
     http::{Method, Request, StatusCode},
 };
 use common::{Api, invoicing::stock, member_with, send};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use tower::ServiceExt;
+use verzo_360_api::{
     build_app,
     jobs::{
         kinds::{self, Ctx},
@@ -22,9 +25,6 @@ use genesy_360_api::{
     mail::Mailer,
     payments::{NewIntent, Provider, Status, fake::Fake},
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
-use tower::ServiceExt;
 
 struct W {
     api: Api,
@@ -135,7 +135,7 @@ async fn run(w: &W, kinds_: &[&str]) {
         assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
         payments: Provider::Fake(w.fake.clone()).into(),
     };
@@ -1059,8 +1059,7 @@ async fn assistant_refund_world(pool: PgPool) -> W {
     let mut state = common::state(pool, Mailer::capture().0);
     state.payments = Provider::Fake(w.fake.clone()).into();
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(super::assistant_preconditions::BRIDGE.into())
-            .unwrap(),
+        verzo_360_api::AssistantSecret::new(super::assistant_preconditions::BRIDGE.into()).unwrap(),
     ));
     w.api.app = build_app(state);
     w
@@ -1120,7 +1119,7 @@ async fn assistant_refund_stays_queued_until_verified_provider_settlement(pool: 
     w.fake.set_status(&provider_id, Status::Refunded);
     notify(&w, &provider_id).await;
     drain(&w).await;
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let (_, settled) = send(&w.api.app, Method::GET, &uri, None, Some(&w.api.owner)).await;
     assert_eq!(settled["data"]["state"], "completed");
     assert_eq!(settled["data"]["evidence"]["refund"]["status"], "refunded");

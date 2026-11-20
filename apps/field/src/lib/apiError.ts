@@ -1,5 +1,5 @@
 /**
- * Reading a failed Genesy API call (an axios error from the generated client).
+ * Reading a failed Verzo API call (an axios error from the generated client).
  * Bodies are `{message}` or, on 422, `{message, errors: {field: [text]}}`; the first field text is
  * the most specific, so it wins. Messages are shown as written (or translated by dbMessages).
  */

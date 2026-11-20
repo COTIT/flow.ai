@@ -12,10 +12,10 @@ const catalog = [
 
 test("reads the operations Office imports from the generated client, whatever helper name it uses", () => {
   const sources = [
-    `import { useOrdersList, getOrdersListQueryKey } from "@genesy/api-client/endpoints/orders"`,
-    `import {\n  useOrdersCancel,\n  type OrdersCancelBody,\n} from "@genesy/api-client/endpoints/orders"`,
-    `import { tillShiftOpen } from "@genesy/api-client/endpoints/till"`,
-    `import { useSession } from "@genesy/api-client/auth"`,
+    `import { useOrdersList, getOrdersListQueryKey } from "@verzo/api-client/endpoints/orders"`,
+    `import {\n  useOrdersCancel,\n  type OrdersCancelBody,\n} from "@verzo/api-client/endpoints/orders"`,
+    `import { tillShiftOpen } from "@verzo/api-client/endpoints/till"`,
+    `import { useSession } from "@verzo/api-client/auth"`,
   ]
   assert.deepEqual([...officeOperations(sources)].sort(), ["orders_cancel", "orders_list", "till_shift_open"])
 })

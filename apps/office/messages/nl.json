@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Genesy Office",
+    "title": "Verzo Office",
     "tagline": "Backoffice: producten, voorraad, batches, facturen en orders."
   },
   "products": {
@@ -182,7 +182,7 @@
     "revoke": "Intrekken",
     "revokeTitle": "{name} intrekken?",
     "revokeText": "Apps met deze sleutel stoppen meteen. Dit kan niet ongedaan worden gemaakt.",
-    "intro": "Met sleutels praten de webshop en de kassa met Genesy. Elk account heeft eigen sleutels.",
+    "intro": "Met sleutels praten de webshop en de kassa met Verzo. Elk account heeft eigen sleutels.",
     "created": "Sleutel aangemaakt",
     "secretHint": "Bewaar hem waar de server van de shop hem kan lezen.",
     "kinds": {
@@ -219,7 +219,7 @@
     "deleteText": "{url} krijgt geen gebeurtenissen meer. Dit kan niet ongedaan worden gemaakt.",
     "intro": "Webhooks laten je andere systemen weten wanneer er iets verandert in dit account.",
     "created": "Endpoint aangemaakt",
-    "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen.",
+    "secretHint": "Gebruik het om te controleren dat events echt van Verzo komen.",
     "eventNames": {
       "lot_created": "Batch aangemaakt",
       "lot_status_changed": "Batchstatus gewijzigd",
@@ -1747,7 +1747,7 @@
       "backToJournal": "Terug naar de journaalpost",
       "totalDebit": "Totaal debet",
       "totalCredit": "Totaal credit",
-      "serverAmounts": "Totalen zoals Genesy ze berekent.",
+      "serverAmounts": "Totalen zoals Verzo ze berekent.",
       "nextStep": "Volgende stap",
       "next": {
         "post": "Controleer de post en boek hem daarna.",
@@ -1856,7 +1856,7 @@
       "timezone": "Tijdzone",
       "chooseTimezone": "Kies een tijdzone",
       "roles": "Rekening per rol",
-      "rolesHint": "Genesy boekt elk soort bedrijfsgebeurtenis op de rekening die je hier kiest.",
+      "rolesHint": "Verzo boekt elk soort bedrijfsgebeurtenis op de rekening die je hier kiest.",
       "unmapped": "Nog geen rekening",
       "save": "Instellingen opslaan"
     },

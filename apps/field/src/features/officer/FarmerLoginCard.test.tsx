@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { StrictMode, type ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const rpc = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-logins', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-logins', () => ({
   farmLoginsIssue: (...args: unknown[]) => rpc(...args),
 }))
 

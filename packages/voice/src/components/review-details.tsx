@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { ClipboardList } from "lucide-react"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import AnimatedList from "./rb/AnimatedList"
 import {
   displayReferences,

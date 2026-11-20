@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore, type ReactNode } from "react"
 
-import { island, useMotionAllowed } from "@genesy/ui/components/island"
+import { island, useMotionAllowed } from "@verzo/ui/components/island"
 
 import FadeTile from "./fade-tile"
 

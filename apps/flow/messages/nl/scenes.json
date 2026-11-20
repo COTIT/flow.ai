@@ -67,11 +67,11 @@
     "available": "Beschikbaar",
     "minimum": "Minimum",
     "shortfall": "Tekort",
-    "selected": "Gekozen · zeg Genesy wat te doen",
+    "selected": "Gekozen · zeg Verzo wat te doen",
     "invoices": "Facturen",
     "noInvoices": "Geen onbetaalde facturen.",
     "reports": "Geplande rapporten",
-    "noReports": "Nog geen routines. Vraag Genesy om een rapport in te plannen, bijvoorbeeld \"Stuur me wekelijks een verkoopoverzicht\".",
+    "noReports": "Nog geen routines. Vraag Verzo om een rapport in te plannen, bijvoorbeeld \"Stuur me wekelijks een verkoopoverzicht\".",
     "pause": "Pauzeren",
     "resume": "Hervatten",
     "delete": "Verwijderen",
@@ -142,7 +142,7 @@
       },
       "routines": {
         "title": "Geplande rapporten",
-        "lead": "Rapporten die Genesy je volgens schema stuurt."
+        "lead": "Rapporten die Verzo je volgens schema stuurt."
       },
       "studio": {
         "title": "Storefront Studio",
@@ -201,7 +201,7 @@
     },
     "routines": {
       "emptyTitle": "Nog geen rapporten",
-      "emptyText": "Genesy kan je elke week een verkoopoverzicht mailen.",
+      "emptyText": "Verzo kan je elke week een verkoopoverzicht mailen.",
       "setUp": "Stel een weekrapport in"
     }
   }

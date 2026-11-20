@@ -50,14 +50,14 @@ test("typing without a conversation starts a text one (never the microphone) and
   expect(await page.evaluate(() => Reflect.get(window, "micRequests"))).toBe(0)
 })
 
-test("typed “Hey Genesy, …” starts and sends only the instruction", async ({
+test("typed “Hey Verzo, …” starts and sends only the instruction", async ({
   page,
   api,
 }) => {
   designs(api)
   const agent = await fakeAgent(page)
   await page.goto("/scenes/pulse") // orb-first home has no message box; a scene's dock does
-  await dock(page).getByLabel(v.message).fill("Hey Genesy, show my pending orders")
+  await dock(page).getByLabel(v.message).fill("Hey Verzo, show my pending orders")
   await dock(page).getByRole("button", { name: v.send, exact: true }).click()
   await expect
     .poll(() => agent.sent.filter((e) => e.type === "user_message").map((e) => e.text))

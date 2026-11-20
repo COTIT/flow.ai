@@ -48,8 +48,8 @@ export const GARBAGE: readonly string[] = [
   "-0 1e309 0x1F 9007199254740993 ٣٤٥ ½",
   // wake phrase alone and odd
   "hey genesy",
-  "Hey Genesy,,,!!!",
-  "HEY GENESY hey genesy hey genesy",
+  "Hey Verzo,,,!!!",
+  "HEY VERZO hey genesy hey genesy",
 ]
 
 /** Only zero-width characters: invisible, and `trim()` keeps them. */

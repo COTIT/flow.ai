@@ -1,5 +1,5 @@
-import type { CountMinor } from '@genesy/api-client/model'
-import { formatMoney } from '@genesy/ui/lib/money'
+import type { CountMinor } from '@verzo/api-client/model'
+import { formatMoney } from '@verzo/ui/lib/money'
 
 /** Shown wherever a value is genuinely absent. Never rendered as 0. */
 export const UNKNOWN = '—'

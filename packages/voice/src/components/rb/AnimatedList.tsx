@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-// Genesy edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
+// Verzo edit: @hugeicons replaced by lucide-react (no new dependency); same call sites.
 import { Code, File, FileArchive, FileText, Folder, Image, Music, PenTool, Presentation, StickyNote, Table, Video, type LucideIcon } from 'lucide-react';
 type IconSvgElement = LucideIcon;
 const HugeiconsIcon = ({ icon: Icon, size, strokeWidth }: { icon: IconSvgElement; size?: number | string; strokeWidth?: number }) => <Icon size={size} strokeWidth={strokeWidth} />;

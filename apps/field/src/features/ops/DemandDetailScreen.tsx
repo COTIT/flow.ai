@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { CoverageBar } from '@/components/CoverageBar'

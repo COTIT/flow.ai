@@ -1,5 +1,5 @@
-import { farmLoginsMe, farmLoginsUpdateMe } from '@genesy/api-client/endpoints/farm-logins'
-import type { FarmMe } from '@genesy/api-client/model'
+import { farmLoginsMe, farmLoginsUpdateMe } from '@verzo/api-client/endpoints/farm-logins'
+import type { FarmMe } from '@verzo/api-client/model'
 
 export type { FarmMe }
 

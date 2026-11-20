@@ -15,7 +15,7 @@ const OWNER: &str = "The workspace owner can't be removed.";
 
 struct World {
     app: Router,
-    outbox: genesy_360_api::mail::Outbox,
+    outbox: verzo_360_api::mail::Outbox,
     pool: PgPool,
     owner: String,
     ws: String,

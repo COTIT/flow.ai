@@ -37,7 +37,7 @@ function otherTab(key: string | null, area: unknown = storage) {
 // Fresh modules per test: the store is module state.
 async function load() {
   vi.resetModules()
-  const { sessionStore } = await import("@genesy/api-client/session")
+  const { sessionStore } = await import("@verzo/api-client/session")
   const { followOtherTabs } = await import("./other-tabs")
   await sessionStore.persist.rehydrate()
   const cache = { clear: vi.fn() }

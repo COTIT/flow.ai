@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const farmVouchersRedemptions = vi.fn()
 const farmVouchersRedemptionTotals = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-vouchers', () => ({
   farmVouchersRedemptions: (...args: unknown[]) => farmVouchersRedemptions(...args),
   farmVouchersRedemptionTotals: (...args: unknown[]) => farmVouchersRedemptionTotals(...args),
 }))

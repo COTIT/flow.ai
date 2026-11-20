@@ -6,7 +6,7 @@ import { proposeBatch } from "./batches"
 import { prepareAction } from "./catalog"
 import { IMPORT_PAGE, priceRows, readSheet, SHEET_TYPES } from "./sheet"
 import { VoiceError, type VoiceContext } from "./server"
-import type { VoiceOutcome } from "@genesy/voice/lib/client-contract"
+import type { VoiceOutcome } from "@verzo/voice/lib/client-contract"
 
 export const IMPORT_PRICES_OPERATION = "assistant_import_prices"
 
@@ -22,7 +22,7 @@ export type NotIncluded = {
 export const importPricesTool = {
   id: IMPORT_PRICES_OPERATION,
   summary:
-    "Update product prices from a shared price-list spreadsheet (.xlsx or .csv). Genesy reads the sheet, matches products and prices itself and shows one review of up to 50 rows; never copy prices yourself. If it returns needs_input, ask which column holds the product and which holds the price. If data.rows.next is set, offer the next part after this review is finished.",
+    "Update product prices from a shared price-list spreadsheet (.xlsx or .csv). Verzo reads the sheet, matches products and prices itself and shows one review of up to 50 rows; never copy prices yourself. If it returns needs_input, ask which column holds the product and which holds the price. If data.rows.next is set, offer the next part after this review is finished.",
   method: "POST",
   write: true,
   body: {
@@ -56,7 +56,7 @@ type Resolved = {
   candidates?: string[]
 }
 
-/** Exact bytes the user shared in this session; Genesy never stores the sheet. */
+/** Exact bytes the user shared in this session; Verzo never stores the sheet. */
 async function sharedSheet(
   handle: string,
   context: VoiceContext,

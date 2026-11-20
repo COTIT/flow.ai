@@ -2,10 +2,10 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
-import { cn } from "@genesy/ui/lib/utils"
+import { Button } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
+import { cn } from "@verzo/ui/lib/utils"
 import { estimate } from "@/lib/cart-store"
 import { queueStore, replay, useQueue, whereNow } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"

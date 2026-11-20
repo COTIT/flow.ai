@@ -849,10 +849,10 @@ const discover = (query: string) =>
     })
   )
 
-it("tells the agent not to promise a request Genesy cannot do", async () => {
+it("tells the agent not to promise a request Verzo cannot do", async () => {
   const body = await (await discover("unsupported: weather tomorrow")).json()
   expect(body.message).toBe(
-    "Recorded for review. Tell the user Genesy can't do this; never promise it later."
+    "Recorded for review. Tell the user Verzo can't do this; never promise it later."
   )
 })
 

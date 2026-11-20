@@ -6,19 +6,19 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useProductsList } from "@genesy/api-client/endpoints/products"
+import { useSession } from "@verzo/api-client/auth"
+import { useProductsList } from "@verzo/api-client/endpoints/products"
 import {
   getSupplyChainListQueryKey,
   useSupplyChainList,
   useSupplyChainReceive,
-} from "@genesy/api-client/endpoints/supply-chain"
-import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
-import type { SupplyTransferResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/supply-chain"
+import { useWarehousesList } from "@verzo/api-client/endpoints/warehouses"
+import type { SupplyTransferResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Dialog,
   DialogClose,
@@ -28,8 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
 import {
   Table,
   TableBody,
@@ -37,7 +37,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { useRights } from "@/lib/can"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"

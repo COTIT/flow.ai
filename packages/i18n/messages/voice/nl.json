@@ -15,7 +15,7 @@
     "connecting": "Verbinden…",
     "textSession": "Tekstgesprek",
     "muted": "Microfoon gedempt",
-    "speaking": "Genesy spreekt",
+    "speaking": "Assistent spreekt",
     "listening": "Luistert",
     "open": "Gesprek openen",
     "mute": "Dempen",
@@ -74,7 +74,7 @@
     "secureBack": "Terug naar spraakassistent",
     "roles": {
       "user": "Jij",
-      "agent": "Genesy",
+      "agent": "Assistent",
       "action": "Actie",
       "link": "Link",
       "result": "Resultaat"
@@ -83,7 +83,7 @@
       "selected": "Klaar om te versturen",
       "uploading": "Uploaden…",
       "uploaded": "Klaar om te versturen",
-      "submitted": "Naar Genesy gestuurd",
+      "submitted": "Naar Verzo gestuurd",
       "failed": "Kon dit bestand niet toevoegen. Probeer opnieuw."
     },
     "fileErrors": {
@@ -133,7 +133,7 @@
     "microphoneMissing": "Er is geen microfoon gevonden. Sluit er een aan of blijf typen.",
     "offline": "Je bent offline. Maak opnieuw verbinding en probeer het dan nog eens.",
     "offlineNotSent": "Je bent offline. Er is niets verstuurd; keur opnieuw goed zodra je weer online bent.",
-    "connectionLost": "Genesy is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
+    "connectionLost": "Verzo is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
     "upgradeFailed": "Spraak kon niet starten. Je eerdere berichten blijven hier staan.",
     "batchProgress": "Voortgang van de reeks",
     "batchSteps": "Stappen van de vaste reeks",
@@ -305,7 +305,7 @@
       "company_name": "Bedrijfsnaam"
     },
     "requestErrors": {
-      "unsupported": "Genesy kan dit nog niet. Er is niets gewijzigd.",
+      "unsupported": "Verzo kan dit nog niet. Er is niets gewijzigd.",
       "invalid": "Controleer de gevraagde gegevens en maak daarna een nieuw voorstel. Controleer onzekere acties in Office voordat je ze herhaalt.",
       "expired": "Je sessie is verlopen. Meld je opnieuw aan om de vastgelegde taak te controleren.",
       "forbidden": "Je hebt geen toestemming voor deze actie. Controleer je toegang in Office.",
@@ -875,7 +875,7 @@
       }
     },
     "sheetRequest": "Ik heb een spreadsheet gedeeld. Vraag me wat ik ermee wil doen.",
-    "sheetNoPreview": "Genesy leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
+    "sheetNoPreview": "Verzo leest deze spreadsheet als je erom vraagt; hier is geen voorbeeld.",
     "importRows": "Rijen {from}–{to} van {total}",
     "moreParts": "Na deze beoordeling volgen nog {count} wijzigingen. Elk deel krijgt een eigen beoordeling.",
     "notIncluded": {

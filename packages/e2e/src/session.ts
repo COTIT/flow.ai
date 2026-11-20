@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test"
 
 /**
- * Starts the page logged in: writes the `genesy.session` entry @genesy/api-client keeps in
+ * Starts the page logged in: writes the `genesy.session` entry @verzo/api-client keeps in
  * localStorage, before any app script runs. Pair with mockApi so the token is never sent anywhere real.
  */
 export async function seedSession(

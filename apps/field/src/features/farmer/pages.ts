@@ -1,4 +1,4 @@
-import type { Meta } from '@genesy/api-client/model'
+import type { Meta } from '@verzo/api-client/model'
 
 /** Every page of a paged API list, in order (100 a page, the API's maximum). */
 export async function allPages<T>(

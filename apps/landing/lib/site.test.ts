@@ -5,7 +5,7 @@ import { appLinks, contactHref } from "./site"
 describe("contactHref", () => {
   it("falls back to the placeholder address until one is configured", () => {
     expect(contactHref(undefined)).toBe(
-      "mailto:hello@genesy.app?subject=Genesy%20for%20my%20organisation"
+      "mailto:hello@genesy.app?subject=Verzo%20for%20my%20organisation"
     )
   })
 

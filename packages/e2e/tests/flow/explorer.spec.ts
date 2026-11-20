@@ -70,7 +70,7 @@ test("a role sees what it cannot use as restricted, with nothing to try", async 
   await expect(card(page, "find_product")).toContainText(d.status.available)
 })
 
-test("Try it on a screen opens it directly; on an instruction it asks Genesy in text", async ({
+test("Try it on a screen opens it directly; on an instruction it asks Verzo in text", async ({
   page,
 }) => {
   await mockApi(page, api(OWNER))

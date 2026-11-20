@@ -5,7 +5,7 @@ import { coverage, coverageMarkdown } from "../../scripts/voice-coverage.mjs"
 import { discoverTools } from "./catalog"
 import manifest from "./office-parity.json"
 
-// G1 + G5 of docs/genesy-flow/OFFICE_VOICE_COVERAGE.md: whatever an Office screen can do, voice can find,
+// G1 + G5 of docs/verzo-flow/OFFICE_VOICE_COVERAGE.md: whatever an Office screen can do, voice can find,
 // or the manifest says in plain words why it stays in Office.
 type Entry = {
   ask?: Record<"en" | "nl" | "sw", string[]>
@@ -75,9 +75,9 @@ describe("coverage table for CI (G7)", () => {
       ["invoices_gateway_refund", new Set(["components/invoice-refund.tsx"])],
       [
         "storefront_design_publish",
-        new Set(["@genesy/api-client/storefront-review"]),
+        new Set(["@verzo/api-client/storefront-review"]),
       ],
-      ["auth_logout", new Set(["@genesy/api-client/auth"])],
+      ["auth_logout", new Set(["@verzo/api-client/auth"])],
     ])
     const fake = {
       orders_confirm: { disposition: "execute" },

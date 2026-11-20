@@ -129,7 +129,7 @@ test("C: supplier prices: 21 matched, 3 exceptions kept out; leave and return; p
     "pause",
   ])
 
-  // Continue asks Genesy for a NEW review of what did not run; nothing resumes by itself.
+  // Continue asks Verzo for a NEW review of what did not run; nothing resumes by itself.
   await summary.getByRole("button", { name: k.batch.continue }).click()
   await expect
     .poll(() =>

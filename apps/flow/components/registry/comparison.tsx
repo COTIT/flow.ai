@@ -2,9 +2,9 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import type { FlowPeriod } from "@genesy/api-client/model"
-import { formatQty, formatShare } from "@genesy/ui/lib/format"
-import { formatMoney } from "@genesy/ui/lib/money"
+import type { FlowPeriod } from "@verzo/api-client/model"
+import { formatQty, formatShare } from "@verzo/ui/lib/format"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { useCompare } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import { RecordTable } from "./record-table"

@@ -5,25 +5,25 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useAccountingBankAccountsList,
   useAccountingCashPlacesList,
-} from "@genesy/api-client/endpoints/accounting"
-import { useCurrenciesList } from "@genesy/api-client/endpoints/currencies"
-import { useRelationsList } from "@genesy/api-client/endpoints/relations"
+} from "@verzo/api-client/endpoints/accounting"
+import { useCurrenciesList } from "@verzo/api-client/endpoints/currencies"
+import { useRelationsList } from "@verzo/api-client/endpoints/relations"
 import {
   getSupplierPaymentsListQueryKey,
   supplierPaymentsCreate,
   supplierPaymentsCreateReview,
-} from "@genesy/api-client/endpoints/supplier-payments"
-import type { PaymentPayload, PaymentReview } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Input } from "@genesy/ui/components/input"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatDay } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/supplier-payments"
+import type { PaymentPayload, PaymentReview } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Input } from "@verzo/ui/components/input"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatDay } from "@verzo/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
 import { Fact, JournalList, usePayReasons, usePayWord } from "@/components/payables"
@@ -31,7 +31,8 @@ import { Capped, NoAccess } from "@/components/states"
 import { useCan, useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { showMoney, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { showMoney } from "../../purchases/shared"
 
 type Form = {
   supplier_id: string
@@ -56,6 +57,7 @@ export default function NewSupplierPaymentPage({
   searchParams: Promise<{ direction?: string; supplier?: string }>
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const router = useRouter()
   const word = usePayWord()
@@ -77,7 +79,7 @@ export default function NewSupplierPaymentPage({
     currency_id: "",
     direction: q.direction === "refund_received" ? "refund_received" : "payment",
     amount: "",
-    date: today(),
+    date: "",
     place: "",
     reference: "",
     evidence_ref: "",
@@ -110,7 +112,7 @@ export default function NewSupplierPaymentPage({
       currency_id: currency,
       direction: f.direction,
       amount: f.amount.trim(),
-      date: f.date,
+      date: f.date || bookToday,
       reference: f.reference.trim() || null,
       evidence_ref: f.evidence_ref.trim() || null,
       note: f.note.trim() || null,
@@ -224,7 +226,7 @@ export default function NewSupplierPaymentPage({
               <Input inputMode="decimal" required value={f.amount} onChange={(e) => set({ amount: e.target.value })} />
             </Field>
             <Field id="pay-date" label={t("payables.payments.date")} errors={err("date")}>
-              <Input type="date" required value={f.date} onChange={(e) => set({ date: e.target.value })} />
+              <Input type="date" required value={f.date || bookToday} onChange={(e) => set({ date: e.target.value })} />
             </Field>
             <Field
               id="pay-place"

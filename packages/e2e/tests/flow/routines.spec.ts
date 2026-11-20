@@ -22,7 +22,7 @@ const report = (id: string, active: boolean) => ({
   paused_reason: null,
 })
 
-test("pause, resume and delete a routine; empty state points to Genesy", async ({
+test("pause, resume and delete a routine; empty state points to Verzo", async ({
   page,
   api,
 }) => {

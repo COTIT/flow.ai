@@ -3,15 +3,15 @@
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useStorefrontDesignGet,
   useStorefrontDesignPreviewLinks,
   useStorefrontDesignRevisions,
-} from "@genesy/api-client/endpoints/storefront-design"
-import { useRights } from "@genesy/api-client/rights"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/storefront-design"
+import { useRights } from "@verzo/api-client/rights"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { revisionLabel, studioStore, useStudio } from "@/lib/studio"
 
 /**

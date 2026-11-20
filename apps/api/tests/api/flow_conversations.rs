@@ -491,7 +491,7 @@ async fn inactive_retention_tombstones_content_and_preserves_provider_cleanup_id
     let (sid, src) = source(&app, &ws, &token, &cid, "conv_expire").await;
     assert_eq!(events(&app,&ws,&token,&cid,&sid,&src,json!([{"key":"k1","ordinal":0,"role":"user","text":"Expire body","modality":"text","status":"complete"}])).await.0,StatusCode::OK);
     sqlx::query("UPDATE assistant_conversations SET expires_at=now()-interval '1 second',last_activity_at=now()-interval '90 days' WHERE workspace_id=$1 AND id=$2").bind(uuid::Uuid::parse_str(&ws).unwrap()).bind(uuid::Uuid::parse_str(&cid).unwrap()).execute(&pool).await.unwrap();
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let count:i64=sqlx::query_scalar("SELECT count(*) FROM assistant_conversation_turns WHERE workspace_id=$1 AND conversation_id=$2").bind(uuid::Uuid::parse_str(&ws).unwrap()).bind(uuid::Uuid::parse_str(&cid).unwrap()).fetch_one(&pool).await.unwrap();
     assert_eq!(count, 0);
     let provider:String=sqlx::query_scalar("SELECT provider_conversation_id FROM assistant_conversation_sources WHERE workspace_id=$1 AND conversation_id=$2").bind(uuid::Uuid::parse_str(&ws).unwrap()).bind(uuid::Uuid::parse_str(&cid).unwrap()).fetch_one(&pool).await.unwrap();

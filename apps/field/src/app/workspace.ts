@@ -1,12 +1,12 @@
-import { useSession as useGenesySession } from '@genesy/api-client/auth'
-import { sessionStore } from '@genesy/api-client/session'
+import { useSession as useVerzoSession } from '@verzo/api-client/auth'
+import { sessionStore } from '@verzo/api-client/session'
 
 /**
- * The Genesy workspace the farm screens work in (RUAHA's project): the one chosen at sign-in,
+ * The Verzo workspace the farm screens work in (RUAHA's project): the one chosen at sign-in,
  * from the shared session store. Every farm route is `/v1/workspace/{workspace}/farm/...`.
  */
 export function useWorkspaceId(): string | null {
-  return useGenesySession((s) => s.workspaceId)
+  return useVerzoSession((s) => s.workspaceId)
 }
 
 /** Same, outside React (query functions, route loaders). */

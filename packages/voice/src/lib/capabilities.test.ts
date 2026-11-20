@@ -30,7 +30,7 @@ describe("statusOf", () => {
     ).toBe("restricted")
   })
 
-  it("a write asked of Genesy needs approval", () => {
+  it("a write asked of Verzo needs approval", () => {
     expect(
       statusOf(
         cap({

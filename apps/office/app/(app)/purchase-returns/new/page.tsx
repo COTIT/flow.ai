@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getPurchaseReturnsListQueryKey,
   usePurchaseReturnsCandidates,
   usePurchaseReturnsCreate,
-} from "@genesy/api-client/endpoints/purchase-returns"
-import type { ReturnLinePayload } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
-import { formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/api-client/endpoints/purchase-returns"
+import type { ReturnLinePayload } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
+import { formatQty } from "@verzo/ui/lib/format"
 import { DetailSkeleton } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
@@ -28,7 +28,7 @@ import { LoadError, NoAccess } from "@/components/states"
 import { useCan, useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
 
 type Pick = { source: string; quantity: string }
 
@@ -43,6 +43,7 @@ export default function NewPurchaseReturnPage({
   searchParams: Promise<{ receipt?: string }>
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const router = useRouter()
   const word = usePayWord()
@@ -61,7 +62,8 @@ export default function NewPurchaseReturnPage({
   const [picks, setPicks] = React.useState<Record<string, Pick>>({})
   const [purpose, setPurpose] = React.useState("vendor_return")
   const [reason, setReason] = React.useState("")
-  const [date, setDate] = React.useState(today())
+  const [picked, setDate] = React.useState("")
+  const date = picked || bookToday
   const [apply, setApply] = React.useState(false)
   const [evidence, setEvidence] = React.useState("")
   const create = usePurchaseReturnsCreate({

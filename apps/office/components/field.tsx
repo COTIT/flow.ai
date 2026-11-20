@@ -1,7 +1,7 @@
 import * as React from "react"
 
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Label } from "@genesy/ui/components/label"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { Label } from "@verzo/ui/components/label"
 
 /** Label, control and the API's 422 messages for one form field. */
 export function Field({

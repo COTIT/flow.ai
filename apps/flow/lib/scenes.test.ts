@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { FlowScene } from "@genesy/api-client/model"
+import type { FlowScene } from "@verzo/api-client/model"
 
 import {
   hiddenScenes,
@@ -114,7 +114,7 @@ describe("keepKey / sceneLayout", () => {
 
 describe("registry", () => {
   it("draws every component type the scenes API accepts, and nothing else", async () => {
-    const { FlowComponentType } = await import("@genesy/api-client/model")
+    const { FlowComponentType } = await import("@verzo/api-client/model")
     const { REGISTRY, componentFor } = await import("@/components/registry")
     expect(Object.keys(REGISTRY).sort()).toEqual(
       Object.values(FlowComponentType).sort()

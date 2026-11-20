@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
-import { Notice } from '@genesy/ui/components/notice'
+import { Notice } from '@verzo/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/ErrorState'

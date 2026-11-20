@@ -2305,7 +2305,7 @@ test("text conversation survives navigation and shares a file without reconnecti
   await expect.poll(() => multimodal).toBeTruthy()
   await expect(
     page.getByRole("list", { name: "Session references" })
-  ).toContainText("Sent to Genesy")
+  ).toContainText("Sent to Verzo")
   expect(contextual.join("\n")).toContain("local-1")
   expect(contextual.join("\n")).toContain("provider-1")
   expect(contextual.join("\n")).not.toContain("reference.pdf")

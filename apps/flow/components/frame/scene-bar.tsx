@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { ArrowLeft } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 import { flowStore, useFlow } from "@/lib/flow-store"
 import { TaskCapsule } from "@/components/task/capsule" // F4
 import { OrbSlot } from "./orb-layer"

@@ -6,11 +6,11 @@ Status: plan only, no code. Rev 2 answers the 10-point revision request. Unresol
 
 ## 0. Context and product intent
 
-- **Flow** is an AI-native business orchestration platform. **Verzo** is its conversational assistant. Verzo (formerly Genesy) is also an ERP. The plan is for it to act first as the glue between a customer's Odoo and NetSuite, and later to offer its own ERP.
+- **Flow** is an AI-native business orchestration platform. **Verzo** is its conversational assistant. Verzo (formerly Verzo) is also an ERP. The plan is for it to act first as the glue between a customer's Odoo and NetSuite, and later to offer its own ERP.
 - **Source:** `~/Downloads/verzo_odoo_netsuite_workflow_stories.md`, an unvalidated backlog covering WF-01 to WF-07.
 - **WF-01 is the first vertical slice.** It must leave behind reusable *capability* and *execution* contracts, so a second workflow can be added without rewriting the foundation.
 - **WF-07 (user-defined workflows) is deferred, not dropped.** Rev 1 wrongly cited the old "no app builder" note; you have overridden it. The contracts in §3 are shaped so that a later builder only *composes* registered capabilities. No builder, DSL or general engine is built now.
-- **Genesy's own purchasing is not touched.** It is the M3 work on `claude/erp-m3`, which has an active coordinator. WF-01 never imports `modules/purchasing`.
+- **Verzo's own purchasing is not touched.** It is the M3 work on `claude/erp-m3`, which has an active coordinator. WF-01 never imports `modules/purchasing`.
 
 Already decided with you: build now against fakes copied from the official docs; Odoo 19+ JSON-2 only; the source record is the Odoo RFQ (`purchase.order` in RFQ state); approval UI goes in both Flow and Office; no sandboxes exist yet.
 

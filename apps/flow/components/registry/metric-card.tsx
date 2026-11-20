@@ -2,8 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import type { Attention, FlowMetric } from "@genesy/api-client/model"
-import { formatMoney } from "@genesy/ui/lib/money"
+import type { Attention, FlowMetric } from "@verzo/api-client/model"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { useAttention, useSales } from "@/lib/use-scene-data"
 import { DataState, Restricted } from "./data-state"
 import type { RegistryProps } from "./types"

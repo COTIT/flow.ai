@@ -23,7 +23,7 @@ test("P8-2: an open review that expires says so in the dock; the orb never reads
   await expect(page.getByRole("alert").first()).toContainText(
     "This review expired"
   )
-  const genesy = orb(page).locator("[data-genesy-orb]")
-  await expect(genesy).toHaveCount(1)
-  await expect(genesy).not.toHaveAttribute("data-state", "error")
+  const verzo = orb(page).locator("[data-verzo-orb]")
+  await expect(verzo).toHaveCount(1)
+  await expect(verzo).not.toHaveAttribute("data-state", "error")
 })

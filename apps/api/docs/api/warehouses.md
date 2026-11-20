@@ -109,12 +109,12 @@ Flat, free-text scan labels such as `A.01.02`. They are separate from the bin hi
 
 - **Fields:**
   - `section_name` is required, ≤255.
-  - `section_code` is required, ≤50, and unique per warehouse ignoring case ("The section code must be unique within this warehouse."). Laravel's DB counted deleted rows; genesy doesn't.
+  - `section_code` is required, ≤50, and unique per warehouse ignoring case ("The section code must be unique within this warehouse."). Laravel's DB counted deleted rows; Verzo doesn't.
   - `category` and `zone` are ≤255.
   - `rows`, `shelves_per_row`, `bins_per_shelf`, `total_bins` are integers ≥ 0.
   - `temperature_control` is one of ambient / cold / freezer / heated, default ambient. `priority_level` is one of low / standard / high / critical, default standard. Both use Laravel's custom texts.
   - `restricted_access` is a boolean.
-- **`assigned_manager`** is a **member uuid** ("The selected assigned manager is invalid."). Laravel took an integer user id, which genesy doesn't have.
+- **`assigned_manager`** is a **member uuid** ("The selected assigned manager is invalid."). Laravel took an integer user id, which Verzo doesn't have.
 - **Auto layout** (Laravel SectionCreated). When `rows`, `shelves_per_row` and `bins_per_shelf` are all > 0, create also generates the children:
   - Rows `{code}-ROW-A…` ("Row A"), 10 × 1.2 × 6 m, in the section's temperature.
   - Shelves `{row}-SHELF-{n}` ("Shelf n").

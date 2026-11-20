@@ -1,7 +1,7 @@
 import { useStore } from "zustand"
 import { createStore } from "zustand/vanilla"
 
-import type { VisibleComponent } from "@genesy/voice/lib/scene-context"
+import type { VisibleComponent } from "@verzo/voice/lib/scene-context"
 
 import type { OrbMode } from "./orb-geometry"
 

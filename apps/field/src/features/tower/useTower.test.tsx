@@ -18,26 +18,26 @@ const api = {
   farmCropsList: vi.fn(),
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
-vi.mock('@genesy/api-client/endpoints/farm-tower', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-tower', () => ({
   farmTowerProduction: forward('farmTowerProduction'),
   farmTowerDataQuality: forward('farmTowerDataQuality'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-pue', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-pue', () => ({
   farmPueVillageEnergy: forward('farmPueVillageEnergy'),
   farmPueVillagePipeline: forward('farmPueVillagePipeline'),
   farmPueRequestsList: forward('farmPueRequestsList'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-market', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-market', () => ({
   farmMarketVillageMatches: forward('farmMarketVillageMatches'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesList: forward('farmRecordsCropCyclesList'),
   farmRecordsHarvestReportsAll: forward('farmRecordsHarvestReportsAll'),
   farmRecordsPlotsList: forward('farmRecordsPlotsList'),
   farmRecordsFarmsList: forward('farmRecordsFarmsList'),
   farmRecordsPersonsList: forward('farmRecordsPersonsList'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({ farmCropsList: forward('farmCropsList') }))
+vi.mock('@verzo/api-client/endpoints/farm-crops', () => ({ farmCropsList: forward('farmCropsList') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/tower/useTower')

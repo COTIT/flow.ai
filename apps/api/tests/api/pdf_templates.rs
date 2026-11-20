@@ -6,9 +6,9 @@ use crate::common;
 
 use axum::http::{Method, StatusCode};
 use common::{Api, fake_pdf, member_with};
-use genesy_360_api::{build_app, mail::Mailer, outbound::Outbound, pdf::Renderer, storage::Store};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::{build_app, mail::Mailer, outbound::Outbound, pdf::Renderer, storage::Store};
 
 const PNG_B64: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 /// A 1×1 GIF.
@@ -488,7 +488,7 @@ async fn a_refused_render_is_422(pool: PgPool) {
         .call(Method::GET, &format!("/{inv}/preview"), None, &api.owner)
         .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
-    assert_eq!(res, json!({ "message": genesy_360_api::pdf::REFUSED }));
+    assert_eq!(res, json!({ "message": verzo_360_api::pdf::REFUSED }));
 }
 
 #[sqlx::test]

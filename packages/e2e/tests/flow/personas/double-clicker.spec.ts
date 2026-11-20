@@ -710,7 +710,7 @@ test("P2: batch Pause hammered, then Stop: approved once, stopped once", async (
 
 // P2-1: "Prepare the rest" sends its request once per click; the button is disabled only while
 // `voice.busy`, which ends as soon as the socket send returns (before the next click lands).
-test("P2-1: batch Prepare the rest, double-clicked, asks Genesy once", async ({
+test("P2-1: batch Prepare the rest, double-clicked, asks Verzo once", async ({
   persona,
   page,
 }) => {
@@ -725,8 +725,8 @@ test("P2-1: batch Prepare the rest, double-clicked, asks Genesy once", async ({
   ).toHaveLength(1)
 })
 
-// P2-1 (same root cause): the receipt's "Ask Genesy to check" on an unconfirmed outcome.
-test("P2-1: receipt Ask Genesy to check, double-clicked, asks once", async ({
+// P2-1 (same root cause): the receipt's "Ask Verzo to check" on an unconfirmed outcome.
+test("P2-1: receipt Ask Verzo to check, double-clicked, asks once", async ({
   persona,
   page,
   api,
@@ -952,7 +952,7 @@ test("P2-2: View result double-clicked opens the receipt, not another scene", as
   await expect(receipt(page)).toBeVisible()
 })
 
-test("P2-2: Review double-tapped while Genesy waits for a choice opens the choice", async ({
+test("P2-2: Review double-tapped while Verzo waits for a choice opens the choice", async ({
   persona,
   page,
 }, info) => {

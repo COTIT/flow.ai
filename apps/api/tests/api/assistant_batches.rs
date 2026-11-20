@@ -11,11 +11,11 @@ use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 const KEY: &str = "assistant-batch-bridge-secret-for-isolated-tests";
 async fn world(pool: PgPool) -> (Router, String, String, String) {
-    let mut state = common::state(pool, genesy_360_api::mail::Mailer::capture().0);
+    let mut state = common::state(pool, verzo_360_api::mail::Mailer::capture().0);
     state.assistant_bridge_secret = Some(std::sync::Arc::new(
-        genesy_360_api::AssistantSecret::new(KEY.into()).unwrap(),
+        verzo_360_api::AssistantSecret::new(KEY.into()).unwrap(),
     ));
-    let app = genesy_360_api::build_app(state);
+    let app = verzo_360_api::build_app(state);
     let (owner, workspace) = signup(&app, "batch@example.test", "batch").await;
     let (status, session) = send(
         &app,
@@ -918,7 +918,7 @@ async fn terminal_delivery_evidence_resolves_unknown_batch_step_without_advancin
     .await;
     sqlx::query("UPDATE assistant_actions SET operation_id='messages_send',state='queued',batch_verdict='unknown',proposal=NULL,review_facts='{}'::jsonb,finished_at=now(),evidence='{\"delivery\":{\"status\":\"accepted\"}}'::jsonb WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&workspace).bind(first).execute(&pool).await.unwrap();
     sqlx::query("UPDATE assistant_actions SET state='completed',batch_verdict='unknown',proposal=NULL,review_facts='{}'::jsonb,finished_at=now(),evidence='{\"meaning\":\"endpoint_completed\"}'::jsonb WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&workspace).bind(second).execute(&pool).await.unwrap();
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let (_, status) = send(
         &app,
         Method::GET,
@@ -954,7 +954,7 @@ async fn expired_controller_lease_purges_unstarted_drafts_without_admission(pool
     )
     .await;
     sqlx::query("UPDATE assistant_batches SET run_expires_at=clock_timestamp()-interval '1 second' WHERE workspace_id=$1::uuid AND id=$2::uuid").bind(&workspace).bind(id).execute(&pool).await.unwrap();
-    genesy_360_api::cleanup::prune(&pool).await.unwrap();
+    verzo_360_api::cleanup::prune(&pool).await.unwrap();
     let state: String = sqlx::query_scalar(
         "SELECT state FROM assistant_batches WHERE workspace_id=$1::uuid AND id=$2::uuid",
     )

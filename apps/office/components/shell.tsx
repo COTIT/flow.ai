@@ -38,37 +38,37 @@ import {
   Undo2,
 } from "lucide-react"
 
-import { useLogout, useSession } from "@genesy/api-client/auth"
-import { useOrdersList } from "@genesy/api-client/endpoints/orders"
-import { useSupplyLinksList } from "@genesy/api-client/endpoints/supply-links"
+import { useLogout, useSession } from "@verzo/api-client/auth"
+import { useOrdersList } from "@verzo/api-client/endpoints/orders"
+import { useSupplyLinksList } from "@verzo/api-client/endpoints/supply-links"
 import {
   useUsersMe,
   useUsersWorkspaces,
-} from "@genesy/api-client/endpoints/users"
-import { sessionStore } from "@genesy/api-client/session"
-import { LOCALE_COOKIE, locales } from "@genesy/i18n/locales"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+} from "@verzo/api-client/endpoints/users"
+import { sessionStore } from "@verzo/api-client/session"
+import { LOCALE_COOKIE, locales } from "@verzo/i18n/locales"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from "@genesy/ui/components/dropdown-menu"
-import { Input } from "@genesy/ui/components/input"
-import { Logo } from "@genesy/ui/components/logo"
+} from "@verzo/ui/components/dropdown-menu"
+import { Input } from "@verzo/ui/components/input"
+import { Logo } from "@verzo/ui/components/logo"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
-import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
-import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
-import { cn } from "@genesy/ui/lib/utils"
+} from "@verzo/ui/components/select"
+import { Sheet, SheetContent, SheetTitle } from "@verzo/ui/components/sheet"
+import { ThemeToggle } from "@verzo/ui/components/theme-toggle"
+import { cn } from "@verzo/ui/lib/utils"
 
-import { VoiceControls } from "@genesy/voice/components/controls"
+import { VoiceControls } from "@verzo/voice/components/controls"
 import { rightFor, useCan, useRights } from "@/lib/can"
 
 type Item = {
@@ -412,7 +412,7 @@ function WorkspacePicker({ className }: { className?: string }) {
   )
 }
 
-/** Language picker: the same cookie as @genesy/i18n's LocaleSwitcher, drawn as a menu. */
+/** Language picker: the same cookie as @verzo/i18n's LocaleSwitcher, drawn as a menu. */
 export function LocaleMenu({ withName = false }: { withName?: boolean }) {
   const t = useTranslations("common")
   const locale = useLocale()

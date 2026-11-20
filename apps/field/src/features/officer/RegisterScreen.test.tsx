@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { sessionStore } from '@genesy/api-client/session'
+import { sessionStore } from '@verzo/api-client/session'
 
 const useSession = vi.fn()
 const useCrops = vi.fn()
@@ -39,7 +39,7 @@ vi.mock('@/lib/plotDocuments', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/plotDocuments')>()),
   uploadPlotDocuments: (...args: unknown[]) => uploadPlotDocuments(...args),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-records', () => ({
   farmRecordsRegister: (...args: unknown[]) => rpc(...args),
 }))
 // The login card has its own tests; here only WHERE and FOR WHOM it appears.

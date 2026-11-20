@@ -40,7 +40,7 @@ test("a review asks plainly: Check this change, Yes do it, No cancel, Or say", a
   await noJargon(page)
 })
 
-test("a file says Ready to send, then Sent to Genesy", async ({ page }) => {
+test("a file says Ready to send, then Sent to Verzo", async ({ page }) => {
   await fakeAgent(page, (_, a) => setTimeout(() => a.say("Got it."), 50), { files: true })
   await page.goto("/")
   await page.getByRole("button", { name: "Type instead", exact: true }).click()
@@ -52,7 +52,7 @@ test("a file says Ready to send, then Sent to Genesy", async ({ page }) => {
   await expect(page.getByText("Ready to send")).toBeVisible()
   await page.getByLabel(v.message).fill("Here is the delivery note")
   await page.getByRole("button", { name: v.send, exact: true }).click()
-  await expect(page.getByText("Sent to Genesy")).toBeVisible()
+  await expect(page.getByText("Sent to Verzo")).toBeVisible()
   await noJargon(page)
 })
 

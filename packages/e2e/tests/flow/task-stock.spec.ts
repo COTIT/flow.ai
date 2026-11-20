@@ -48,7 +48,7 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
   await choice.getByLabel(k.clarify.quantity).fill("120")
   await choice.getByRole("button", { name: k.clarify.prepare }).click()
 
-  // One plain sentence to Genesy; the context frame carries only the record id (test G).
+  // One plain sentence to Verzo; the context frame carries only the record id (test G).
   await expect
     .poll(() =>
       agent.sent.some(
@@ -71,7 +71,7 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
       .some((e) => String(e.text).includes("Raw Honey"))
   ).toBe(false)
 
-  // Genesy proposes 120: the approval scene, orb compact, same connection (design test 4).
+  // Verzo proposes 120: the approval scene, orb compact, same connection (design test 4).
   agent.call("stock_set_levels", {
     path: { product: "p-500" },
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 120 }] },
@@ -88,7 +88,7 @@ test("A: ambiguous honey → choose 500g → set 120 → 'actually 150' → only
   expect(confirms[0]).toMatchObject({ decision: "cancel", ticket: "stock-120" })
   await expect(page.locator("[data-withdrawn]")).toContainText(k.withdrawn)
   await expect(page.locator("[data-withdrawn]")).toContainText("Main store → 120")
-  // Genesy re-proposes once the cancel is through: a new review, a new ticket.
+  // Verzo re-proposes once the cancel is through: a new review, a new ticket.
   agent.call("stock_set_levels", {
     path: { product: "p-500" },
     body: { warehouses: [{ warehouse_id: "wh-main", stock_lvl: 150 }] },

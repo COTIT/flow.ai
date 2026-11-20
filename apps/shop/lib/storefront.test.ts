@@ -13,9 +13,9 @@ const api = vi.hoisted(() => ({
   storefrontOrdersGet: vi.fn(),
   storefrontOrdersPayment: vi.fn(),
 }))
-vi.mock("@genesy/api-client/endpoints/storefront", () => api)
+vi.mock("@verzo/api-client/endpoints/storefront", () => api)
 const mutator = vi.hoisted(() => ({ apiRequest: vi.fn() }))
-vi.mock("@genesy/api-client/mutator", async (real) => ({
+vi.mock("@verzo/api-client/mutator", async (real) => ({
   ...(await real<object>()),
   ...mutator,
 }))

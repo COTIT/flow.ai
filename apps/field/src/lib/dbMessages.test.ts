@@ -122,7 +122,7 @@ describe('translateDbMessage', () => {
 })
 
 describe('every rule points at real text', () => {
-  // The messages live in the Genesy API's Rust sources.
+  // The messages live in the Verzo API's Rust sources.
   const apiDir = join(__dirname, '../../../api/src')
   const sources = readdirSync(apiDir, { recursive: true, encoding: 'utf8' })
     .filter((file) => file.endsWith('.rs'))

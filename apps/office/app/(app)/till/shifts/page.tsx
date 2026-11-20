@@ -4,9 +4,9 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useTillShiftsList } from "@genesy/api-client/endpoints/till"
-import { Switch } from "@genesy/ui/components/switch"
+import { useSession } from "@verzo/api-client/auth"
+import { useTillShiftsList } from "@verzo/api-client/endpoints/till"
+import { Switch } from "@verzo/ui/components/switch"
 import {
   Table,
   TableBody,
@@ -14,8 +14,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"

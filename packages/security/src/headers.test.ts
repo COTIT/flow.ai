@@ -116,13 +116,13 @@ const nextApps = readdirSync(apps).filter((a) => {
 describe.each(nextApps)("app %s", (app) => {
   it("sends the CSP from proxy.ts", () => {
     expect(readFileSync(join(apps, app, "proxy.ts"), "utf8")).toContain(
-      "@genesy/security/proxy"
+      "@verzo/security/proxy"
     )
   })
 
   it("sends the static security headers from next.config.ts", () => {
     const config = readFileSync(join(apps, app, "next.config.ts"), "utf8")
-    expect(config).toContain("@genesy/security/headers")
+    expect(config).toContain("@verzo/security/headers")
     expect(config).toMatch(/headers:\s*async/)
   })
 })

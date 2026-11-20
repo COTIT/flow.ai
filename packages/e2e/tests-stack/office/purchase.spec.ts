@@ -139,6 +139,9 @@ test.describe(() => {
       await next.getByRole("button", { name: "Receive goods" }).click()
       dialog = page.getByRole("dialog")
       await dialog.getByLabel(/e2e bought jar/).fill(qty)
+      await expect(dialog.getByRole("combobox", { name: "Warehouse" })).toHaveValue(
+        w.warehouse
+      )
       await dialog.getByRole("button", { name: "Receive goods" }).click()
     }
     await receive("2")
@@ -230,6 +233,9 @@ test("purchase order: a draft made in Office, part received, the rest closed, th
   await next.getByRole("button", { name: "Receive goods" }).click()
   let dialog = page.getByRole("dialog")
   await dialog.getByLabel(/e2e bought jar/).fill("1")
+  await expect(dialog.getByRole("combobox", { name: "Warehouse" })).toHaveValue(
+    w.warehouse
+  )
   await dialog.getByRole("button", { name: "Receive goods" }).click()
   await expect(page.getByText(/Receipt GR-\d+ recorded\./)).toBeVisible()
 

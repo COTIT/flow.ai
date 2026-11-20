@@ -1,4 +1,4 @@
-import { choosePresentation, type ResultView } from "@genesy/voice/lib/views"
+import { choosePresentation, type ResultView } from "@verzo/voice/lib/views"
 import { VoiceError } from "./server"
 
 const PICTURE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

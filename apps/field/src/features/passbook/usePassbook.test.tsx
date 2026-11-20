@@ -8,11 +8,11 @@ const farmPassbookPerson = vi.fn()
 const farmPayoutsList = vi.fn()
 const farmPayoutsCreate = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/farm-passbook', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-passbook', () => ({
   farmPassbookMine: (...a: unknown[]) => farmPassbookMine(...a),
   farmPassbookPerson: (...a: unknown[]) => farmPassbookPerson(...a),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-payouts', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-payouts', () => ({
   farmPayoutsList: (...a: unknown[]) => farmPayoutsList(...a),
   farmPayoutsCreate: (...a: unknown[]) => farmPayoutsCreate(...a),
 }))

@@ -8,7 +8,7 @@ import type {
   ExecutionSummary,
   MappingResource,
   PairResource,
-} from "@genesy/api-client/model"
+} from "@verzo/api-client/model"
 
 import type {
   ApprovalRequestView,

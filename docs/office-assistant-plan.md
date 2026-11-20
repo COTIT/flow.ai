@@ -11,7 +11,7 @@ Later scope correction, 7 November 2026: the user directed us to stop scope cree
 - ElevenLabs handles both voice and text conversations and tool selection. No separate OpenAI integration or key.
 - During live voice, users can type and share JPEG, PNG, WebP and PDF references without ending the call.
 - Support every Office-authorized business and admin capability. Credential entry/reveal, PINs, login and device pairing use secure native UI handoffs.
-- Genesy owns permissions, confirmation and execution. Direct operations call existing Rust routes; LangGraph coordinates durable tasks. LangSmith traces and evaluates execution.
+- Verzo owns permissions, confirmation and execution. Direct operations call existing Rust routes; LangGraph coordinates durable tasks. LangSmith traces and evaluates execution.
 - English, Dutch and Swahili must pass acceptance.
 - Conversation persists across Office navigation. Workspace switch and logout end it.
 - Reads execute directly. Effects require confirmation unless user explicitly authorizes one fully specified action or fixed batch. Missing details, changed scope, inferred defaults and ambiguous consent require review.
@@ -21,7 +21,7 @@ Later scope correction, 7 November 2026: the user directed us to stop scope cree
 
 ## Architecture
 
-Office voice/text/attachment UI connects to one native ElevenLabs agent. An authenticated Genesy bridge exposes a shared capability registry. Simple operations use existing Rust HTTP routes; LangGraph handles dependencies, review/resume and recovery. PostgreSQL stores graph checkpoints and an authoritative Rust action ledger. Existing Rust jobs handle postcommit work and provider cleanup. No separate Node worker or generic offline action executor.
+Office voice/text/attachment UI connects to one native ElevenLabs agent. An authenticated Verzo bridge exposes a shared capability registry. Simple operations use existing Rust HTTP routes; LangGraph handles dependencies, review/resume and recovery. PostgreSQL stores graph checkpoints and an authoritative Rust action ledger. Existing Rust jobs handle postcommit work and provider cleanup. No separate Node worker or generic offline action executor.
 
 Server-issued sessions bind authenticated user, source login, workspace, environment and configured agent. Model tools expose discovery, schema lookup, preparation, execution requests and status. A separate trusted confirmation endpoint approves immutable actions; it is never a model tool.
 
@@ -60,7 +60,7 @@ Guard guarantees once-only dispatch, not exactly-once external delivery. Request
 
 - [x] Allow JPEG, PNG, WebP and PDF only. Explain unsupported HEIC, Office files, archives and video.
 - [x] Enforce 10 MiB/file, 10 uploads/session, two simultaneous uploads, and any stricter provider limit with shared atomic reservations.
-- [x] Upload through authenticated Office proxy; inspect byte signatures and actual byte count. Bounded transient buffers only; no permanent Genesy file, S3 object, OCR stack or temporary disk copy for analysis.
+- [x] Upload through authenticated Office proxy; inspect byte signatures and actual byte count. Bounded transient buffers only; no permanent Verzo file, S3 object, OCR stack or temporary disk copy for analysis.
 - [x] Persist ownership/quota/provider-reference/cleanup metadata only. Never persist attachment bytes, names, transcript or extracted text in audit/checkpoints.
 - [ ] Configure primary and explicit backup models with verified image and PDF input plus tool support; incapable fallback cannot silently ignore attachments.
 - [x] Upload first, then send native multimodal event over active voice/text connection. Separate uploaded, submitted and inspected evidence; SDK send returning void is not receipt. Actual Dutch PNG/PDF inspection passed.

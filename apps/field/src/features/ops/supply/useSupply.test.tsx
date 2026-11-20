@@ -16,26 +16,26 @@ const farmSupplyCreate = vi.fn()
 const warehousesList = vi.fn()
 const lotsStock = vi.fn()
 
-vi.mock('@genesy/api-client/endpoints/supply-links', () => ({
+vi.mock('@verzo/api-client/endpoints/supply-links', () => ({
   supplyLinksList: (...a: unknown[]) => supplyLinksList(...a),
   supplyLinksGrant: (...a: unknown[]) => supplyLinksGrant(...a),
   supplyLinksRevoke: (...a: unknown[]) => supplyLinksRevoke(...a),
 }))
-vi.mock('@genesy/api-client/endpoints/supply-chain', () => ({
+vi.mock('@verzo/api-client/endpoints/supply-chain', () => ({
   supplyChainList: (...a: unknown[]) => supplyChainList(...a),
   supplyChainDispatch: (...a: unknown[]) => supplyChainDispatch(...a),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-supply', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-supply', () => ({
   farmSupplyList: (...a: unknown[]) => farmSupplyList(...a),
   farmSupplyDispatchOptions: (...a: unknown[]) => farmSupplyDispatchOptions(...a),
   farmSupplyOptions: (...a: unknown[]) => farmSupplyOptions(...a),
   farmSupplyRawProduct: (...a: unknown[]) => farmSupplyRawProduct(...a),
   farmSupplyCreate: (...a: unknown[]) => farmSupplyCreate(...a),
 }))
-vi.mock('@genesy/api-client/endpoints/warehouses', () => ({
+vi.mock('@verzo/api-client/endpoints/warehouses', () => ({
   warehousesList: (...a: unknown[]) => warehousesList(...a),
 }))
-vi.mock('@genesy/api-client/endpoints/lots', () => ({
+vi.mock('@verzo/api-client/endpoints/lots', () => ({
   lotsStock: (...a: unknown[]) => lotsStock(...a),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))

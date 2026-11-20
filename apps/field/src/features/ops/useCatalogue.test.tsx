@@ -10,12 +10,12 @@ const api = {
   farmLoansCreate: vi.fn(),
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
-vi.mock('@genesy/api-client/endpoints/farm-equipment', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-equipment', () => ({
   farmEquipmentCategoriesList: forward('farmEquipmentCategoriesList'),
   farmEquipmentCategoriesCreate: forward('farmEquipmentCategoriesCreate'),
   farmEquipmentCreate: forward('farmEquipmentCreate'),
 }))
-vi.mock('@genesy/api-client/endpoints/farm-loans', () => ({ farmLoansCreate: forward('farmLoansCreate') }))
+vi.mock('@verzo/api-client/endpoints/farm-loans', () => ({ farmLoansCreate: forward('farmLoansCreate') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/ops/useCatalogue')

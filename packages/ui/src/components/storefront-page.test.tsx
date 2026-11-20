@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import type { StorefrontProduct } from "@genesy/api-client/model"
+import type { StorefrontProduct } from "@verzo/api-client/model"
 
 import document from "../../../../apps/api/tests/fixtures/storefront-design-v1.json"
 import { canRenderStorefrontPage } from "../lib/storefront-design"

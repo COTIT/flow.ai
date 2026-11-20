@@ -7,7 +7,7 @@ over realistic actions, with invariants checked after every step. SIMULATED back
 ## Run one persona
 
 ```bash
-pnpm --filter @genesy/flow build
+pnpm --filter @verzo/flow build
 cd packages/e2e
 PERSONA_SEED=12345 npx playwright test personas/power-user            # all Flow widths
 PERSONA_SEED=12345 npx playwright test personas/power-user --project flow-mobile

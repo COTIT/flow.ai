@@ -3,7 +3,7 @@ import "server-only"
 import { cache } from "react"
 import { headers } from "next/headers"
 import { notFound } from "next/navigation"
-import { apiRequest } from "@genesy/api-client/mutator"
+import { apiRequest } from "@verzo/api-client/mutator"
 import { SHOP_HEADER, shopBase } from "./shop-path"
 import "./api"
 

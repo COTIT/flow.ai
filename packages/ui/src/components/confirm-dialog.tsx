@@ -12,8 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@genesy/ui/components/alert-dialog"
-import { Button } from "@genesy/ui/components/button"
+} from "@verzo/ui/components/alert-dialog"
+import { Button } from "@verzo/ui/components/button"
 
 /**
  * A button that asks before an irreversible action. `onConfirm` runs only

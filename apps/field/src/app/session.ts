@@ -1,6 +1,6 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query'
-import { sessionStore } from '@genesy/api-client/session'
-import { authLogout } from '@genesy/api-client/endpoints/auth'
+import { sessionStore } from '@verzo/api-client/session'
+import { authLogout } from '@verzo/api-client/endpoints/auth'
 
 import type { ActiveMembership } from '@/app/membership'
 import '@/lib/api'

@@ -3,15 +3,15 @@
 import { useState, type RefObject } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { FileSpreadsheet, FileText, Trash2 } from "lucide-react"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@genesy/ui/components/dialog"
+} from "@verzo/ui/components/dialog"
 import { referenceSize, sheetMime } from "../lib/helpers"
 import { useVoice, type Attachment } from "./provider"
 

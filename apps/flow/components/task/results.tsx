@@ -2,17 +2,17 @@
 
 import { useTranslations } from "next-intl"
 
-import type { TranscriptRow } from "@genesy/voice/lib/helpers"
-import { useVoice } from "@genesy/voice/components/provider"
-import { VoiceResult } from "@genesy/voice/components/results/index"
-import { ReviewDiff } from "@genesy/voice/components/review-diff"
+import type { TranscriptRow } from "@verzo/voice/lib/helpers"
+import { useVoice } from "@verzo/voice/components/provider"
+import { VoiceResult } from "@verzo/voice/components/results/index"
+import { ReviewDiff } from "@verzo/voice/components/review-diff"
 import {
   NotIncluded,
   ReviewButtons,
   ReviewHints,
   ReviewList,
   ReviewTitle,
-} from "@genesy/voice/components/review-details"
+} from "@verzo/voice/components/review-details"
 import { useTakeFocus } from "@/lib/use-take-focus"
 import { designKind, StorefrontProposal } from "./storefront-proposal"
 

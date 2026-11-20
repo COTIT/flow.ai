@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl"
 
-import { ReviewTitle } from "@genesy/voice/components/review-details"
-import { reviewSummary } from "@genesy/voice/lib/review-changes"
+import { ReviewTitle } from "@verzo/voice/components/review-details"
+import { reviewSummary } from "@verzo/voice/lib/review-changes"
 import { stockLevels } from "@/lib/proposed"
 import { useTask } from "@/lib/task-store"
 

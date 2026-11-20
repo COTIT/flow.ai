@@ -339,7 +339,7 @@ test.describe("a running batch", () => {
 
   // P8-5 (fixed, regression guard): a paused run is labelled "Working" in the task line (capsule.tsx: only ENDED
   // states get their own label; "paused" falls back to "working").
-  test("P8-5 a paused run is not labelled \"Genesy is working\"", async ({ persona, page, api }) => {
+  test("P8-5 a paused run is not labelled \"Verzo is working\"", async ({ persona, page, api }) => {
     await run(persona, page, api)
     await hide(page, true)
     await hide(page, false)

@@ -4,7 +4,7 @@ import { taskPresentation, type TranscriptRow, type VoiceProgress } from "./help
 import type { RecordRow } from "./views"
 
 /**
- * The active task as people see it: what Genesy does now, from the provider's real state only.
+ * The active task as people see it: what Verzo does now, from the provider's real state only.
  * Milestones are fixed honest words and real step counts, never percentages.
  */
 export type TaskState =
@@ -178,7 +178,7 @@ export function stockAt(
 }
 
 /**
- * A choice to offer: the newest answer lists 2–5 products and Genesy then asked a question the
+ * A choice to offer: the newest answer lists 2–5 products and Verzo then asked a question the
  * person has not answered yet. Picking one only sends words; the agent still proposes the change.
  */
 export function clarifyOf(messages: TranscriptRow[]): { resultId: string; rows: RecordRow[] } | null {

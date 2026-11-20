@@ -10,21 +10,21 @@ import {
   useTillSalesLookup,
   useTillSalesReturn,
   useTillSalesReturnReview,
-} from "@genesy/api-client/endpoints/till"
+} from "@verzo/api-client/endpoints/till"
 import type {
   RefundReview,
   ReturnReview,
   TillSaleLookup,
   TillSaleLookupCredit,
-} from "@genesy/api-client/model"
-import { useIdempotencyKey } from "@genesy/api-client/idempotency"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { Input } from "@genesy/ui/components/input"
-import { Label } from "@genesy/ui/components/label"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { toMinor } from "@genesy/ui/lib/money"
+} from "@verzo/api-client/model"
+import { useIdempotencyKey } from "@verzo/api-client/idempotency"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { Input } from "@verzo/ui/components/input"
+import { Label } from "@verzo/ui/components/label"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { toMinor } from "@verzo/ui/lib/money"
 import { ApprovalGate } from "@/components/approval-gate"
 import { Refused } from "@/components/refused"
 import { Keypad, type PadKey } from "@/components/keypad"

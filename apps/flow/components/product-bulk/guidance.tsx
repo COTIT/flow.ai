@@ -2,11 +2,11 @@
 
 import Link from "next/link"
 import { useTranslations } from "next-intl"
-import { buttonVariants } from "@genesy/ui/components/button"
+import { buttonVariants } from "@verzo/ui/components/button"
 import {
   migrationGuide,
   type MigrationRun,
-} from "@genesy/voice/lib/product-migration"
+} from "@verzo/voice/lib/product-migration"
 import { panel } from "./shared"
 
 /** Preparation is automatic; surface the next necessary decision using saved run facts. */

@@ -278,9 +278,9 @@ fn same_email(a: &str, b: &str) -> bool {
 fn invite_mail(frontend_url: &str, workspace: &str, to: String, code: &str) -> Outgoing {
     // shortcut: English plain text only; add NL + HTML template when mail templates are ported.
     Outgoing {
-        subject: format!("You're invited to join {workspace} on Genesy"),
+        subject: format!("You're invited to join {workspace} on Verzo"),
         body: format!(
-            "You've been invited to join the {workspace} workspace on Genesy.\n\n\
+            "You've been invited to join the {workspace} workspace on Verzo.\n\n\
              Accept the invitation here:\n\
              {frontend_url}/accept-invitation?code={code}\n\n\
              The link expires in {INVITE_TTL_DAYS} days. If you weren't expecting this, ignore this email.\n"

@@ -1,5 +1,5 @@
 /* Office-only glass rules (docs/design/web-redesign/canvas/glass.css). Unlayered like the
-   shared glass rules in @genesy/ui, so they win over the components' utility classes. */
+   shared glass rules in @verzo/ui, so they win over the components' utility classes. */
 
 /* Assistant fills the viewport; ordinary Office dialogs keep their glass and mobile sheet. */
 .theme-glass [data-voice-overlay][data-slot="dialog-content"] {
@@ -75,7 +75,7 @@
 }
 
 /* Vendored React Bits bento keeps its own palette inline; ours wins (glass tokens). The voice
-   review list's overrides live in @genesy/voice/styles/voice.css. */
+   review list's overrides live in @verzo/voice/styles/voice.css. */
 .theme-glass .magic-bento {
   --al-tile: var(--glass) !important;
   --al-tile-edge: var(--glass-border) !important;

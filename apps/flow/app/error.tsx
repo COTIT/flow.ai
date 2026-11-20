@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent } from "@genesy/ui/components/card"
+import { Card, CardContent } from "@verzo/ui/components/card"
 import { ScreenError } from "@/components/screen-error"
 
 /** Last resort, outside the signed-in frame (e.g. the login page): one card, a retry and a way home. */

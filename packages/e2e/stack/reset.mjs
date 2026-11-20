@@ -1,4 +1,4 @@
-// `pnpm --filter @genesy/e2e stack:reset`: back to the freshly seeded data in about a second.
+// `pnpm --filter @verzo/e2e stack:reset`: back to the freshly seeded data in about a second.
 // Same logins and keys as before (seed.json stays valid); the apps keep running.
 import console from "node:console"
 import process from "node:process"

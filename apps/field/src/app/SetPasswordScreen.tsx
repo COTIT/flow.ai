@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { clearTempPassword, peekTempPassword } from '@/app/tempPassword'
 import { apiErrorMessage, isNoAnswer } from '@/lib/apiError'
 import { errorText } from '@/lib/errors'
-import { farmLoginsChangePassword } from '@genesy/api-client/endpoints/farm-logins'
+import { farmLoginsChangePassword } from '@verzo/api-client/endpoints/farm-logins'
 
 // Only "is it there, and typed twice the same" is checked here. What makes a
 // password acceptable is the auth server's rule, and its message says so.

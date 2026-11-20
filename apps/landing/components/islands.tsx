@@ -11,7 +11,6 @@ import {
 // React Bits pieces, each in its own chunk, fetched only when an island mounts.
 const Particles = lazy(() => import("./rb/Particles"))
 const BlurText = lazy(() => import("./rb/BlurText"))
-const RotatingText = lazy(() => import("./rb/RotatingText"))
 const LogoLoop = lazy(() => import("./rb/LogoLoop"))
 const GlareHover = lazy(() => import("./rb/GlareHover"))
 const CountUp = lazy(() => import("./rb/CountUp"))
@@ -95,31 +94,7 @@ export function Headline({ text }: { text: string }) {
   )
 }
 
-/** "Traced from the hive / harvest / …": the journey in one line. Plain: the hero tag. */
-export function RotatingTag({
-  plain,
-  prefix,
-  words,
-}: {
-  plain: string
-  prefix: string
-  words: string[]
-}) {
-  return (
-    <Island plain={plain}>
-      <span className="rotating">
-        {prefix}
-        <RotatingText
-          texts={words}
-          rotationInterval={2200}
-          staggerDuration={0.02}
-        />
-      </span>
-    </Island>
-  )
-}
-
-/** A slow loop of what Genesy does. Plain: the same items as a still, wrapped list. */
+/** A slow loop of what Verzo does. Plain: the same items as a still, wrapped list. */
 export function FeatureLoop({
   label,
   items,

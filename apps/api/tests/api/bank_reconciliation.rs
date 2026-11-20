@@ -11,19 +11,19 @@ use crate::{
 };
 
 use axum::http::{Method, StatusCode};
-use genesy_360_api::jobs::{self, kinds::Ctx, runner::Step};
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use verzo_360_api::jobs::{self, kinds::Ctx, runner::Step};
 
 /// Run queued import apply jobs to the end.
 pub(crate) async fn drain_imports(pool: &PgPool) {
-    let state = common::state(pool.clone(), genesy_360_api::mail::Mailer::capture().0);
+    let state = common::state(pool.clone(), verzo_360_api::mail::Mailer::capture().0);
     let ctx = Ctx {
         invoice_state: Some(state.clone()),
         assistant_api_key: None,
         db: state.db.clone(),
         files: state.files.clone(),
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: state.credentials.clone(),
         payments: state.payments.clone(),
     };

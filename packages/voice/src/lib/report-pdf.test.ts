@@ -178,7 +178,7 @@ describe("formal PDF report layout", () => {
   it("uses portrait pages, branded executive KPIs and page-count footers", async () => {
     await reportPdf(sales, new Map(), labels)
     expect(seen.options.orientation).toBe("portrait")
-    expect(seen.text.map((entry) => entry.value)).toContain("GENESY")
+    expect(seen.text.map((entry) => entry.value)).toContain("VERZO")
     expect(
       seen.text.some(
         (entry) => entry.value === "$128,450.00" && entry.size >= 14

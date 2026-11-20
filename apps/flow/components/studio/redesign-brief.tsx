@@ -3,8 +3,8 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 
-import { Button } from "@genesy/ui/components/button"
-import { useVoice } from "@genesy/voice/components/provider"
+import { Button } from "@verzo/ui/components/button"
+import { useVoice } from "@verzo/voice/components/provider"
 import { briefText, type Brief } from "@/lib/studio"
 
 const AREAS = ["Hero", "Product layout", "Typography", "Colours", "Navigation"]

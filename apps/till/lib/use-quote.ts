@@ -2,8 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 
-import { tillSalesQuote } from "@genesy/api-client/endpoints/till"
-import type { QuoteRequest } from "@genesy/api-client/model"
+import { tillSalesQuote } from "@verzo/api-client/endpoints/till"
+import type { QuoteRequest } from "@verzo/api-client/model"
 import { toSaleLines, type CartLine } from "@/lib/cart-store"
 import { useOnline } from "@/lib/use-online"
 import { useTill } from "@/lib/till-store"

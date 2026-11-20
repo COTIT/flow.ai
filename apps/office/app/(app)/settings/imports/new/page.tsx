@@ -4,26 +4,26 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   importsCreate,
   importsUpload,
   importsValidate,
-} from "@genesy/api-client/endpoints/imports"
-import { useAccountingBankAccountsList } from "@genesy/api-client/endpoints/accounting"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
-import { Label } from "@genesy/ui/components/label"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/imports"
+import { useAccountingBankAccountsList } from "@verzo/api-client/endpoints/accounting"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Card } from "@verzo/ui/components/card"
+import { Label } from "@verzo/ui/components/label"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@genesy/ui/components/select"
+} from "@verzo/ui/components/select"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
 import {

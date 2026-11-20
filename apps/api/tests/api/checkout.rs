@@ -8,7 +8,9 @@ use std::time::Duration;
 
 use axum::http::{Method, StatusCode};
 use common::{Api, invoicing::stock, send, send_raw};
-use genesy_360_api::{
+use serde_json::{Value, json};
+use sqlx::PgPool;
+use verzo_360_api::{
     build_app,
     jobs::{
         kinds::{self, Ctx},
@@ -18,8 +20,6 @@ use genesy_360_api::{
     mail::Mailer,
     payments::{Error, Provider, fake::Fake},
 };
-use serde_json::{Value, json};
-use sqlx::PgPool;
 
 struct W {
     api: Api,
@@ -30,7 +30,7 @@ struct W {
 
 /// Acme with a main warehouse, honey (€12.50 excl, 9 %, 5 in stock), a shop key and the fake
 /// provider; `tune` adjusts the state before the app is built.
-async fn world_with(pool: PgPool, tune: impl FnOnce(&mut genesy_360_api::AppState)) -> W {
+async fn world_with(pool: PgPool, tune: impl FnOnce(&mut verzo_360_api::AppState)) -> W {
     let mut api = Api::new(pool.clone(), "/orders").await;
     let fake = Fake::default();
     let mut state = common::state(pool.clone(), Mailer::capture().0);
@@ -179,7 +179,7 @@ async fn run_jobs(w: &W, kinds_: &[&str]) {
         assistant_api_key: None,
         db: w.api.pool.clone(),
         files: None,
-        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        http: verzo_360_api::outbound::Outbound::new(&[]).unwrap(),
         credentials: None,
         payments: Provider::Fake(w.fake.clone()).into(),
     };

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { onlineManager, useQueryClient } from "@tanstack/react-query"
 
-import { configureApi } from "@genesy/api-client/mutator"
+import { configureApi } from "@verzo/api-client/mutator"
 import { approvalStore } from "@/lib/approval"
 import { catalogStore } from "@/lib/use-catalog"
 import { queueStore } from "@/lib/sale-queue"

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmMarketOpportunitiesList } from '@genesy/api-client/endpoints/farm-market'
+import { farmMarketOpportunitiesList } from '@verzo/api-client/endpoints/farm-market'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'

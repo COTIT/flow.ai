@@ -1,6 +1,6 @@
-# apps/api (crate `genesy-360-api`)
+# apps/api (crate `verzo-360-api`)
 
-The Genesy backend: Axum 0.8, sqlx 0.9, PostgreSQL 18. Existing `/v1` paths keep their old shapes (frozen); new domains get clean REST paths. All business rules live here; the Next.js apps only display and collect data.
+The Verzo backend: Axum 0.8, sqlx 0.9, PostgreSQL 18. Existing `/v1` paths keep their old shapes (frozen); new domains get clean REST paths. All business rules live here; the Next.js apps only display and collect data.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ All read once at boot. A missing required var stops the server with the var name
 | `API_PUBLIC_URL` | yes | | this API's public origin; verification links point here |
 | `SMTP_ALLOW_INSECURE` | no | `false` | `true` lets `SMTP_URL` be plain `smtp://` (local Mailpit only) |
 | `SMTP_URL` | yes | | `smtp://127.0.0.1:1025` (Mailpit), Postmark: `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required` |
-| `MAIL_FROM` | yes | | `Genesy <no-reply@...>` |
+| `MAIL_FROM` | yes | | `Verzo <no-reply@...>` |
 | `RATE_LIMIT_BURST` | no | `10` | public auth routes, per client IP |
 | `RATE_LIMIT_REPLENISH_SECS` | no | `6` | |
 | `TRUST_PROXY_HEADERS` | no | `false` | **Set `true` behind Traefik.** With `false` every client shares Traefik's IP, so 10 bad logins lock everyone out. Traefik must not trust client-sent X-Forwarded-For (keep `forwardedHeaders.insecure` off), and port 8080 must not be reachable directly. |
@@ -61,8 +61,8 @@ Migrations are embedded in the binary and run at boot (`sqlx::migrate!`), so a f
 Every route carries a `#[utoipa::path]`, and `openapi.json` is generated from them. After changing a route or its request/response types:
 
 ```bash
-pnpm --filter @genesy/api openapi                 # rewrites openapi.json
-pnpm turbo run generate --filter=@genesy/api-client   # regenerates the TS client (runs the line above first)
+pnpm --filter @verzo/api openapi                 # rewrites openapi.json
+pnpm turbo run generate --filter=@verzo/api-client   # regenerates the TS client (runs the line above first)
 grep -ciE 'laravel|vimdesk' openapi.json          # must print 0
 ```
 
@@ -74,12 +74,12 @@ Commit `openapi.json` and `packages/api-client/src/generated` with the change. `
 
 ## Layout
 
-See `.claude/skills/genesy-360-api/SKILL.md` (section 4) for where code goes and why.
+See `.claude/skills/verzo-360-api/SKILL.md` (section 4) for where code goes and why.
 
 ## Docker
 
 ```bash
-docker build -t genesy-360-api:local .
+docker build -t verzo-360-api:local .
 ```
 
 The runtime image is distroless and runs as non-root.

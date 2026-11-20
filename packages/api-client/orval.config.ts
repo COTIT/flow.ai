@@ -1,9 +1,9 @@
 import { defineConfig } from "orval"
 
 // Generates typed axios calls + TanStack Query hooks from the backend's OpenAPI file.
-// Regenerate: `pnpm --filter @genesy/api-client generate`.
+// Regenerate: `pnpm --filter @verzo/api-client generate`.
 export default defineConfig({
-  genesy: {
+  verzo: {
     input: "../../apps/api/openapi.json",
     output: {
       mode: "tags-split",

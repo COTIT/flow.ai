@@ -3,7 +3,7 @@
 RUAHA's data was demo only (G15), so nothing is migrated. A command builds the demo story in a workspace called `ruaha-demo`:
 
 ```bash
-genesy-360-api seed-farm-demo   # or: cargo run -- seed-farm-demo
+verzo-360-api seed-farm-demo   # or: cargo run -- seed-farm-demo
 ```
 
 - **CLI only.** No HTTP route seeds anything. The command runs migrations, seeds, prints the demo accounts and their passwords once, and exits without binding a port.

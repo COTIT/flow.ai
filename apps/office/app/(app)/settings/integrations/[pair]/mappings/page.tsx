@@ -7,23 +7,23 @@ import { useTranslations } from "next-intl"
 import {
   useIntegrationWrite,
   useMappings,
-} from "@genesy/api-client/business-approvals"
+} from "@verzo/api-client/business-approvals"
 import {
   integrationsMappingsDelete,
   integrationsMappingsUpsert,
-} from "@genesy/api-client/endpoints/integrations"
-import { fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/integrations"
+import { fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   CODES,
   errorText,
   label,
-} from "@genesy/ui/components/business-approvals/labels"
-import type { MappingView } from "@genesy/ui/components/business-approvals/types"
+} from "@verzo/ui/components/business-approvals/labels"
+import type { MappingView } from "@verzo/ui/components/business-approvals/types"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { Done, LoadError, useDone } from "@/components/states"

@@ -3,7 +3,7 @@
 import Link from "@/components/shop-link"
 import { usePathname } from "next/navigation"
 
-import { cn } from "@genesy/ui/lib/utils"
+import { cn } from "@verzo/ui/lib/utils"
 
 import { NAV } from "@/lib/nav"
 import { useShop } from "@/lib/shop-context"

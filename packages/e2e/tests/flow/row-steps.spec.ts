@@ -1,5 +1,5 @@
 // P3 row actions + scene steps over a SIMULATED API and a fake agent: each scene row offers its
-// next step. Writes only ever go to Genesy as a request (the normal review card follows); links
+// next step. Writes only ever go to Verzo as a request (the normal review card follows); links
 // open that exact record in Office in a new tab.
 import type { Page } from "@playwright/test"
 
@@ -48,7 +48,7 @@ const group = (kind: string, items: unknown[], actions: string[]) => ({
   items,
 })
 
-/** Every request that would change stock (none may leave Flow: Genesy prepares the review). */
+/** Every request that would change stock (none may leave Flow: Verzo prepares the review). */
 function stockWrites(page: Page) {
   const writes: string[] = []
   page.on("request", (r) => {
@@ -63,7 +63,7 @@ const restock = (page: Page, id: string) =>
 
 test.beforeEach(({ api }) => void api)
 
-test("Restock asks Genesy with the product and its shortfall; no amount decided, nothing written", async ({
+test("Restock asks Verzo with the product and its shortfall; no amount decided, nothing written", async ({
   page,
   api,
 }) => {
@@ -74,10 +74,10 @@ test("Restock asks Genesy with the product and its shortfall; no amount decided,
   await page.goto("/scenes/stock")
   await restock(page, HONEY).click()
   await expect.poll(() => sent.length).toBe(1)
-  // The product and how far below its minimum, from the API; how many arrived is Genesy's question.
+  // The product and how far below its minimum, from the API; how many arrived is Verzo's question.
   expect(sent[0]).toBe("Restock Raw Honey 500g. It is 6 below its minimum.")
   expect(sent[0]).not.toMatch(/\bto \d|minimum of|set it/i)
-  // Selected for Genesy (id only), like tapping the name.
+  // Selected for Verzo (id only), like tapping the name.
   await expect(page.locator(`[data-row="${HONEY}"] [data-record]`)).toHaveAttribute(
     "aria-pressed",
     "true"
@@ -268,7 +268,7 @@ test("Sales compare is not offered when the comparison is not readable", async (
   await expect(menuItem(page, sc.compare.button)).toHaveCount(0)
 })
 
-test("empty My Routines: one big Set up a weekly report asks Genesy", async ({ page, api }) => {
+test("empty My Routines: one big Set up a weekly report asks Verzo", async ({ page, api }) => {
   sceneWorld(api)
   api.on("GET", "/workspace/w1/scheduled-reports", () => ({ data: [] }))
   const sent: string[] = []

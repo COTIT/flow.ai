@@ -6,20 +6,20 @@ import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingAccountsListQueryKey,
   useAccountingAccountsCreate,
   useAccountingAccountsList,
   useAccountingAccountsUpdate,
-} from "@genesy/api-client/endpoints/accounting"
-import type { AccountResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { Checkbox } from "@genesy/ui/components/checkbox"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/accounting"
+import type { AccountResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { Checkbox } from "@verzo/ui/components/checkbox"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
+} from "@verzo/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import {
   CardState,

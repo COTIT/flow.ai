@@ -4,7 +4,7 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getPurchaseReturnsGetQueryKey,
   getPurchaseReturnsListQueryKey,
@@ -13,10 +13,10 @@ import {
   purchaseReturnsReverse,
   purchaseReturnsReverseReview,
   usePurchaseReturnsGet,
-} from "@genesy/api-client/endpoints/purchase-returns"
-import type { PurchaseReturnResource } from "@genesy/api-client/model"
-import { Button } from "@genesy/ui/components/button"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/purchase-returns"
+import type { PurchaseReturnResource } from "@verzo/api-client/model"
+import { Button } from "@verzo/ui/components/button"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDay, formatQty } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { PageHead } from "@/components/list"
 import {
@@ -39,7 +39,8 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, LoadError, useDone } from "@/components/states"
 import { useRights } from "@/lib/can"
 
-import { bookAmount, showMoney, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { bookAmount, showMoney } from "../../purchases/shared"
 import type { Outcome } from "../../purchases/[id]/dialogs"
 
 /** A purchase return: lines (goods out, credit), next step (post, reverse), facts. */
@@ -223,6 +224,7 @@ function PostReturnDialog({ ret, button, outcome }: Props) {
 /** Reverse: goods back at their original value and the credit closed, both together. */
 function ReverseReturnDialog({ ret, button, outcome }: Props) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
   const inputs = useReverseInputs("ret-rev")
@@ -236,7 +238,7 @@ function ReverseReturnDialog({ ret, button, outcome }: Props) {
       title={t("payables.returns.reverseTitle", { number: ret.number })}
       description={t("payables.returns.reverseText")}
       done={t("payables.done.reversed")}
-      onOpen={() => inputs.reset(today())}
+      onOpen={() => inputs.reset(bookToday)}
       ready={inputs.ready}
       fields={inputs.fields}
       review={async () => (await purchaseReturnsReverseReview(ws, ret.id, body())).data}

@@ -41,7 +41,7 @@ The pill at the bottom left switches between them. To see the calm version, swit
 | Particles (WebGL) | B · hero background | Drifting gold specks, like pollen or bees over the landscape |
 | BlurText (motion) | B · headline | The headline comes into focus, a soft, warm entrance |
 | RotatingText (motion) | B · hero tag | "Traced from the hive / harvest / batch / passport / shop / passbook": the journey in one line |
-| LogoLoop | B · strip under the hero | A slow loop of what Genesy does (offline, three languages, passport, one stock, passbook, consent, exact money). There are no partner logos yet |
+| LogoLoop | B · strip under the hero | A slow loop of what Verzo does (offline, three languages, passport, one stock, passbook, consent, exact money). There are no partner logos yet |
 | GlareHover | B · audience cards | A gold glare across each card on hover |
 | FadeContent (GSAP) | B · section headings | Headings fade in from a blur |
 | DotGrid | C · hero background | A quiet grid of dots that react to the pointer, like a QR code coming alive |

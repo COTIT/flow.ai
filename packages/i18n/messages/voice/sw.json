@@ -15,7 +15,7 @@
     "connecting": "Inaunganisha…",
     "textSession": "Mazungumzo ya maandishi",
     "muted": "Maikrofoni imezimwa",
-    "speaking": "Genesy inazungumza",
+    "speaking": "Msaidizi inazungumza",
     "listening": "Inasikiliza",
     "open": "Fungua mazungumzo",
     "mute": "Zima maikrofoni",
@@ -74,7 +74,7 @@
     "secureBack": "Rudi kwa msaidizi wa sauti",
     "roles": {
       "user": "Wewe",
-      "agent": "Genesy",
+      "agent": "Msaidizi",
       "action": "Kitendo",
       "link": "Kiungo",
       "result": "Matokeo"
@@ -83,7 +83,7 @@
       "selected": "Tayari kutumwa",
       "uploading": "Inapakia…",
       "uploaded": "Tayari kutumwa",
-      "submitted": "Imetumwa kwa Genesy",
+      "submitted": "Imetumwa kwa Verzo",
       "failed": "Imeshindwa kuongeza faili hili. Jaribu tena."
     },
     "fileErrors": {
@@ -133,7 +133,7 @@
     "microphoneMissing": "Hakuna maikrofoni iliyopatikana. Unganisha moja, au endelea kuandika.",
     "offline": "Huna mtandao. Unganisha tena, kisha ujaribu tena.",
     "offlineNotSent": "Huna mtandao. Hakuna kilichotumwa; idhinisha tena ukirudi mtandaoni.",
-    "connectionLost": "Genesy haipatikani. Angalia muunganisho wako kisha ujaribu tena.",
+    "connectionLost": "Verzo haipatikani. Angalia muunganisho wako kisha ujaribu tena.",
     "upgradeFailed": "Sauti haikuweza kuanza. Ujumbe wako wa awali unabaki hapa.",
     "batchProgress": "Maendeleo ya mfululizo",
     "batchSteps": "Hatua za mfululizo kwa mpangilio",
@@ -305,7 +305,7 @@
       "company_name": "Jina la kampuni"
     },
     "requestErrors": {
-      "unsupported": "Genesy haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
+      "unsupported": "Verzo haiwezi kufanya hili bado. Hakuna kilichobadilishwa.",
       "invalid": "Angalia taarifa zilizoombwa, kisha andaa pendekezo jipya. Angalia kitendo chenye matokeo yasiyojulikana katika Office kabla ya kukirudia.",
       "expired": "Kipindi chako kimeisha. Ingia tena ili kuangalia kazi iliyorekodiwa.",
       "forbidden": "Huna ruhusa ya kufanya kitendo hiki. Angalia ufikiaji wako katika Office.",
@@ -875,7 +875,7 @@
       }
     },
     "sheetRequest": "Nimeshiriki jedwali. Niulize nifanye nini nalo.",
-    "sheetNoPreview": "Genesy husoma jedwali hili ukiomba; hakuna onyesho hapa.",
+    "sheetNoPreview": "Verzo husoma jedwali hili ukiomba; hakuna onyesho hapa.",
     "importRows": "Safu {from}–{to} kati ya {total}",
     "moreParts": "Mabadiliko {count} zaidi baada ya ukaguzi huu. Kila sehemu ina ukaguzi wake.",
     "notIncluded": {

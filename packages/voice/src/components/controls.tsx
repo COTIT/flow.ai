@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 import { AudioLines, Mic, MicOff, PhoneOff, VolumeX } from "lucide-react"
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import { useVoice } from "./provider"
 import { VoiceActivity } from "./activity"
 

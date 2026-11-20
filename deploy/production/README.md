@@ -4,7 +4,7 @@ Office assistant stays disabled by default. See [assistant deployment](../ASSIST
 
 Product imports stay disabled by default. See [product import deployment](../PRODUCT_BULK.md) for release gates, file credentials and pausing existing workers safely.
 
-The live Genesy stack on the VPS. It runs the API with its own Postgres, the apps (shop, office, till, field, flow) and the landing page, all served through the existing Traefik.
+The live Verzo stack on the VPS. It runs the API with its own Postgres, the apps (shop, office, till, field, flow) and the landing page, all served through the existing Traefik.
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.
 
@@ -129,7 +129,7 @@ cd /srv/genesy-prod && deploy/deploy.sh production <green-main-sha> --bundle /tm
 2. Writes its full sha into `GENESY_REF` in `.env.production`: the images' tag.
 3. Pulls that commit's images from GHCR (`IMAGE_SOURCE=pull`, the default). The old containers keep serving meanwhile.
 4. Takes a backup (`pre-<sha>`, through `/usr/local/lib/genesy-ops/backup.sh`).
-5. Runs the migrations once, in a one-off `cli` container (`genesy-360-api migrate`). The app containers never migrate: `SKIP_BOOT_MIGRATIONS=true`.
+5. Runs the migrations once, in a one-off `cli` container (`verzo-360-api migrate`). The app containers never migrate: `SKIP_BOOT_MIGRATIONS=true`.
 6. `up -d --wait --no-build`, then checks every host through Traefik: `api` `/healthz` must give 200, the apps 2xx/3xx. `--no-build` means the VPS never builds by accident: a missing image stops the deploy.
 7. Records the live and previous versions in `.deploy-state`, adds a line to `deploys.log`, and prunes images.
 
@@ -198,7 +198,7 @@ Self-signup is off, so the first account is made from the command line, once:
 deploy/deploy.sh production compose --profile cli run --rm cli create-owner --email <email> --workspace <name>
 ```
 
-This runs `genesy-360-api create-owner`. It creates the owner and their workspace, and prints a one-time password **once**. Hand that password to the owner over a private channel. Everyone else is invited from the office.
+This runs `verzo-360-api create-owner`. It creates the owner and their workspace, and prints a one-time password **once**. Hand that password to the owner over a private channel. Everyone else is invited from the office.
 
 `cli` is its own service with no Traefik labels, so the one-off container never receives web traffic.
 
@@ -209,7 +209,7 @@ cd /srv/genesy-prod && deploy/set-user-password.sh production <email> --admin
 cd /srv/genesy-prod && deploy/set-user-password.sh production <new email> --admin --first-name <First> --last-name <Last>
 ```
 
-It asks twice without echoing, then pipes the password on stdin to `genesy-360-api set-user-password` (never on the command line). The API checks the same password rules as signup and stores an argon2id hash. An existing user gets the new password and every other session of theirs ends. A new user needs both names. It makes sure the user is an active member of `afm`. With `--admin` it also adds them to `afm`'s Admin Team (every permission; only the owner can give `workspace_admin` to another team, and only the owner can't be removed). It refuses every other workspace and prints only the email, created or updated, and the number of sessions ended.
+It asks twice without echoing, then pipes the password on stdin to `verzo-360-api set-user-password` (never on the command line). The API checks the same password rules as signup and stores an argon2id hash. An existing user gets the new password and every other session of theirs ends. A new user needs both names. It makes sure the user is an active member of `afm`. With `--admin` it also adds them to `afm`'s Admin Team (every permission; only the owner can give `workspace_admin` to another team, and only the owner can't be removed). It refuses every other workspace and prints only the email, created or updated, and the number of sessions ended.
 
 **The shop's app key:**
 
@@ -270,7 +270,7 @@ No code: Resend takes SMTP, so `secrets/smtp_url` becomes `smtps://resend:<API k
 
 2. **Resend → API Keys:** make a key with Sending access, limited to `genesy.app`.
 3. **On the VPS:** `deploy/set-provider-keys.sh production resend`. It rewrites `secrets/smtp_url` without echoing the key.
-4. `MAIL_FROM` in `.env.production` must use the verified domain (the example already says `Genesy <no-reply@genesy.app>`).
+4. `MAIL_FROM` in `.env.production` must use the verified domain (the example already says `Verzo <no-reply@genesy.app>`).
 5. Restart the API: `deploy/deploy.sh production compose up -d --wait api`. Then invite yourself from the office and check that the mail arrives, and that Resend → Emails shows it as delivered.
 
 ## Turning on file uploads

@@ -2,16 +2,16 @@
 
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useStorefrontReview } from "@genesy/api-client/storefront-review"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Badge } from "@genesy/ui/components/badge"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { Notice } from "@genesy/ui/components/notice"
-import { Skeleton } from "@genesy/ui/components/skeleton"
-import { StorefrontPage } from "@genesy/ui/components/storefront-page"
+import { useSession } from "@verzo/api-client/auth"
+import { useStorefrontReview } from "@verzo/api-client/storefront-review"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { Badge } from "@verzo/ui/components/badge"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { Notice } from "@verzo/ui/components/notice"
+import { Skeleton } from "@verzo/ui/components/skeleton"
+import { StorefrontPage } from "@verzo/ui/components/storefront-page"
 import {
   Table,
   TableBody,
@@ -19,9 +19,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDateTime } from "@genesy/ui/lib/format"
-import { canRenderStorefrontPage } from "@genesy/ui/lib/storefront-design"
+} from "@verzo/ui/components/table"
+import { formatDateTime } from "@verzo/ui/lib/format"
+import { canRenderStorefrontPage } from "@verzo/ui/lib/storefront-design"
 import {
   CardState,
   ListCard,

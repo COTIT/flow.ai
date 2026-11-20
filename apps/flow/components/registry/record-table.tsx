@@ -4,13 +4,13 @@ import type { ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import { ChevronDown, ExternalLink, MoreHorizontal } from "lucide-react"
 
-import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@genesy/ui/components/dropdown-menu"
+} from "@verzo/ui/components/dropdown-menu"
 import { flowStore, useFlow } from "@/lib/flow-store"
 
 export type Column<R> = {

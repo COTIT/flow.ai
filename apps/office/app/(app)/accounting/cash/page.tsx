@@ -4,19 +4,19 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getAccountingCashPlacesListQueryKey,
   useAccountingCashAdjustmentsCreate,
   useAccountingCashAdjustmentsCreateReview,
   useAccountingCashPlacesList,
-} from "@genesy/api-client/endpoints/accounting"
-import type { CashPlaceResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { DialogClose, DialogFooter } from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/api-client/endpoints/accounting"
+import type { CashPlaceResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { DialogClose, DialogFooter } from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -24,9 +24,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { Textarea } from "@genesy/ui/components/textarea"
-import { formatMoney } from "@genesy/ui/lib/money"
+} from "@verzo/ui/components/table"
+import { Textarea } from "@verzo/ui/components/textarea"
+import { formatMoney } from "@verzo/ui/lib/money"
 import { Field } from "@/components/field"
 import { CardState, ListCard, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -36,7 +36,7 @@ import { useCan } from "@/lib/can"
 import {
   AccountingTabs,
   Shell,
-  today,
+  useBookToday,
   useAction,
   useReasons,
   useWord,
@@ -177,6 +177,7 @@ function CountDialog({
   button: React.ReactElement
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const word = useWord()
   const cash = useCash()
   const reasons = useReasons()
@@ -184,7 +185,7 @@ function CountDialog({
   const a = useAction(outcome)
   const [asked, setAsked] = React.useState({
     counted_amount: "",
-    accounting_date: today(),
+    accounting_date: "",
   })
   const review = useAccountingCashAdjustmentsCreateReview()
   const post = useAccountingCashAdjustmentsCreate({
@@ -283,7 +284,8 @@ function CountDialog({
             type="date"
             name="accounting_date"
             required
-            defaultValue={asked.accounting_date}
+            key={asked.accounting_date || bookToday}
+            defaultValue={asked.accounting_date || bookToday}
             onChange={() => review.reset()}
           />
         </Field>

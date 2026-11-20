@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   farmVouchersRedemptions,
   farmVouchersRedemptionTotals,
-} from '@genesy/api-client/endpoints/farm-vouchers'
-import type { Redemption, RedemptionTotal } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-vouchers'
+import type { Redemption, RedemptionTotal } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { queryKeys } from '@/lib/queryKeys'

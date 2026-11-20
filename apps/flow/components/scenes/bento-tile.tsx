@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
-import { Button } from "@genesy/ui/components/button"
+import { Button } from "@verzo/ui/components/button"
 
 /** The footer strip that closes a cut card ("Show all (n)"). */
 const FOOTER_PX = 56

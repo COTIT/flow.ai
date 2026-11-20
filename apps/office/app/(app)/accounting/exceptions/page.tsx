@@ -4,8 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useAccountingExceptionsList } from "@genesy/api-client/endpoints/accounting"
+import { useSession } from "@verzo/api-client/auth"
+import { useAccountingExceptionsList } from "@verzo/api-client/endpoints/accounting"
 import {
   Table,
   TableBody,
@@ -13,9 +13,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { formatDateTime } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { formatDateTime } from "@verzo/ui/lib/format"
 import {
   CardState,
   ListCard,

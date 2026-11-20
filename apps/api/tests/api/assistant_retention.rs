@@ -1,10 +1,10 @@
 //! Assistant retention preserves unresolved actions and isolates session-owned context.
 
 use crate::common::Api;
-use genesy_360_api::cleanup;
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
+use verzo_360_api::cleanup;
 
 async fn context(api: &Api, days: i32, state: &str) -> Uuid {
     let session = api

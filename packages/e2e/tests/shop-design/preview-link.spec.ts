@@ -98,7 +98,7 @@ for (const [name, token] of [
       )
     ).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Return to Genesy Flow" })
+      page.getByRole("link", { name: "Return to Verzo Flow" })
     ).toHaveAttribute("href", "https://flow.example.test")
     await expect(page.getByText("Unpublished preview")).toHaveCount(0)
     await expectNoHorizontalScroll(page)

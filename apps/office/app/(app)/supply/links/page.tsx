@@ -4,15 +4,15 @@ import * as React from "react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   getSupplyLinksListQueryKey,
   useSupplyLinksAccept,
   useSupplyLinksList,
   useSupplyLinksRevoke,
-} from "@genesy/api-client/endpoints/supply-links"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/supply-links"
+import { ApiError } from "@verzo/ui/components/api-error"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Table,
   TableBody,
@@ -20,8 +20,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatDate } from "@verzo/ui/lib/format"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"

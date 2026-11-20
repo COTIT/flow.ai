@@ -3,19 +3,19 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useMutation } from "@tanstack/react-query"
-import { useSession } from "@genesy/api-client/auth"
-import { apiRequest } from "@genesy/api-client/mutator"
-import type { InvoiceResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+import { useSession } from "@verzo/api-client/auth"
+import { apiRequest } from "@verzo/api-client/mutator"
+import type { InvoiceResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
 import { Field } from "@/components/field"
 import { Done, useDone } from "@/components/states"
 import { useCan } from "@/lib/can"

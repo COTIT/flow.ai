@@ -1,4 +1,4 @@
-import type { RecoveryTask } from "@genesy/voice/lib/recovery"
+import type { RecoveryTask } from "@verzo/voice/lib/recovery"
 
 /** Nothing was written for these: no line to report. Waiting reviews get "Continue review". */
 const NOT_RUN = new Set(["awaiting_review", "cancelled", "expired"])

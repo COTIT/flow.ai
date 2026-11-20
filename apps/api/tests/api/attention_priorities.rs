@@ -562,7 +562,7 @@ async fn prune_drops_stale_marks(pool: PgPool) {
     )
     .bind(&api.ws).bind(&user).bind(&w.honey).bind(&w.wax).bind(&tea)
     .execute(&api.pool).await.unwrap();
-    let pruned = genesy_360_api::cleanup::prune(&api.pool).await.unwrap();
+    let pruned = verzo_360_api::cleanup::prune(&api.pool).await.unwrap();
     assert_eq!(pruned.attention_marks, 4);
     let left: Vec<String> = sqlx::query_scalar("SELECT ref_id::text FROM attention_marks")
         .fetch_all(&api.pool)

@@ -3,8 +3,8 @@ import {
   farmVouchersLookup,
   farmVouchersRedeem,
   farmVouchersTimeline,
-} from '@genesy/api-client/endpoints/farm-vouchers'
-import type { Money, Redeemed } from '@genesy/api-client/model'
+} from '@verzo/api-client/endpoints/farm-vouchers'
+import type { Money, Redeemed } from '@verzo/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import type { AuditEvent } from '@/components/AuditTimeline'

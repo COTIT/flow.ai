@@ -19,7 +19,7 @@ Two families with the same five routes, under `/v1/workspace/{workspace}`:
 - `GET /` paginated, oldest first. `?discount_rule_type=` filters: a rule type, or `legacy` for offers without one.
 - `POST /` create, `GET /{id}`, `POST /{id}` update (patch), `DELETE /{id}` (soft).
 
-**Permissions:** `specialoffer.list` / `view` / `create` / `update` / `delete`. Laravel checked these names but had no catalog file for them, so only the owner or a `workspace_admin` passed; genesy adds the group to the catalog (vimdesk-web already gates its discounts page on `specialoffer.list`).
+**Permissions:** `specialoffer.list` / `view` / `create` / `update` / `delete`. Laravel checked these names but had no catalog file for them, so only the owner or a `workspace_admin` passed; Verzo adds the group to the catalog (vimdesk-web already gates its discounts page on `specialoffer.list`).
 
 ## Resource
 
@@ -86,7 +86,7 @@ The special price never goes below 0. The product resource also prints `relation
 
 ## Laravel differences
 
-| Genesy | Laravel |
+| Verzo | Laravel |
 |---|---|
 | The active offer is the highest priority, then the newest (user decision) | `hasOne` without an order: whichever row came first |
 | Global, cross-product and BOGO offers on a product apply their own discount | They ran the cart engine with an empty cart over every active offer of the workspace, so another matching offer with a bigger amount could win |

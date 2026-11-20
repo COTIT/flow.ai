@@ -2,8 +2,8 @@ import { beforeEach, expect, test, vi } from 'vitest'
 
 const pue = vi.fn()
 const demands = vi.fn()
-vi.mock('@genesy/api-client/endpoints/farm-pue', () => ({ farmPueRequestsList: (...a: unknown[]) => pue(...a) }))
-vi.mock('@genesy/api-client/endpoints/farm-market', () => ({ farmMarketDemandsList: (...a: unknown[]) => demands(...a) }))
+vi.mock('@verzo/api-client/endpoints/farm-pue', () => ({ farmPueRequestsList: (...a: unknown[]) => pue(...a) }))
+vi.mock('@verzo/api-client/endpoints/farm-market', () => ({ farmMarketDemandsList: (...a: unknown[]) => demands(...a) }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { fetchOpsQueues } = await import('@/features/ops/useOpsHome')

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "@/components/shop-link"
 import { getTranslations } from "next-intl/server"
 
-import { buttonVariants } from "@genesy/ui/components/button"
+import { buttonVariants } from "@verzo/ui/components/button"
 
 import { CartView } from "@/components/cart-view"
 import { h2 } from "@/lib/look"

@@ -4,11 +4,11 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
 
-import { useSession } from "@genesy/api-client/auth"
+import { useSession } from "@verzo/api-client/auth"
 import {
   useInvoicePaymentsCreate,
   useInvoicePaymentsMarkAsCredited,
-} from "@genesy/api-client/endpoints/invoice-payments"
+} from "@verzo/api-client/endpoints/invoice-payments"
 import {
   useInvoicesCredit,
   useInvoicesDelete,
@@ -17,11 +17,11 @@ import {
   useInvoicesResend,
   useInvoicesSend,
   useInvoicesUpdate,
-} from "@genesy/api-client/endpoints/invoices"
-import type { InvoiceAction, InvoiceResource } from "@genesy/api-client/model"
-import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
-import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+} from "@verzo/api-client/endpoints/invoices"
+import type { InvoiceAction, InvoiceResource } from "@verzo/api-client/model"
+import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
+import { Button } from "@verzo/ui/components/button"
+import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
   Dialog,
   DialogClose,
@@ -30,10 +30,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@genesy/ui/components/dialog"
-import { Input } from "@genesy/ui/components/input"
-import { Notice } from "@genesy/ui/components/notice"
-import { Textarea } from "@genesy/ui/components/textarea"
+} from "@verzo/ui/components/dialog"
+import { Input } from "@verzo/ui/components/input"
+import { Notice } from "@verzo/ui/components/notice"
+import { Textarea } from "@verzo/ui/components/textarea"
 import { Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { InvoiceRefund } from "@/components/invoice-refund"
@@ -42,6 +42,7 @@ import { useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 import { invoiceDeliveryNotice } from "@/lib/invoice-delivery"
 
+import { useBookToday } from "../../accounting/shared"
 import { invoiceMoney, invoiceNumber } from "../shared"
 
 // The rights each action's route checks (docs/api/invoices.md, invoice-payments.md).
@@ -99,8 +100,6 @@ const ADDRESS_KEYS = [
 /** 503 = the server has no PDF renderer, file store or mail set up (staging). */
 const unavailable = (e: unknown) =>
   (e as { response?: { status?: number } } | null)?.response?.status === 503
-
-const today = () => new Date().toISOString().slice(0, 10)
 
 /** OfficeOrder's Next step card for an invoice: only the API's `allowed_actions` show. */
 export function NextStep({
@@ -485,6 +484,7 @@ function PayDialog({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   // The amount goes to the API as typed; it checks the number and its decimals.
@@ -545,7 +545,7 @@ function PayDialog({
           })}
         </p>
         <Field id="pay-date" label={t("invoices.payDate")} errors={errors.date}>
-          <Input name="date" type="date" defaultValue={today()} required />
+          <Input name="date" type="date" key={bookToday} defaultValue={bookToday} required />
         </Field>
         <Field
           id="pay-method"
@@ -718,6 +718,7 @@ function MarkDialog({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const key = useIdempotencyKey()
   const mark = useInvoicePaymentsMarkAsCredited({
@@ -751,7 +752,7 @@ function MarkDialog({
           label={t("invoices.payDate")}
           errors={errors.date}
         >
-          <Input name="date" type="date" defaultValue={today()} required />
+          <Input name="date" type="date" key={bookToday} defaultValue={bookToday} required />
         </Field>
         <Field
           id="mark-method"

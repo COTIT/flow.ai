@@ -15,25 +15,25 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { useSession } from "@genesy/api-client/auth"
-import { useUsersMe } from "@genesy/api-client/endpoints/users"
-import { useLotsList } from "@genesy/api-client/endpoints/lots"
+import { useSession } from "@verzo/api-client/auth"
+import { useUsersMe } from "@verzo/api-client/endpoints/users"
+import { useLotsList } from "@verzo/api-client/endpoints/lots"
 import {
   useOrdersList,
   useOrdersSalesSummary,
-} from "@genesy/api-client/endpoints/orders"
-import { useStockNegative } from "@genesy/api-client/endpoints/stock"
-import { useSupplyChainList } from "@genesy/api-client/endpoints/supply-chain"
-import { useSupplyLinksList } from "@genesy/api-client/endpoints/supply-links"
+} from "@verzo/api-client/endpoints/orders"
+import { useStockNegative } from "@verzo/api-client/endpoints/stock"
+import { useSupplyChainList } from "@verzo/api-client/endpoints/supply-chain"
+import { useSupplyLinksList } from "@verzo/api-client/endpoints/supply-links"
 import {
   useTillSalesList,
   useTillShiftsList,
-} from "@genesy/api-client/endpoints/till"
-import { Badge } from "@genesy/ui/components/badge"
-import { buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
-import { island } from "@genesy/ui/components/island"
-import { Skeleton } from "@genesy/ui/components/skeleton"
+} from "@verzo/api-client/endpoints/till"
+import { Badge } from "@verzo/ui/components/badge"
+import { buttonVariants } from "@verzo/ui/components/button"
+import { EmptyState } from "@verzo/ui/components/empty-state"
+import { island } from "@verzo/ui/components/island"
+import { Skeleton } from "@verzo/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -41,10 +41,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
-import { cn } from "@genesy/ui/lib/utils"
-import { formatDate } from "@genesy/ui/lib/format"
+} from "@verzo/ui/components/table"
+import { formatMoney } from "@verzo/ui/lib/money"
+import { cn } from "@verzo/ui/lib/utils"
+import { formatDate } from "@verzo/ui/lib/format"
 import { Chip, GhostLink, Metric, Tile, type Tone } from "@/components/bento"
 import { CardState, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"

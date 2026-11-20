@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { EntryResource, Money, PayoutResource } from '@genesy/api-client/model'
+import type { EntryResource, Money, PayoutResource } from '@verzo/api-client/model'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'

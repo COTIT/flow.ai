@@ -10,7 +10,7 @@ const api = {
   farmPueRequestsTransition: vi.fn(),
   farmPueRequestsEstimate: vi.fn(),
 }
-vi.mock('@genesy/api-client/endpoints/farm-pue', () => ({
+vi.mock('@verzo/api-client/endpoints/farm-pue', () => ({
   farmPueRequestsList: (...args: unknown[]) => api.farmPueRequestsList(...args),
   farmPueRequestsGet: (...args: unknown[]) => api.farmPueRequestsGet(...args),
   farmPueRequestsCreate: (...args: unknown[]) => api.farmPueRequestsCreate(...args),
