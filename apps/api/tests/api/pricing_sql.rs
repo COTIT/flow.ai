@@ -1,6 +1,7 @@
-//! `price_lines` (Postgres) against the frozen Rust pricing engine: every case of
-//! `tests/fixtures/pricing_golden.json` (written by `pricing::engine` tests) must come out the
-//! same, field by field, out-of-range index included. Margin % compares as f64.
+//! `price_lines` (Postgres) against the former Rust pricing engine: every case of
+//! `tests/fixtures/pricing_golden.json` (its frozen output, written before the Rust maths was
+//! removed; generator in git history at cbc07f4d9) must come out the same, field by field,
+//! out-of-range index included. Margin % compares as f64.
 
 use serde_json::{Value, json};
 use sqlx::{PgPool, Row};
@@ -161,4 +162,35 @@ async fn equal_rates_group_and_keep_the_first_spelling(pool: PgPool) {
     });
     let got = priced(&pool, &case).await;
     assert_eq!(got["vats"], json!([["5.50", "20", "1.1"]]));
+}
+
+/// One unit incl VAT in minor units (shop, Till, checkout) is a one-line `price_lines` total,
+/// over half-cent ties, credits, odd rates and 0/2/3/8 decimals; NULL past range.
+#[sqlx::test]
+async fn unit_gross_is_a_one_line_document_total(pool: PgPool) {
+    let differs: i64 = sqlx::query_scalar(
+        r#"SELECT count(*) FROM
+               unnest('{0,1,5,50,99,105,250,333,999,1000005,-50,-105,4611686018427387903}'::bigint[]) u,
+               unnest('{0,5.5,9,21,33.33333333,100.12345678}'::numeric[]) v,
+               unnest('{0,2,3,8}'::int[]) dp,
+               LATERAL (SELECT p.total * 10::numeric ^ dp AS want
+                        FROM price_lines(dp, '{1}', ARRAY[round(u / 10::numeric ^ dp, dp)], ARRAY[v],
+                                         '{0}', '{NULL}', '{f}') p) w
+           WHERE money_unit_gross(u, v, dp) IS DISTINCT FROM
+                 CASE WHEN w.want BETWEEN -9223372036854775808 AND 9223372036854775807
+                      THEN w.want::bigint END"#,
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(differs, 0);
+    let row: (Option<i64>, Option<i64>, Option<i64>) = sqlx::query_as(
+        "SELECT money_unit_gross(105, 21, 2), money_unit_gross(-105, 21, 2),
+                money_unit_gross(9223372036854775807, 21, 2)",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    // 1.05 + 0.2205 VAT -> 1.27 (tie-free); credit mirrors; past bigint -> NULL.
+    assert_eq!(row, (Some(127), Some(-127), None));
 }

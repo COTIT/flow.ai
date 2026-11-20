@@ -1152,13 +1152,13 @@ pub async fn line_cents(
     sqlx::query_as!(
         LineCents,
         r#"SELECT l.id AS "id!",
-                  round(l.price * (100 + l.vat) / 100 * power(10::numeric, $3::int))::bigint
+                  round(l.price * (100 + l.vat) * 0.01 * power(10::numeric, $3::int))::bigint
                       AS "unit_price_minor!",
                   e.excl::bigint AS "subtotal_minor!",
-                  (e.excl + round(e.excl * l.vat / 100))::bigint AS "total_minor!"
+                  (e.excl + round(e.excl * l.vat * 0.01))::bigint AS "total_minor!"
            FROM items l
            CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g
-           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage / 100) AS excl) e
+           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage * 0.01) AS excl) e
            WHERE l.workspace_id = $1 AND l.invoice_id = $2"#,
         workspace_id,
         invoice_id,

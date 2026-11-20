@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, order_id, product_id, product_variant_id, title, quantity, unit_price,\n                vat_rate, discount_percentage, line_excl, line_vat, tracked, picked, deducted,\n                returned\n         FROM order_lines WHERE workspace_id = $1 AND order_id = ANY($2)\n         ORDER BY order_id, position, id",
+  "query": "SELECT l.id, l.order_id, l.product_id, l.product_variant_id, l.title, l.quantity,\n                l.unit_price, l.vat_rate, l.discount_percentage, l.line_excl, l.line_vat,\n                l.tracked, l.picked, l.deducted, l.returned,\n                money_unit_gross(l.unit_price, l.vat_rate, c.decimals) AS unit_price_gross\n         FROM order_lines l\n         JOIN orders o ON o.workspace_id = l.workspace_id AND o.id = l.order_id\n         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n         WHERE l.workspace_id = $1 AND l.order_id = ANY($2)\n         ORDER BY l.order_id, l.position, l.id",
   "describe": {
     "columns": [
       {
@@ -167,6 +167,12 @@
             "name": "returned"
           }
         }
+      },
+      {
+        "ordinal": 15,
+        "name": "unit_price_gross",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -190,8 +196,9 @@
       false,
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "7351b1bf39895f5ccca9fa424c0dfa3031cc96c186591c584e8cc2cceadf3ff8"
+  "hash": "bc76b622641713587a190921d7f5d987619cf95ca61fcd1933df3fa1ba4ee81c"
 }
