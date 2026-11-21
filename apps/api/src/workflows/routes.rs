@@ -12,5 +12,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::retry))
         .routes(routes!(handlers::resolve))
         .routes(routes!(handlers::incidents))
+        .routes(routes!(handlers::get_incident))
+        .routes(routes!(handlers::verify_incident))
         .routes(routes!(handlers::resolve_incident))
 }

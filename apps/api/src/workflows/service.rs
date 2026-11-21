@@ -16,14 +16,17 @@ use crate::{
         workspace::WorkspaceAccess,
     },
     idempotency::{self, Actor, Answer, Key},
+    integrations::{connections, providers::SinkClient},
     modules::approvals::dto::Person,
     workflows::{
         dispatch,
         dto::{
-            AttemptView, EventView, ExecutionListQuery, ExecutionResource, IncidentListQuery,
-            IncidentResource, ResolutionView, ResolveInput,
+            AttemptView, EventView, ExecutionListQuery, ExecutionResource, ExpectationView,
+            IncidentDetail, IncidentListQuery, IncidentResolve, IncidentResource, ResolutionView,
+            ResolveInput,
         },
         events::{self, Actor as EventActor, EventRef},
+        recovery::{expectations, sweep},
         repo::{self, ExecutionRow, HumanMove, IncidentRow, NewResolution},
         wf01_purchase::link,
     },
@@ -160,6 +163,10 @@ fn summary(kind: &str) -> &'static str {
         "resolution" => "Resolved by a person",
         "invalidated" => "Request no longer valid",
         "resubmitted" => "Request sent again",
+        "expectation_met" => "Order confirmed in the other system",
+        "expectation_late" => "Order not seen in time",
+        "expectation_failed" => "Order refused by the other system",
+        "incident_verified" => "Problem closed after a check",
         _ => "Workflow step recorded",
     }
 }
@@ -447,7 +454,15 @@ pub async fn resolve(
     let mut closed = vec![];
     if action == "accept_variance" {
         for inc in repo::open_incidents(&mut *tx, ws, id, "tax_variance").await? {
-            repo::resolve_incident(&mut *tx, ws, inc, access.user_id, &input.reason).await?;
+            repo::resolve_incident(
+                &mut *tx,
+                ws,
+                inc,
+                access.user_id,
+                &input.reason,
+                "manual_closed",
+            )
+            .await?;
             closed.push(inc);
         }
     }
@@ -467,6 +482,12 @@ pub async fn resolve(
 }
 
 fn incident(r: IncidentRow) -> IncidentResource {
+    let diagnosis = r.diagnosis.map(|mut d| {
+        if let Some(m) = d.as_object_mut() {
+            m.remove("code");
+        }
+        d
+    });
     IncidentResource {
         id: r.id,
         kind: r.kind,
@@ -479,8 +500,21 @@ fn incident(r: IncidentRow) -> IncidentResource {
         note: r.note,
         resolved_by: r.resolved_by,
         created_at: r.created_at,
+        category: r.category,
+        diagnosis,
+        verified_at: r.verified_at,
+        resolution_kind: r.resolution_kind,
     }
 }
+
+const CATEGORIES: [&str; 6] = [
+    "transient",
+    "authorization",
+    "data",
+    "conflict",
+    "missing",
+    "unknown_outcome",
+];
 
 /// GET …/incidents.
 pub async fn incidents(
@@ -488,15 +522,22 @@ pub async fn incidents(
     ws: Uuid,
     q: IncidentListQuery,
 ) -> Result<Paginated<IncidentResource>, AppError> {
+    let mut r = Rules::default();
     if let Some(s) = &q.status {
-        let mut r = Rules::default();
         r.check(
             "status",
             ["open", "resolved"].contains(&s.as_str()),
             "The selected status is invalid.",
         );
-        r.into_result()?;
     }
+    if let Some(c) = &q.category {
+        r.check(
+            "category",
+            CATEGORIES.contains(&c.as_str()),
+            "The selected category is invalid.",
+        );
+    }
+    r.into_result()?;
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
     let rows = repo::incidents(
         &state.db,
@@ -504,6 +545,7 @@ pub async fn incidents(
         None,
         q.status.as_deref(),
         q.kind.as_deref(),
+        q.category.as_deref(),
         page.size,
         page.offset(),
     )
@@ -516,12 +558,72 @@ pub async fn incidents(
     ))
 }
 
-/// POST …/incidents/{id}/resolve: reconcile, not the linked request's requester, once.
-pub async fn resolve_incident(
+async fn incident_row(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    id: Uuid,
+) -> Result<IncidentRow, AppError> {
+    repo::incidents(&mut *conn, ws, Some(id), None, None, None, 1, 0)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)
+}
+
+/// Incident + its expectation + the execution's timeline.
+async fn detail(conn: &mut PgConnection, ws: Uuid, id: Uuid) -> Result<IncidentDetail, AppError> {
+    let row = incident_row(conn, ws, id).await?;
+    let exp = expectations::find(&mut *conn, ws, row.execution_id, Some(id)).await?;
+    let timeline = match (row.execution_id, row.approval_request_id) {
+        (Some(e), Some(r)) => repo::events(&mut *conn, ws, e, r)
+            .await?
+            .into_iter()
+            .map(|e| EventView {
+                summary: summary(&e.kind).to_owned(),
+                kind: e.kind,
+                actor_kind: e.actor_kind,
+                created_at: e.created_at,
+            })
+            .collect(),
+        _ => vec![],
+    };
+    Ok(IncidentDetail {
+        incident: incident(row),
+        expectation: exp.map(|x| ExpectationView {
+            status: x.status,
+            due_at: x.due_at,
+            checks: x.checks,
+            last_checked_at: x.last_checked_at,
+            target_kind: x.target_kind,
+            target_external_id: x.target_external_id,
+        }),
+        timeline,
+    })
+}
+
+/// GET …/incidents/{id}.
+pub async fn get_incident(
+    state: &AppState,
+    ws: Uuid,
+    id: &str,
+) -> Result<IncidentDetail, AppError> {
+    let id = parse(id)?;
+    let mut conn = state.db.acquire().await?;
+    detail(&mut conn, ws, id).await
+}
+
+fn already_resolved() -> AppError {
+    reason(
+        StatusCode::CONFLICT,
+        "incident_already_resolved",
+        "This incident is already resolved.",
+    )
+}
+
+/// POST …/incidents/{id}/verify: one read-back now (does not spend the sweep budget).
+pub async fn verify_incident(
     state: &AppState,
     access: &WorkspaceAccess,
     id: &str,
-    note: String,
     key: Option<Key>,
 ) -> Result<Answer, AppError> {
     let id = parse(id)?;
@@ -532,20 +634,86 @@ pub async fn resolve_incident(
     {
         return Ok(a);
     }
-    let row = repo::incidents(&mut *tx, ws, Some(id), None, None, 1, 0)
+    let row = incident_row(&mut tx, ws, id).await?;
+    if row.status != "open" {
+        return Err(already_resolved());
+    }
+    let exp = expectations::find(&state.db, ws, row.execution_id, Some(id))
         .await?
-        .pop()
-        .ok_or(AppError::NotFound)?;
+        .filter(|x| x.status == "pending" || x.status == "late")
+        .ok_or_else(|| {
+            reason(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "incident_not_verifiable",
+                "This incident has no record to check against.",
+            )
+        })?;
+    let e = exp.execution_id.ok_or(AppError::NotFound)?;
+    let target = sqlx::query_scalar!(
+        "SELECT p.target_connection_id FROM workflow_executions e
+         JOIN approval_requests q ON q.workspace_id = e.workspace_id AND q.id = e.approval_request_id
+         JOIN integration_pairs p ON p.workspace_id = q.workspace_id AND p.id = q.pair_id
+         WHERE e.workspace_id = $1 AND e.id = $2",
+        ws,
+        e,
+    )
+    .fetch_one(&state.db)
+    .await?;
+    let conn = connections::load(&state.db, ws, target).await?;
+    let sink = SinkClient::for_connection(&connections::service::ctx(state), &conn);
+    sweep::check(&state.db, &exp, sink.as_ref().map_err(Clone::clone), false).await?;
+    let body = serde_json::to_vec(&json!({ "data": detail(&mut tx, ws, id).await? }))
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let answer = Answer { status: 200, body };
+    idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+    tx.commit().await?;
+    Ok(answer)
+}
+
+/// POST …/incidents/{id}/resolve: reconcile, not the linked request's requester, once.
+pub async fn resolve_incident(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+    input: IncidentResolve,
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
+    let id = parse(id)?;
+    let ws = access.workspace_id;
+    let note = input.note;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) =
+        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
+    {
+        return Ok(a);
+    }
+    let row = incident_row(&mut tx, ws, id).await?;
     if row.requester_user_id == Some(access.user_id) {
         return Err(four_eyes());
     }
-    if !repo::resolve_incident(&mut *tx, ws, id, access.user_id, &note).await? {
+    if row.status != "open" {
+        return Err(already_resolved());
+    }
+    if input.resolution_kind == "reconciled" && row.verified_at.is_none() {
         return Err(reason(
             StatusCode::CONFLICT,
-            "incident_already_resolved",
-            "This incident is already resolved.",
+            "incident_not_verified",
+            "This incident has no verified read-back yet. Run Verify first, or close it by hand with a reason.",
         ));
     }
+    if !repo::resolve_incident(
+        &mut *tx,
+        ws,
+        id,
+        access.user_id,
+        &note,
+        &input.resolution_kind,
+    )
+    .await?
+    {
+        return Err(already_resolved());
+    }
+    expectations::close_for_incident(&mut *tx, ws, id).await?;
     let r = NewResolution {
         execution_id: row.execution_id,
         incident_id: Some(id),
@@ -572,10 +740,7 @@ pub async fn resolve_incident(
         )
         .await?;
     }
-    let row = repo::incidents(&mut *tx, ws, Some(id), None, None, 1, 0)
-        .await?
-        .pop()
-        .ok_or(AppError::NotFound)?;
+    let row = incident_row(&mut tx, ws, id).await?;
     let body = serde_json::to_vec(&json!({ "data": incident(row) }))
         .map_err(|e| AppError::Internal(e.to_string()))?;
     let answer = Answer { status: 200, body };

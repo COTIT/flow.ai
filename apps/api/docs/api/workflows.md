@@ -37,8 +37,10 @@ The detail route also returns:
 | GET `/executions/{execution}` | view | — | `{"data":Execution}` + attempts, events, resolutions | 403, 404 |
 | POST `/executions/{execution}/retry` | manage | `{"reason"}` | `{"data":Execution}` | 409 `execution_state_changed`, 409 `retry_needs_grant`, 422 |
 | POST `/executions/{execution}/resolve` | reconcile, not the requester | `{"action","reason","target_id"?}` | `{"data":Execution}` | 403 `four_eyes_required`, 409 `execution_state_changed`, 422 (`target_id` missing or unreadable), 503 (NetSuite unreachable) |
-| GET `/incidents?status=open\|resolved&kind=&page=&page_size=` | view | — | list | 403, 422 unknown status |
-| POST `/incidents/{incident}/resolve` | reconcile, not the requester | `{"note"}` | `{"data":Incident}` | 403 `four_eyes_required`, 409 `incident_already_resolved`, 422 |
+| GET `/incidents?status=open\|resolved&kind=&category=&page=&page_size=` | view | — | list | 403, 422 unknown status or category |
+| GET `/incidents/{incident}` | view | — | `{"data":IncidentDetail}` | 403, 404 |
+| POST `/incidents/{incident}/verify` | reconcile | — + `Idempotency-Key` | `{"data":IncidentDetail}` | 409 `incident_already_resolved`, 422 `incident_not_verifiable` |
+| POST `/incidents/{incident}/resolve` | reconcile, not the requester | `{"note","resolution_kind"?}` | `{"data":Incident}` | 403 `four_eyes_required`, 409 `incident_already_resolved`, 409 `incident_not_verified`, 422 |
 
 `reason` and `note` are required, 1–2000 characters.
 
@@ -65,6 +67,24 @@ Any other combination → 409 `execution_state_changed`. An attempt still in fli
 ### incident resolve
 
 `open` → `resolved` once, with `note`, `resolved_by` and `resolved_at`. There is no reopen; a recurrence opens a new incident. An already resolved incident → 409 `incident_already_resolved`.
+
+`resolution_kind` is `manual_closed` (default) or `reconciled`. `reconciled` needs a verified read-back (`verified_at`), else 409 `incident_not_verified` (`This incident has no verified read-back yet. Run Verify first, or close it by hand with a reason.`). Resolving closes the linked `failed`/`late` expectation (`closed`).
+
+## WF-03 failed synchronization and recovery (B1.1)
+
+Contracts §11.3, §11.5, §11.7. Migration `20261121120000_wf03_recovery`.
+
+**Incident fields.** `category` (`transient`, `authorization`, `data`, `conflict`, `missing`, `unknown_outcome`; null on WF-01 kinds), `diagnosis` (`{sentence, records, last_attempt}`; the provider code is stored but never returned), `verified_at`, `resolution_kind`. New kinds: `exchange_late`, `exchange_failed`, `auth_failure`, `permission_denied`, `rate_limited`, `mapping_invalid`. DB rules: `reconciled` needs `verified_at`; `manual_closed` needs a user and a note; a person's resolve without a kind becomes `manual_closed` (trigger); the system closes only as `reconciled`.
+
+**Expectations** (`exchange_expectations`). Every WF-01 write intent registers one (same transaction as the attempt row), due 15 minutes later (D-32). A granted retry re-registers it as `pending`. States: `pending` → `met` (WF-01 verify, or a matching read-back) | `late` (past due, not found; one `exchange_late` incident, category `unknown_outcome` when the last attempt was ambiguous, else `missing`) | `failed` (a rejection of class validation, permission, auth or conflict; incident of the mapped kind) → `closed` (incident resolved). `late` → `met` closes the incident `reconciled` with `verified_at`.
+
+**`wf03_expect_sweep`** (every 5 minutes, system job): each due `pending`/`late` row whose run has not succeeded gets one externalId lookup, at most 10 per row (then it stays `late` for a person). A match marks `met` and, for a run awaiting reconciliation, queues `wf01_reconcile` so WF-01 settles its own run. A differing record opens WF-01's `target_conflict` and marks `failed`; nothing is written to NetSuite. A transient answer (429) changes nothing and ends the run with an error, so the job rail backs off. Auth/permission answers mark the connection and open `auth_failure`/`permission_denied`.
+
+**`wf03_health`** (every 15 minutes, system job): probes every non-disconnected connection like `POST …/connections/{id}/test`; a failed sign-in or permission opens one `auth_failure`/`permission_denied` incident (subject `connection:<id>`).
+
+**Verify** runs the same check now for an open incident whose expectation is `pending` or `late`; it does not use the 10-check budget. Retry after a late or failed write stays `POST …/executions/{execution}/retry` / `allow_retry` (W1: never automatic after write intent).
+
+Tested against the in-process doc-copied fakes only; the production claim waits on gates L1 and L5.
 
 ## Engine helpers (C4)
 

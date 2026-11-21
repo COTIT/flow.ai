@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { IncidentResourceDetail } from './incidentResourceDetail';
+import type { IncidentResourceDiagnosis } from './incidentResourceDiagnosis';
 
 /**
  * Incident (contracts §5.5).
@@ -13,8 +14,18 @@ import type { IncidentResourceDetail } from './incidentResourceDetail';
 export interface IncidentResource {
   /** @nullable */
   approval_request_id?: string | null;
+  /**
+     * WF-03 category; null on WF-01 kinds.
+     * @nullable
+     */
+  category?: string | null;
   created_at: string;
   detail: IncidentResourceDetail;
+  /**
+     * `{sentence, records, last_attempt}`; the provider code is not exposed.
+     * @nullable
+     */
+  diagnosis?: IncidentResourceDiagnosis;
   /** @nullable */
   execution_id?: string | null;
   id: string;
@@ -23,8 +34,15 @@ export interface IncidentResource {
   note?: string | null;
   /** @nullable */
   pair_id?: string | null;
+  /**
+     * `reconciled` or `manual_closed` once resolved.
+     * @nullable
+     */
+  resolution_kind?: string | null;
   /** @nullable */
   resolved_by?: string | null;
   status: string;
   subject_ref: string;
+  /** @nullable */
+  verified_at?: string | null;
 }

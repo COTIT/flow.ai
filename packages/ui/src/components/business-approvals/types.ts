@@ -184,6 +184,58 @@ export type MappingView = {
   updated_at: string
 }
 
+/** WF-03 incident category (contracts §11.3). */
+export type IncidentCategory =
+  | "transient"
+  | "authorization"
+  | "data"
+  | "conflict"
+  | "missing"
+  | "unknown_outcome"
+
+/** Incident (contracts §5.5 + §11.7). */
+export type IncidentView = {
+  id: string
+  kind: IncidentKind
+  subject_ref: string
+  status: "open" | "resolved"
+  pair_id: string | null
+  approval_request_id: string | null
+  execution_id: string | null
+  note: string | null
+  resolved_by: string | null
+  created_at: string
+  category: IncidentCategory | null
+  diagnosis: {
+    sentence: string
+    records: { subject_ref: string; target_id: string | null }[]
+    last_attempt: {
+      attempt_no: number
+      outcome: string | null
+      http_status: number | null
+    } | null
+  } | null
+  verified_at: string | null
+  resolution_kind: "reconciled" | "manual_closed" | null
+}
+
+export type IncidentDetailView = IncidentView & {
+  expectation: {
+    status: "pending" | "met" | "late" | "failed" | "closed"
+    due_at: string
+    checks: number
+    last_checked_at: string | null
+    target_kind: string
+    target_external_id: string
+  } | null
+  timeline: {
+    kind: string
+    actor_kind: string
+    created_at: string
+    summary: string
+  }[]
+}
+
 /** Translator for the shared `businessApprovals` messages. Method syntax so next-intl's `t` fits. */
 export type Translate = {
   (key: string, values?: Record<string, string | number>): string

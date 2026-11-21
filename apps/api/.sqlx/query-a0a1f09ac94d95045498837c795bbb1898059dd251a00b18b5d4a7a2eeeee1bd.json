@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO exchange_expectations (workspace_id, workflow_key, correlation_id,\n             execution_id, source_ref, target_kind, target_external_id, due_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, now() + interval '15 minutes')\n         ON CONFLICT (workspace_id, correlation_id) DO UPDATE\n         SET due_at = EXCLUDED.due_at, checks = 0, last_checked_at = NULL,\n             status = 'pending', updated_at = now()\n         WHERE exchange_expectations.status <> 'met'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a0a1f09ac94d95045498837c795bbb1898059dd251a00b18b5d4a7a2eeeee1bd"
+}

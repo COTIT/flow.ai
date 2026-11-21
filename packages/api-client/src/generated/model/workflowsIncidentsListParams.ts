@@ -12,6 +12,10 @@ export type WorkflowsIncidentsListParams = {
  */
 status?: string;
 kind?: string;
+/**
+ * transient, authorization, data, conflict, missing or unknown_outcome.
+ */
+category?: string;
 page?: string;
 page_size?: string;
 };

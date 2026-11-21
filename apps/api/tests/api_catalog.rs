@@ -100,5 +100,7 @@ mod storefront_preview_links;
 mod webhook_endpoints;
 #[path = "api/webhook_events.rs"]
 mod webhook_events;
+#[path = "api/wf03_schema.rs"]
+mod wf03_schema;
 #[path = "api/workflows.rs"]
 mod workflows;

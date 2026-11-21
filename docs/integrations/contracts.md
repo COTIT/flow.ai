@@ -3,7 +3,7 @@
 Status: **frozen** for children C1, C2, C3a, C3b, C4a, C4b and C5. Source: `docs/integrations/PLAN.md` rev 2 with the REV 3 and REV 4 amendments. Where they conflict, the later amendment wins, and this file follows it.
 
 - **Change rule:** a child that needs a different name, column, enum value, route or JSON field asks the parent. The child does not change it locally. The parent edits this file, bumps the version line below and tells every affected child.
-- **Version:** `contracts v1.1 (2026-11-17)`: v1 plus the parent's W0 review corrections.
+- **Version:** `contracts v1.2 (2026-11-21)`: v1.1 (W0 review corrections) plus §11 (WF-02..WF-07 frozen names).
 - **Facts rule:** every repo convention below cites `path:line`, read on base `45ca23d9f`. Paths are relative to `apps/api/` unless they start with `apps/`, `packages/` or `docs/`. Anything not checked is marked **OPEN** and listed in §9.
 - **Provider wording:** Odoo and NetSuite field, model and error names appear only inside `src/integrations/providers/*` and are "per R1" (`docs/integrations/facts/*.md`). Shared code, tables and JSON use the neutral names below.
 
@@ -991,3 +991,570 @@ Sample data. Ids are shortened placeholders (`c1…` = uuid). Error bodies follo
 - `wf01_tick` fan-out: accepted.
 - C1's catalog commit goes first and stands alone; the parent cherry-picks it onto C2.
 - Correction to §3.2: after a definite `rejected` attempt, `retry_after_fix` alone cannot start a new attempt, because the attempt cap holds. The UI must lead the user to `allow_retry` (the `integration.reconcile` permission, non-requester, reason required), which grants the extra attempt. C2 enforces this: `retry_after_fix` on an execution whose latest attempt has a non-NULL outcome and no unused grant → 409 `retry_needs_grant`.
+
+---
+
+## 11. WF-02..WF-07 frozen names (B0a, 2026-11-21)
+
+Status: **frozen** for build children B1.1, B1.2, B2.1, B2.2, B3 and B4. Source: `docs/integrations/PLAN-WF02-07.md` rev 1 (approved 2026-11-21, defaults D-21..D-74). The §1 conventions K1..K25 and the change rule at the top of this file apply unchanged. Where the plan is silent or inconsistent, the choice is listed in §11.15 ("Resolved by B0a").
+
+- **Version:** `contracts v1.2 (2026-11-21)`: v1.1 plus §11.
+- **Money rule (once for all of §11):** money and quantity columns are `bigint` minor units where the name ends in `_minor`, otherwise Postgres `numeric` (exact; provider decimals parsed via `serde_json` arbitrary_precision → `rust_decimal`, bound as `Decimal`, rendered as JSON strings per K25). Every sum, extension, variance, tolerance, threshold, estimate and rounding is computed in SQL. Rust only parses and binds; frontends only display.
+- **Table rules:** as §2 (K1 id, K2 `workspace_id` + `<t>_workspace_id_id_key`, composite FKs `(workspace_id, x_id) → x (workspace_id, id)`, `created_at`, `updated_at` on mutable tables, `text(a..b)` = `char_length` CHECK, AO = append-only per K5). Not repeated per table below.
+- **Paths:** relative to `/v1` (K9), `{workspace}` as in §5. Every route gets a cross-workspace 404 test (K11). Every route's `operation_id` is listed; it is `disposition: "internal"` in `operation-policy.json` unless §11.12 names it as a Verzo tool.
+- **Permissions:** no new keys (catalog stays at 263). `view` = `integration.view`, `reconcile` = `integration.reconcile`, `approve` = `integration.approve`, `manage` = `integration.manage`.
+
+### 11.1 Migrations (one per build child, reversible, K8)
+
+| wave | child | file | creates | widens |
+|---|---|---|---|---|
+| B1.1 | WF-03 + X4/X5/X6 | `<ts>_wf03_recovery.{up,down}.sql` | `exchange_expectations` | `workflow_incidents` (kind, new columns, resolve CHECKs, §11.3) |
+| B1.2 | WF-05 + X1/X2/X7 | `<ts>_wf05_reports.{up,down}.sql` | `ext_read_runs`, `ext_records`, `report_join_rules`, `report_definitions`, `report_runs`, `report_rows` | `workflow_key` += `wf05_report`; `scheduled_reports.report` += `cross_erp_exceptions` |
+| B2.1 | WF-02 + X3 | `<ts>_wf02_match.{up,down}.sql` | `review_cases`, `review_case_decisions`, `match_tolerances`, `match_runs`, `match_lines` | `workflow_key` += `wf02_match` |
+| B2.2 | WF-04 | `<ts>_wf04_stock.{up,down}.sql` | `stock_location_scopes`, `stock_checks`, `stock_check_lines` | `workflow_key` += `wf04_stock`; `review_cases.workflow_key` += `wf04_stock`; `integration_mappings.entity` += `stock_location` |
+| B3 | WF-06 | `<ts>_wf06_replenish.{up,down}.sql` | `replenish_proposals` | `workflow_key` += `wf06_replenish`; `exchange_expectations.workflow_key` += `wf06_replenish` |
+| B4 | WF-07 | `<ts>_wf07_definitions.{up,down}.sql` | `workflow_definitions`, `workflow_definition_versions`, `workflow_runs`, `workflow_run_steps` | `workflow_key` += `wf07_custom`; `exchange_expectations.workflow_key` += `wf07_custom`; `workflow_incidents.kind` += `waiting_data`; `integration_mappings.entity` += `customer` |
+
+- "`workflow_key` +=" (X6) means the same value is added to the CHECK on **all four** of `integration_pairs`, `approval_policies`, `approval_requests`, `workflow_executions`. Lists are cumulative; each `down.sql` restores the previous list.
+- `<ts>` is later than the latest migration on the merged tip when the child starts (base: `20261119210000`). Order follows the wave order; the parent renumbers if needed.
+- B0b (facts) has no migration.
+
+Final `workflow_key` list after B4: `('wf01_purchase','wf05_report','wf02_match','wf04_stock','wf06_replenish','wf07_custom')`. WF-03 adds no key (it watches other workflows' writes).
+
+### 11.2 X1 + X2 read snapshot (B1.2)
+
+**`ext_read_runs`** (X2)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| connection_id | uuid | no | composite FK → `integration_connections` |
+| purpose | text | no | `CHECK IN ('wf02_match','wf04_stock','wf05_report','wf06_replenish','wf07_custom')` |
+| status | text | no | `CHECK IN ('running','succeeded','partial','failed')`, default `'running'` |
+| partial_reason | text | yes | `CHECK IN ('row_ceiling','page_limit')`; `CHECK ((status = 'partial') = (partial_reason IS NOT NULL))` |
+| pages | integer | no | default 0, `>= 0` |
+| rows | integer | no | default 0, `>= 0` |
+| error_class | text | yes | same list as `workflow_executions.error_class`; `CHECK ((status = 'failed') = (error_class IS NOT NULL))` |
+| started_at | timestamptz | no | default `now()` |
+| finished_at | timestamptz | yes | `CHECK ((status = 'running') = (finished_at IS NULL))` |
+
+**`ext_records`** (X1; one row per fetched record or line; never updated)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| connection_id | uuid | no | composite FK |
+| read_run_id | uuid | no | composite FK → `ext_read_runs` ON DELETE CASCADE |
+| kind | text | no | `CHECK IN ('purchase_order','purchase_order_line','receipt','receipt_line','bill','bill_line','product_policy','stock_quant','stock_location','stock_move_line','inventory_location','delivery','sales_order','invoice','fulfillment','orderpoint','supplier_price')` (full list created by B1.2) |
+| ext_id | text(1..100) | no | provider id (line id for `*_line`) |
+| parent_ext_id | text(1..100) | yes | header id of a line |
+| item_ref, uom_ref, location_ref, currency_ref | text(1..100) | yes | source ids, mapped later through `integration_mappings` |
+| qty | numeric | yes | exact |
+| amount | numeric | yes | exact, in `currency_ref` |
+| doc_date | date | yes | plain date, never shifted (NetSuite `Date`) |
+| event_at | timestamptz | yes | UTC |
+| state | text(1..64) | yes | provider state as read |
+| source_modified_at | timestamptz | yes | Odoo `write_date` / NetSuite `lastModifiedDate` |
+| fetched_at | timestamptz | no | |
+| raw | jsonb | no | object, `octet_length(raw::text) <= 65536` |
+
+Index: `UNIQUE (workspace_id, connection_id, kind, ext_id, read_run_id)`; `(read_run_id, kind)`.
+
+X7 fetch helpers (Rust, B1.2): `integrations::fetch::odoo_pages(client, model, domain, fields, order, limit)` (`search_read` `limit/offset/order`, O1) and `integrations::fetch::netsuite_pages(client, path, q, limit)` (`limit/offset`, offset divisible by limit, `hasMore`, R2-N8). Ceiling 100,000 rows → run `partial` + `row_ceiling`. 429 → `ErrorClass::Transient`.
+
+### 11.3 X3 review cases (B2.1) and X4 incidents + expectations (B1.1)
+
+**`review_cases`** (X3)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| workflow_key | text | no | `CHECK IN ('wf02_match')` (B2.2 adds `'wf04_stock'`) |
+| pair_id | uuid | no | composite FK → `integration_pairs` |
+| subject_ref | text(1..300) | no | WF-02: the PO line ref `odoo:<connection_id>:purchase.order.line:<id>` (`netsuite:<connection_id>:purchaseOrder.item:<po id>:<line>` after L7); WF-04: `stock:<scope_id>:<product mapping_id>` |
+| reason | text | no | `CHECK IN ('over_billed','over_received','price_variance','uom_differs','currency_mismatch','unmapped_product','stale_snapshot','stock_discrepancy')` |
+| status | text | no | `CHECK IN ('open','awaiting_correction','accepted','resolved_verified','superseded')`, default `'open'` |
+| read_run_id | uuid | no | composite FK → `ext_read_runs`; the snapshot the case was opened or last refreshed from |
+| evidence | jsonb | no | object ≤ 64 KiB; `{"record_ids":[uuid…], "summary": "readable"}` citing `ext_records` ids |
+| created_at, updated_at | timestamptz | no | |
+
+Index: `UNIQUE (workspace_id, workflow_key, subject_ref, reason) WHERE status IN ('open','awaiting_correction')` (`review_cases_one_open`).
+
+**`review_case_decisions`** (AO)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| case_id | uuid | no | composite FK → `review_cases` |
+| decision | text | no | `CHECK IN ('accept','request_correction','resolve_verified','supersede')` |
+| actor_kind | text | no | `CHECK IN ('user','system')`; `CHECK ((actor_kind = 'user') = (decision IN ('accept','request_correction')))` |
+| actor_user_id | uuid | yes | `REFERENCES users (id)`; `CHECK ((actor_kind = 'user') = (actor_user_id IS NOT NULL))` |
+| reason | text(1..2000) | yes | `CHECK (actor_kind = 'system' OR reason IS NOT NULL)` |
+| snapshot_seen | uuid | yes | the `read_run_id` the user saw; required for user decisions |
+| created_at | timestamptz | no | `clock_timestamp()` |
+
+**Case state machine**
+| from | to | trigger | writer |
+|---|---|---|---|
+| (new) | `open` | result `mismatch`/`unverifiable` (WF-02) or `discrepancy` (WF-04) | matcher / stock check, idempotent via `review_cases_one_open` |
+| `open` | `accepted` | `accept` + reason (WF-04 UI label "Explained") | decide route |
+| `open` | `awaiting_correction` | `request_correction` + reason | decide route |
+| `open`, `awaiting_correction` | `resolved_verified` | a later run shows `matched`/`within_tolerance` (WF-02) or `equal`/`within_threshold` (WF-04) | matcher / stock check (system decision `resolve_verified`) |
+| `open`, `awaiting_correction` | `superseded` | PO cancelled or line gone (WF-02); scope or mapping removed (WF-04) | same (system decision `supersede`) |
+
+Terminal: `accepted`, `resolved_verified`, `superseded`. Decide is a CAS on `status` and on the source: if the source record's `source_modified_at` read now (Odoo `write_date`, NetSuite `lastModifiedDate`) is newer than the one in `snapshot_seen`, or a newer read run exists for the case → 409 `snapshot_stale`.
+
+**`workflow_incidents` widening** (X4, B1.1)
+- `kind` += `exchange_late`, `exchange_failed`, `auth_failure`, `permission_denied`, `rate_limited`, `mapping_invalid` (B4 adds `waiting_data`).
+- New columns: `category text NULL CHECK IN ('transient','authorization','data','conflict','missing','unknown_outcome')` (NULL only on WF-01 kinds); `diagnosis jsonb NULL` (object ≤ 16 KiB, shape below); `verified_at timestamptz NULL`; `resolution_kind text NULL CHECK IN ('reconciled','manual_closed')`.
+- New CHECKs: `CHECK (resolution_kind <> 'reconciled' OR verified_at IS NOT NULL)`; `CHECK ((status = 'resolved') = (resolved_at IS NOT NULL AND resolution_kind IS NOT NULL))`; `CHECK (resolution_kind IS DISTINCT FROM 'manual_closed' OR (resolved_by IS NOT NULL AND note IS NOT NULL))`.
+- Dropped and replaced: the WF-01 CHECKs `(status = 'resolved') = (resolved_by IS NOT NULL AND resolved_at IS NOT NULL)` and `status = 'open' OR note IS NOT NULL` (a system auto-verify resolves with no user and no note). The up migration backfills `resolution_kind = 'manual_closed'` on existing resolved rows; the down migration restores the WF-01 CHECKs.
+- `diagnosis`: `{"code": "<ErrorClass or provider code>", "sentence": "readable", "records": [{"subject_ref","target_id"|null}], "last_attempt": {"attempt_no","outcome","http_status"}|null}`. The UI shows `sentence`, never `code`.
+
+**`exchange_expectations`** (X4)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| workflow_key | text | no | `CHECK IN ('wf01_purchase')` (B3 adds `wf06_replenish`, B4 adds `wf07_custom`) |
+| correlation_id | text | no | `^vz-[0-9a-f]{32}$`; target connection comes from `external_links` by this id |
+| execution_id | uuid | yes | composite FK → `workflow_executions` |
+| source_ref | text(1..300) | no | |
+| target_kind | text(1..100) | no | e.g. `purchaseOrder`, `purchase.order`, `invoice` |
+| target_external_id | text(1..100) | no | |
+| due_at | timestamptz | no | write intent + 15 min (D-32) |
+| status | text | no | `CHECK IN ('pending','met','late','failed','closed')`, default `'pending'` |
+| checks | smallint | no | default 0, `CHECK (checks BETWEEN 0 AND 10)` |
+| last_checked_at | timestamptz | yes | |
+| incident_id | uuid | yes | composite FK → `workflow_incidents` |
+| created_at, updated_at | timestamptz | no | |
+
+Index: `UNIQUE (workspace_id, correlation_id)`; `(status, due_at) WHERE status IN ('pending','late')`.
+
+**Expectation state machine**
+| from | to | trigger | writer |
+|---|---|---|---|
+| (new) | `pending` | write intent of a Flow-run write (WF-01, WF-06, WF-07) | the writer, same tx as `begin_attempt` |
+| `pending` | `met` | read-back matches | `wf03_expect_sweep` or the writer's verify |
+| `pending` | `late` | `due_at` passed, target missing; opens incident `exchange_late` | `wf03_expect_sweep` |
+| `late` | `met` | target appears and matches; incident → `resolved` with `resolution_kind='reconciled'`, `verified_at` set | `wf03_expect_sweep`, `…/incidents/{incident}/verify` |
+| `pending`, `late` | `failed` | permanent class (`Validation`, `Permission`, `Auth`, `Conflict`); incident `exchange_failed` (or `auth_failure`/`permission_denied`) | sweep / writer |
+| `failed`, `late` | `closed` | linked incident resolved | incident resolve route |
+
+`checks` reaching 10 stops calls; the row stays `late` for humans.
+
+**Category map** (`src/workflows/recovery/category.rs`, one test per class): `Transient`→`transient` (HTTP 429 → kind `rate_limited`); `Auth`, `Permission`→`authorization`; `Validation`→`data` (kind `mapping_invalid` when the provider detail names a mapped field); `Conflict`→`conflict`; `NotFound`→`missing`; `Ambiguous`, `Unknown`→`unknown_outcome`.
+
+### 11.4 X5 capability keys (added to `capability.rs` by the child that first uses them)
+
+| const | key | provider lists | child |
+|---|---|---|---|
+| `INVOICE_LIST` | `invoice.list` | NetSuite | B1.2 |
+| `DELIVERY_LIST` | `delivery.list` | Odoo | B1.2 |
+| `SALES_ORDER_FIND` | `sales_order.find_by_external_id` | NetSuite | B1.2 |
+| `PURCHASE_MATCH_READ` | `purchase_match.read` | Odoo (NetSuite after L7) | B2.1 |
+| `STOCK_ON_HAND_READ` | `stock_on_hand.read` | Odoo, NetSuite | B2.2 |
+| `STOCK_MOVEMENT_READ` | `stock_movement.read` | Odoo | B2.2 |
+| `ORDERPOINT_LIST` | `orderpoint.list` | Odoo | B3 |
+| `SUPPLIER_PRICE_READ` | `supplier_price.read` | Odoo | B3 |
+| `REPLENISH_REQUEST` | `replenish.request` | Odoo (write, `action_replenish`) | B3 |
+| `SALES_ORDER_LIST_CHANGED` | `sales_order.list_changed` | NetSuite | B4 |
+| `FULFILLMENT_READ` | `fulfillment.read` | Odoo, NetSuite | B4 |
+| `INVOICE_FROM_SALES_ORDER` | `invoice.create_from_sales_order` | NetSuite (write, transform) | B4 |
+
+Probe checks: Odoo module presence via `fields_get` (R2-O9); NetSuite via `metadata-catalog?select=` (R2-N10). A failed key appears as `probe_failed:<key>` (§3.6).
+
+### 11.5 Jobs (`src/jobs/kinds.rs`; each child adds only its own kinds)
+
+Scheduled kinds are system jobs (no workspace) in `SCHEDULES`, like `wf01_tick`. Where the row says "fan-out", the system run enqueues one workspace job **of the same kind** per active pair, with payload `{"pair_id"}`; the per-pair job carries the keys shown.
+
+| kind const | name | child | enqueue | keys |
+|---|---|---|---|---|
+| `WF03_EXPECT_SWEEP` | `wf03_expect_sweep` | B1.1 | `SCHEDULES` `Every::Minutes(5)` | system job |
+| `WF03_HEALTH` | `wf03_health` | B1.1 | `SCHEDULES` `Every::Minutes(15)` | system job; one probe per non-`disconnected` connection |
+| `WF05_REPORT_RUN` | `wf05_report_run` | B1.2 | `POST …/reports/cross/runs` and scheduled alerts | `dedupe_key = <report_run_id>` |
+| `WF02_MATCH_SCAN` | `wf02_match_scan` | B2.1 | `SCHEDULES` `Every::Minutes(60)`, fan-out | `dedupe_key = "wf02_match_scan:<pair>"`, `concurrency_key = "wf02:<pair>"` |
+| `WF02_MATCH_PO` | `wf02_match_po` | B2.1 | scan, `…/matches/{po_ref}/rerun` | `dedupe_key = "<pair>:<po_ref>"`, `concurrency_key = "wf02:<pair>"` |
+| `WF04_STOCK_CHECK` | `wf04_stock_check` | B2.2 | `SCHEDULES` `Every::Minutes(60)`, fan-out; `POST …/stock-checks` | `dedupe_key = "wf04_stock_check:<pair>"`, `concurrency_key = "netsuite:<netsuite connection_id>"` |
+| `WF06_SCAN` | `wf06_scan` | B3 | `SCHEDULES` `Every::Minutes(60)`, fan-out; `POST …/replenishment/scan` | `dedupe_key = "wf06_scan:<pair>"`, `concurrency_key = "wf06:<pair>"` |
+| `WF06_EXECUTE` | `wf06_execute` | B3 | `dispatch::enqueue_execution` arm `"wf06_replenish"` | `dedupe_key = <execution_id>`, `max_attempts = 5` |
+| `WF06_RECONCILE` | `wf06_reconcile` | B3 | execute, on `awaiting_reconciliation` | `dedupe_key = "wf06_reconcile:<execution_id>"`, `max_attempts = 10` |
+| `WF07_TICK` | `wf07_tick` | B4 | `SCHEDULES` `Every::Minutes(1)` | system job; advances each run one step (CAS on `current_step`) |
+
+`SCHEDULES` grows by 2 (B1.1), 1 (B2.1), 1 (B2.2), 1 (B3), 1 (B4). Execution of WF-07 action steps reuses `dispatch::enqueue_execution` with arm `"wf07_custom"` (B4) and kinds `wf07_execute` / `wf07_reconcile` with the same keys as WF-06 (`WF07_EXECUTE`, `WF07_RECONCILE`).
+
+Cursor streams (§2.1 `integration_poll_cursors`): `wf02_match:<pair_id>`, `wf07_custom:<definition_id>`.
+
+### 11.6 WF-02 PO, receipt and bill matching (B2.1)
+
+Pair config adds `triad_owner: "odoo" | "netsuite"` (default `"odoo"`, D-21).
+
+**`match_tolerances`**: `pair_id` (FK), `currency_ref text(1..64)`, `qty_pct numeric NOT NULL DEFAULT 0 CHECK (>= 0)`, `qty_abs numeric NOT NULL DEFAULT 0 CHECK (>= 0)`, `amount_pct numeric NOT NULL DEFAULT 0 CHECK (>= 0)`, `amount_abs_minor bigint NOT NULL DEFAULT 0 CHECK (>= 0)`. `UNIQUE (workspace_id, pair_id, currency_ref)`. No row = 0 (exact, D-24).
+
+**`match_runs`**: `pair_id` (FK), `po_ref text(1..300)` (`odoo:<connection_id>:purchase.order:<id>`), `read_run_id uuid NULL` (FK → `ext_read_runs`), `inputs_hash text CHECK (~ '^[0-9a-f]{64}$')`, `status CHECK IN ('running','done','failed')`, `error_class` (same list as executions, NULL unless `failed`). `UNIQUE (workspace_id, pair_id, po_ref, inputs_hash)`.
+
+**`match_lines`** (filled by one `INSERT … SELECT`; never updated)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| run_id | uuid | no | composite FK → `match_runs` ON DELETE CASCADE |
+| po_line_ref | text(1..300) | no | `UNIQUE (run_id, po_line_ref)` |
+| ordered_qty, received_qty, billed_qty | numeric | no | in the PO line UoM (R2-O2) |
+| ordered_amount, billed_amount | numeric | yes | untaxed; NULL until F1 |
+| currency_ref | text(1..64) | no | PO currency |
+| control | text | no | `CHECK IN ('ordered','received')` (`purchase_method` `purchase` → `ordered`, `receive` → `received`) |
+| result | text | no | `CHECK IN ('matched','within_tolerance','awaiting_receipt','awaiting_bill','mismatch','unverifiable')` |
+| reasons | text[] | no | default `'{}'`; values from the `review_cases.reason` list; `CHECK ((result IN ('mismatch','unverifiable')) = (cardinality(reasons) > 0))` |
+| draft_billed | boolean | no | default false; true when a draft bill counted (D-25 label "draft") |
+| record_ids | uuid[] | no | the `ext_records` ids used |
+
+**Routes**
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| GET `/workspace/{workspace}/workflows/matches?pair=&result=&page=&page_size=` | view | — | list of `MatchSummary` | 422 unknown result | `workflows_matches_list` |
+| GET `/workspace/{workspace}/workflows/matches/{po_ref}` | view | — | `{"data":MatchDetail}` (latest run) | 404 | `workflows_matches_get` |
+| POST `/workspace/{workspace}/workflows/matches/{po_ref}/rerun` | view | — | 202 `{"message":"ok"}` | 404 | `workflows_matches_rerun` |
+| GET `/workspace/{workspace}/review-cases?workflow_key=&status=&page=&page_size=` | view | — | list of `ReviewCase` | 422 unknown key | `review_cases_list` |
+| POST `/workspace/{workspace}/review-cases/{case}/decide` | reconcile | `{"decision":"accept\|request_correction","reason","snapshot_seen":"uuid"}` + `Idempotency-Key` | `{"data":ReviewCase}` | 409 `snapshot_stale`, 409 `review_case_already_decided`, 422 reason | `review_cases_decide` |
+| GET `/workspace/{workspace}/integrations/pairs/{pair}/tolerances` | view | — | `{"data":[Tolerance]}` | 404 | `integrations_tolerances_get` |
+| POST `/workspace/{workspace}/integrations/pairs/{pair}/tolerances` | manage | `{"tolerances":[Tolerance]}` (full replace) | `{"message":"ok"}` | 404, 422 | `integrations_tolerances_update` |
+
+`{po_ref}` is the percent-encoded `po_ref` text; an unknown or other-workspace ref → 404.
+
+```jsonc
+// MatchSummary
+{ "po_ref", "pair_id", "po_name": "P00017|null", "currency_ref", "worst_result": "matched|…|unverifiable",
+  "open_cases": 0, "as_of": "rfc3339 (read run fetched_at)", "run_id" }
+// MatchDetail = MatchSummary + { "lines": [ { "po_line_ref", "product_label", "uom_label", "control": "ordered|received",
+//   "ordered_qty": "10.00000000", "received_qty", "billed_qty", "ordered_amount": "…|null", "billed_amount": "…|null",
+//   "draft_billed": false, "result", "reasons": ["over_billed"], "sources": [ { "record_id", "kind", "ext_id", "label" } ] } ],
+//   "payment_state": "native value|null" }
+// Tolerance
+{ "currency_ref": "EUR", "qty_pct": "2", "qty_abs": "0", "amount_pct": "0", "amount_abs_minor": 0 }
+// ReviewCase
+{ "id", "workflow_key": "wf02_match|wf04_stock", "pair_id", "subject_ref", "reason", "status", "read_run_id", "as_of",
+  "evidence": { "record_ids": [], "summary": "readable" },
+  "decisions": [ { "decision", "actor_kind", "actor": { "user_id", "name" } | null, "reason", "created_at" } ],
+  "created_at", "updated_at" }
+```
+
+### 11.7 WF-03 recovery routes (B1.1)
+
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| GET `/workspace/{workspace}/workflows/incidents?status=&kind=&category=&page=&page_size=` (extended) | view | — | list of `Incident` | 422 unknown category | `workflows_incidents_list` |
+| GET `/workspace/{workspace}/workflows/incidents/{incident}` | view | — | `{"data":IncidentDetail}` | 404 | `workflows_incidents_get` |
+| POST `/workspace/{workspace}/workflows/incidents/{incident}/verify` | reconcile | — + `Idempotency-Key` | `{"data":IncidentDetail}` | 409 `incident_already_resolved`, 422 `incident_not_verifiable` | `workflows_incidents_verify` |
+| POST `/workspace/{workspace}/workflows/incidents/{incident}/resolve` (extended) | reconcile, not the requester | `{"note","resolution_kind":"reconciled\|manual_closed"}` (default `manual_closed`) + `Idempotency-Key` | `{"data":Incident}` | + 409 `incident_not_verified` | `workflows_incidents_resolve` |
+
+Retry stays `POST …/executions/{execution}/retry`.
+
+```jsonc
+// Incident (extends §5.5)
+{ …§5.5…, "category": "transient|authorization|data|conflict|missing|unknown_outcome|null",
+  "diagnosis": { "sentence", "records": [], "last_attempt": {…}|null } | null,
+  "verified_at": "rfc3339|null", "resolution_kind": "reconciled|manual_closed|null" }
+// IncidentDetail = Incident + { "expectation": { "status","due_at","checks","last_checked_at","target_kind","target_external_id" } | null,
+//   "timeline": [ { "kind","actor_kind","created_at","summary" } ] }   // from workflow_events
+```
+
+### 11.8 WF-04 stock (B2.2)
+
+Pair config adds `stock_freshness_minutes: int 1..1440` (default 60) and `stock_threshold: "decimal string ≥ 0"` (default `"0"`) (D-43).
+
+**`stock_location_scopes`**: `pair_id` (FK), `odoo_location_ids text[] NOT NULL CHECK (cardinality >= 1)`, `netsuite_location_id text(1..100)`, `expected_equal boolean NOT NULL DEFAULT false` (D-42), `label text(1..100)`. `UNIQUE (workspace_id, pair_id, netsuite_location_id)`.
+
+**`stock_checks`**: `pair_id` (FK), `odoo_read_run_id uuid NULL`, `netsuite_read_run_id uuid NULL` (FKs → `ext_read_runs`), `definition text NOT NULL DEFAULT 'on_hand' CHECK (definition IN ('on_hand'))`, `freshness_minutes int NOT NULL`, `status CHECK IN ('running','done','failed')`, `error_class` (executions list, NULL unless `failed`).
+
+**`stock_check_lines`** (one `INSERT … SELECT`; never updated)
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| check_id | uuid | no | composite FK → `stock_checks` ON DELETE CASCADE |
+| item_map_id | uuid | no | composite FK → `integration_mappings` (entity `product`) |
+| scope_id | uuid | no | composite FK → `stock_location_scopes` |
+| odoo_qty, netsuite_qty, diff | numeric | yes | `diff = odoo_qty - netsuite_qty` in SQL |
+| odoo_fetched_at, netsuite_fetched_at | timestamptz | yes | |
+| result | text | no | `CHECK IN ('equal','within_threshold','discrepancy','stale','unit_unmapped','not_expected_equal')` |
+| reasons | text[] | no | default `'{}'`; `CHECK (reasons <@ ARRAY['item_not_found','permission_denied'])` |
+
+`UNIQUE (check_id, item_map_id, scope_id)`. Case reason `stock_discrepancy`; evidence = quant record ids, NetSuite location record id, last 20 done move-line record ids.
+
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| GET `/workspace/{workspace}/integrations/pairs/{pair}/stock-scopes` | view | — | `{"data":[StockScope]}` | 404 | `integrations_stock_scopes_get` |
+| POST `/workspace/{workspace}/integrations/pairs/{pair}/stock-scopes` | manage | `{"scopes":[StockScopeInput]}` upsert by `netsuite_location_id`; absent ones deleted | `{"message":"ok"}` | 404, 422, 409 `scope_in_use` | `integrations_stock_scopes_update` |
+| POST `/workspace/{workspace}/workflows/stock-checks` | view | `{"pair_id"}` + `Idempotency-Key` | 202 `{"data":{"stock_check_id"}}` | 404 pair | `workflows_stock_checks_create` |
+| GET `/workspace/{workspace}/workflows/stock-checks?pair=&page=&page_size=` | view | — | list of `StockCheck` (no lines) | | `workflows_stock_checks_list` |
+| GET `/workspace/{workspace}/workflows/stock-checks/{stock_check}?result=` | view | — | `{"data":StockCheck}` with `lines` | 404, 422 unknown result | `workflows_stock_checks_get` |
+
+Review cases: the WF-02 routes with `workflow_key=wf04_stock`.
+
+```jsonc
+// StockScope / StockScopeInput (input has no id)
+{ "id", "odoo_location_ids": ["8","12"], "netsuite_location_id": "3", "expected_equal": false, "label": "Main WH" }
+// StockCheck
+{ "id", "pair_id", "definition": "on_hand", "status": "running|done|failed", "error_category": "…|null",
+  "freshness_minutes": 60, "counts": { "equal": 0, "within_threshold": 0, "discrepancy": 0, "stale": 0, "unit_unmapped": 0, "not_expected_equal": 0 },
+  "created_at",
+  "lines": [ { "item_label", "scope_label", "odoo_qty": "12.00000000|null", "netsuite_qty", "diff", "odoo_fetched_at", "netsuite_fetched_at",
+               "result", "reasons": [], "case_id": "uuid|null" } ] }   // detail only
+```
+`counts` come from a SQL `GROUP BY result`.
+
+### 11.9 WF-05 cross-ERP reports (B1.2)
+
+**`report_join_rules`**: `pair_id` (FK), `rule_key text CHECK (rule_key IN ('so_external_id_template'))`, `template text(1..200) CHECK (template LIKE '%{source_id}%')` (e.g. `odoo-so-{source_id}`, D-51). `UNIQUE (workspace_id, pair_id, rule_key)`.
+
+**`report_definitions`**: `pair_id` (FK), `template_key text CHECK IN ('fulfilled_without_invoice','rfq_vs_po')`, `params jsonb NOT NULL` (object ≤ 4 KiB, validated in Rust per template), `saved boolean NOT NULL DEFAULT false`, `created_by uuid REFERENCES users (id)`.
+
+**`report_runs`**
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| definition_id | uuid | yes | composite FK → `report_definitions` |
+| pair_id | uuid | no | composite FK |
+| template_key | text | no | same CHECK as definitions |
+| params | jsonb | no | object ≤ 4 KiB |
+| tz | text(1..64) | no | workspace time zone (D-53) |
+| date_from, date_to | date | no | `CHECK (date_from <= date_to)` |
+| status | text | no | `CHECK IN ('queued','running','succeeded','partial','failed')`, default `'queued'` |
+| odoo_read_run_id, netsuite_read_run_id | uuid | yes | composite FKs → `ext_read_runs` |
+| as_of | timestamptz | yes | oldest `fetched_at` of the two read runs |
+| created_at, updated_at | timestamptz | no | |
+
+**`report_rows`** (never updated): `run_id` (FK, CASCADE), `left_record_id uuid NOT NULL` (FK → `ext_records`), `right_record_ids uuid[] NOT NULL DEFAULT '{}'`, `match_state text CHECK IN ('matched','unmatched','ambiguous')`, `currency_ref text(1..64) NULL`, `amount numeric NULL`. `CHECK ((match_state = 'unmatched') = (cardinality(right_record_ids) = 0))`, `CHECK ((match_state = 'ambiguous') = (cardinality(right_record_ids) > 1))`. Totals are `SELECT currency_ref, match_state, sum(amount), count(*) … GROUP BY currency_ref, match_state` at read time; no stored totals.
+
+`scheduled_reports.report` += `cross_erp_exceptions` (D-54; mails only the member's own login).
+
+Template params (both templates): `{"date_from":"yyyy-mm-dd","date_to":"yyyy-mm-dd"}`; any other key → 422 field error (`errors.params`).
+
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| GET `/workspace/{workspace}/reports/cross/templates` | view | — | `{"data":[ReportTemplate]}` | | `reports_cross_templates_list` |
+| POST `/workspace/{workspace}/reports/cross/runs` | view | `{"template_key","pair_id","date_from","date_to"}` + `Idempotency-Key` | 202 `{"data":{"report_run_id"}}` | 404 pair, 422 fields | `reports_cross_runs_create` |
+| GET `/workspace/{workspace}/reports/cross/runs/{run}?match_state=&page=&page_size=` | view | — | `{"data":ReportRun}` | 404 | `reports_cross_runs_get` |
+| POST `/workspace/{workspace}/reports/cross/definitions` | view | `{"template_key","pair_id","params","saved"}` | 201 `{"data":{"report_definition_id"}}` | 422 | `reports_cross_definitions_create` |
+| GET `/workspace/{workspace}/reports/cross/definitions` | view | — | list of `ReportDefinition` | | `reports_cross_definitions_list` |
+
+```jsonc
+// ReportTemplate
+{ "key": "fulfilled_without_invoice|rfq_vs_po", "title": "readable", "params": ["date_from","date_to"] }
+// ReportRun
+{ "id", "template_key", "pair_id", "status": "queued|running|succeeded|partial|failed", "partial_reason": "row_ceiling|page_limit|null",
+  "error_category": "…|null", "tz": "Europe/Bucharest", "date_from", "date_to", "as_of": "rfc3339|null",
+  "totals": [ { "currency_ref": "EUR", "match_state": "unmatched", "amount": "123.45", "count": 3 } ],
+  "counts": { "matched": 0, "unmatched": 0, "ambiguous": 0 },
+  "rows": [ { "left": { "record_id", "kind", "ext_id", "label", "doc_date", "event_at" },
+              "right": [ { "record_id", "kind", "ext_id", "label" } ], "match_state", "currency_ref", "amount" } ] }
+// ReportDefinition
+{ "id", "template_key", "pair_id", "params": {}, "saved": true, "created_by": { "user_id","name" }, "created_at" }
+```
+
+### 11.10 WF-06 replenishment (B3)
+
+**`replenish_proposals`**
+| column | type | null | rule |
+|---|---|---|---|
+| id, workspace_id | uuid | no | |
+| pair_id | uuid | no | composite FK |
+| orderpoint_ref, product_ref, location_ref | text(1..300) | no | source refs `odoo:<connection_id>:<model>:<id>` |
+| supplier_ref | text(1..300) | yes | |
+| qty | numeric | no | = Odoo `qty_to_order`, `CHECK (qty > 0)` |
+| uom_ref | text(1..300) | no | |
+| unit_price | numeric | yes | supplierinfo price, unrounded |
+| currency_ref | text(1..64) | yes | |
+| est_cost | numeric | yes | `unit_price × qty` rounded to the currency's decimals, in SQL; label "estimate" |
+| rationale | jsonb | no | `{"min","max","forecast","in_progress","qty_to_order","read_run_ids":[uuid]}` (decimal strings) |
+| status | text | no | `CHECK IN ('draft','blocked','pending_approval','approved','rejected','executing','done','superseded')` |
+| blocked_reasons | text[] | no | default `'{}'`; values `missing_supplier`, `rfq_linked_to_netsuite_po`, `netsuite_on_order_unacknowledged`, `unmapped`; `CHECK ((status = 'blocked') = (cardinality(blocked_reasons) > 0))` |
+| on_order_acknowledged_by | uuid | yes | `REFERENCES users (id)` |
+| approval_request_id | uuid | yes | composite FK |
+| execution_id | uuid | yes | composite FK |
+| result_rfq_ref | text(1..300) | yes | `CHECK (status <> 'done' OR result_rfq_ref IS NOT NULL)` |
+| created_at, updated_at | timestamptz | no | |
+
+Index: `UNIQUE (workspace_id, pair_id, orderpoint_ref) WHERE status IN ('draft','blocked','pending_approval','approved','executing')` (`replenish_proposals_one_open`).
+
+**State machine**
+| from | to | trigger | writer |
+|---|---|---|---|
+| (new) | `draft` / `blocked` | `wf06_scan` (auto orderpoints skipped, D-62) | scan |
+| `blocked` | `draft` | reasons cleared (rescan or acknowledge) | scan / acknowledge route |
+| `draft` | `pending_approval` | submit (creates the approval request) | submit route |
+| `pending_approval` | `approved` / `rejected` | approval decided (existing approve/reject/return; `return` → `rejected`) | approvals decide, same tx |
+| `approved` | `executing` | execution row created, `wf06_execute` enqueued | approvals decide |
+| `executing` | `done` | draft RFQ read back (`finish_succeeded`) | `wf06_execute` / `wf06_reconcile` |
+| any non-terminal | `superseded` | next scan `qty_to_order = 0` | scan |
+
+Terminal: `rejected`, `done`, `superseded`. Approval request for a proposal: `workflow_key = 'wf06_replenish'`, `subject_ref = orderpoint_ref`, `required_permission = 'integration.approve'` (D-64, no threshold policy), `amount_minor` = `est_cost` in minor units (SQL; 0 when `est_cost` is NULL), snapshot `{"v":1,"proposal":{…row…}}`. Execution: `target_ref = odoo:<connection_id>:purchase.order:<rfq id>`; expectation `target_kind = 'stock.warehouse.orderpoint'`, `target_external_id = <orderpoint id>`.
+
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| GET `/workspace/{workspace}/workflows/replenishment?pair=&status=&page=&page_size=` | view | — | list of `ReplenishProposal` | 422 unknown status | `workflows_replenishment_list` |
+| POST `/workspace/{workspace}/workflows/replenishment/scan` | approve | `{"pair_id"}` | 202 `{"message":"ok"}` | 404 pair | `workflows_replenishment_scan` |
+| POST `/workspace/{workspace}/workflows/replenishment/{proposal}/submit` | approve | — + `Idempotency-Key` | 201 `{"data":{"approval_request_id"}}` | 409 `proposal_state_changed` | `workflows_replenishment_submit` |
+| POST `/workspace/{workspace}/workflows/replenishment/{proposal}/acknowledge` | approve | `{"reason"}` + `Idempotency-Key` | `{"data":ReplenishProposal}` | 409 `proposal_state_changed` | `workflows_replenishment_acknowledge` |
+
+```jsonc
+// ReplenishProposal
+{ "id", "pair_id", "status", "blocked_reasons": ["missing_supplier"], "product_label", "location_label", "supplier_label": "…|null",
+  "qty": "5.00000000", "uom_label", "unit_price": "1.335|null", "currency_ref": "EUR|null", "est_cost": "4.01|null",
+  "rationale": { "min","max","forecast","in_progress","qty_to_order" }, "netsuite_on_order": "0|null", "as_of",
+  "approval_request_id": "uuid|null", "execution": ExecutionSummary | null, "result_rfq_ref": "…|null", "created_at", "updated_at" }
+```
+
+### 11.11 WF-07 definitions and runs (B4)
+
+**`workflow_definitions`**: `key text CHECK (key ~ '^[a-z][a-z0-9_]{0,63}$')`, `title text(1..200)`, `status CHECK IN ('draft','published','retired')` default `'draft'`, `created_by uuid REFERENCES users (id)`. `UNIQUE (workspace_id, key)`.
+
+**`workflow_definition_versions`**: `definition_id` (FK), `version int CHECK (version >= 1)`, `spec jsonb` (object ≤ 65536), `spec_hash text CHECK (~ '^[0-9a-f]{64}$')`, `validation jsonb` (ValidationReport), `created_by uuid REFERENCES users (id)`, `published_by uuid NULL REFERENCES users (id)`, `published_at timestamptz NULL`. `UNIQUE (definition_id, version)`; `CHECK ((published_by IS NULL) = (published_at IS NULL))`; `CHECK (published_by IS NULL OR published_by <> created_by)` (D-74). Trigger `workflow_definition_versions_frozen`: UPDATE when `OLD.published_at IS NOT NULL`, or DELETE, raises `restrict_violation` (K5 style).
+
+**`workflow_runs`**: `version_id` (FK), `trigger_ref text(1..300)` (`netsuite:<connection_id>:salesOrder:<id>`), `correlation_id` (`^vz-[0-9a-f]{32}$`, `UNIQUE (workspace_id, correlation_id)`), `status CHECK IN ('running','waiting_approval','waiting_data','waiting_handoff','failed','succeeded','cancelled')`, `current_step int NOT NULL DEFAULT 0 CHECK (>= 0)`.
+
+**`workflow_run_steps`**: `run_id` (FK), `step_no int CHECK (>= 0)`, `step_key text(1..64)`, `capability_key text(1..100) NULL`, `status CHECK IN ('pending','running','waiting','done','failed','skipped','handed_off')`, `input jsonb`, `output jsonb NULL`, `due_at timestamptz NULL` (waits), `approval_request_id uuid NULL`, `execution_id uuid NULL` (composite FKs). `UNIQUE (run_id, step_no)`.
+
+**Spec JSON v1** (what Verzo drafts and the validator reads)
+```jsonc
+{ "v": 1, "title": "Wholesale order",
+  "steps": [ { "key": "s1", "kind": "trigger|condition|approval|action|wait_until|manual_handoff",
+               "library": "sales_order_created|approval|check_stock|request_purchasing|wait_fulfillment|invoice_after_fulfillment|manual_handoff",
+               "params": { … per library step … },
+               "condition": { "left": "s2.output.short_qty", "op": "eq|ne|gt|gte|lt|lte|exists", "right": "0" } | null,
+               "instructions": "for manual_handoff|null" } ] }
+```
+Condition comparisons of numbers run in SQL `numeric`; no expressions, no code.
+
+**Step library v1**
+| library key | kind | capability key | side_effect | gate |
+|---|---|---|---|---|
+| `sales_order_created` | trigger | `sales_order.list_changed` | no | L10 |
+| `approval` | approval | — (Flow approval) | no | — |
+| `check_stock` | action (read) | `stock_on_hand.read` | no | L11 |
+| `request_purchasing` | action | `replenish.request` (via a WF-06 proposal) | yes | L12 |
+| `wait_fulfillment` | wait_until | `fulfillment.read` | no | L11 / L13 |
+| `invoice_after_fulfillment` | action | `invoice.create_from_sales_order` | yes | **L14** |
+| `manual_handoff` | manual_handoff | — | no | — |
+
+**Definition state machine:** `draft` → `published` (first version published) → `retired` (route). A version is immutable once `published_at` is set. A run pins `version_id`.
+
+**Run state machine**
+| from | to | trigger |
+|---|---|---|
+| (new) | `running` | trigger step fires (`wf07_tick`) |
+| `running` | `waiting_approval` / `waiting_data` / `waiting_handoff` | approval step, wait step, handoff step |
+| `waiting_approval` | `running` | approval approved; rejected/returned → `failed` |
+| `waiting_data` | `running` | wait read satisfied; deadline passed opens incident `waiting_data` (run stays `waiting_data`) |
+| `waiting_handoff`, `waiting_data` | `running` | `POST …/runs/{run}/resume` |
+| `running` | `succeeded` / `failed` | last step done / step failed |
+| any non-terminal | `cancelled` | `POST …/runs/{run}/cancel` (never undoes side effects; event recorded) |
+
+Terminal: `succeeded`, `failed`, `cancelled`. Step: `pending → running → done | failed | waiting | handed_off`; `waiting → done | failed`; `pending → skipped` (condition false).
+
+| method + path | permission | body | success | errors | operation_id |
+|---|---|---|---|---|---|
+| POST `/workspace/{workspace}/workflows/definitions/validate` | manage | `{"spec"}` | `{"data":ValidationReport}` | 422 not an object | `workflows_definitions_validate` |
+| POST `/workspace/{workspace}/workflows/definitions` | manage | `{"key","title","steps"}` (new key → definition + v1; existing key → next draft version) | 201 `{"data":{"definition_id","version"}}` | 422 | `workflows_definitions_create` |
+| GET `/workspace/{workspace}/workflows/definitions` | view | — | list of `WorkflowDefinition` | | `workflows_definitions_list` |
+| GET `/workspace/{workspace}/workflows/definitions/{definition}` | view | — | `{"data":WorkflowDefinition}` with `versions` | 404 | `workflows_definitions_get` |
+| POST `/workspace/{workspace}/workflows/definitions/{definition}/versions/{version}/test` | manage | — | `{"data":{"steps":[…dry run…],"writes":0}}` | 404, 422 `definition_invalid` | `workflows_definitions_test` |
+| POST `/workspace/{workspace}/workflows/definitions/{definition}/versions/{version}/publish` | manage | — + `Idempotency-Key` | `{"data":WorkflowDefinition}` | 403 `four_eyes_required`, 409 `version_already_published`, 422 `definition_invalid`, 422 `gate_not_passed` | `workflows_definitions_publish` |
+| POST `/workspace/{workspace}/workflows/definitions/{definition}/retire` | manage | — | `{"data":WorkflowDefinition}` | 404 | `workflows_definitions_retire` |
+| GET `/workspace/{workspace}/workflows/runs?definition=&status=&page=&page_size=` | view | — | list of `WorkflowRun` | | `workflows_runs_list` |
+| GET `/workspace/{workspace}/workflows/runs/{run}` | view | — | `{"data":WorkflowRun}` with `steps` | 404 | `workflows_runs_get` |
+| POST `/workspace/{workspace}/workflows/runs/{run}/resume` | manage | `{"reason"}` + `Idempotency-Key` | `{"data":WorkflowRun}` | 409 `run_state_changed` | `workflows_runs_resume` |
+| POST `/workspace/{workspace}/workflows/runs/{run}/cancel` | manage | `{"reason"}` + `Idempotency-Key` | `{"data":WorkflowRun}` | 409 `run_state_changed` | `workflows_runs_cancel` |
+
+```jsonc
+// ValidationReport
+{ "ok": false, "errors": [ { "step": "s3", "code": "unknown_capability|missing_field|side_effect_without_approval|capability_unavailable", "message": "readable" } ],
+  "steps": [ { "step": "s3", "owner_system": "netsuite|odoo|flow", "dangerous": true, "gate": "L14", "gate_passed": false } ] }
+// WorkflowDefinition
+{ "id", "key", "title", "status": "draft|published|retired", "created_by": { "user_id","name" },
+  "versions": [ { "version": 1, "spec_hash", "validation": ValidationReport, "created_by", "published_by": {…}|null, "published_at": "…|null" } ] }
+// WorkflowRun
+{ "id", "definition_id", "version": 1, "trigger_ref", "correlation_id", "status", "current_step": 2, "created_at", "updated_at",
+  "steps": [ { "step_no","step_key","capability_key","status","due_at","approval_request_id","execution": ExecutionSummary|null } ] }
+```
+
+### 11.12 Verzo tools (`apps/office/lib/voice/operation-policy.json`)
+
+| operation_id | disposition | risk | authorization `allOf` | other |
+|---|---|---|---|---|
+| `reports_cross_templates_list` | execute | read | `integration.view` | `retry.mode: "reconcile_only"` |
+| `reports_cross_runs_create` | execute | read | `integration.view` | `retry.mode: "reconcile_only"` |
+| `reports_cross_runs_get` | execute | read | `integration.view` | `retry.mode: "reconcile_only"` |
+| `reports_cross_definitions_create` | execute | write | `integration.view` | `confirmationFields: ["template_key"]` |
+| `workflows_definitions_validate` | execute | read | `integration.manage` | |
+| `workflows_definitions_create` | execute | write | `integration.manage` | `confirmationFields: ["title","steps"]` |
+| `workflows_runs_list` | execute | read | `integration.view` | |
+| `workflows_runs_get` | execute | read | `integration.view` | |
+
+Every other new operation above is `disposition: "internal"`, explicitly including `workflows_definitions_publish`, `workflows_runs_resume`, `workflows_runs_cancel`. The catalog is regenerated by the child that edits the policy (B1.2, B4).
+
+### 11.13 Error code registry additions (`AppError::Reason`, K14)
+
+| status | code | where | message |
+|---|---|---|---|
+| 409 | `snapshot_stale` | review case decide | `This record changed in the source system after this check. Run the check again before deciding.` |
+| 409 | `review_case_already_decided` | review case decide | `This case was already decided.` |
+| 409 | `incident_not_verified` | incident resolve `reconciled` | `This incident has no verified read-back yet. Run Verify first, or close it by hand with a reason.` |
+| 422 | `incident_not_verifiable` | incident verify | `This incident has no record to check against.` |
+| 409 | `scope_in_use` | stock-scopes update | `This location pair has check history and cannot be removed.` |
+| 409 | `proposal_state_changed` | replenishment submit, acknowledge | `This proposal changed state. Reload and try again.` |
+| 403 | `four_eyes_required` | definition publish | `You cannot publish a version you wrote.` |
+| 409 | `version_already_published` | definition publish | `This version is already published.` |
+| 422 | `definition_invalid` | definition test, publish | `This workflow has problems. Fix them before you publish.` |
+| 422 | `gate_not_passed` | definition publish (D-73) | `A step in this workflow is not verified yet and cannot be published.` |
+| 409 | `run_state_changed` | run resume, cancel | `This run changed state. Reload and try again.` |
+
+Existing codes reused unchanged: `four_eyes_required` (WF-06 approvals, incident resolve), `incident_already_resolved`, `execution_state_changed`, `retry_needs_grant`, `retry_already_granted`, `approval_*`. The UI maps every code to a readable sentence; raw codes never show on screen.
+
+### 11.14 Event kinds (`workflow_events.kind`, no CHECK list)
+
+WF-06 and WF-07 executions reuse the WF-01 kinds (§3.7). New: `expectation_met`, `expectation_late`, `expectation_failed`, `incident_verified` (B1.1); `proposal_submitted`, `proposal_superseded` (B3); `run_step`, `run_cancelled` (B4).
+
+### 11.15 Resolved by B0a
+
+| # | item | choice | reason |
+|---|---|---|---|
+| R-1 | Path param `{ws}` in the plan | `{workspace}` and resource-named params (`{case}`, `{incident}`, `{stock_check}`, `{run}`, `{proposal}`, `{definition}`, `{version}`) | K9 and every WF-01 route (§5) |
+| R-2 | `GET\|PUT …/tolerances`, `GET\|PUT …/stock-scopes` | `GET` + `POST` (full replace / upsert) | K9: no PUT or PATCH in this API |
+| R-3 | Tolerance and stock-scope writes permission | `integration.manage` | they are pair configuration; pair routes use manage (§5.2) |
+| R-4 | `ext_records.kind`, `ext_read_runs.purpose` lists | full lists created once in B1.2 | plan gives `CHECK(...)` with no values; one list avoids five widening migrations |
+| R-5 | Read-run partial message | `partial_reason` (`row_ceiling`, `page_limit`) | plan requires the UI to say why; WF-01 stores codes, not text |
+| R-6 | `qty`/`amount` precision | unconstrained `numeric` | plan says exact numeric; Odoo prices are unrounded (R2-O8), so `numeric(24,8)` (K25) could truncate |
+| R-7 | Case decisions in WF-04 (`explained`, `correction_requested`) vs WF-02 (`accept`, `request_correction`) | one set: `accept`, `request_correction`; WF-04 UI label "Explained" | the plan uses one shared `review_cases` table (X3) and one decide route |
+| R-8 | System case moves | `review_case_decisions.decision` adds `resolve_verified`, `supersede` with `actor_kind='system'` | the decisions table is the only append-only log for cases; `workflow_events` needs an execution or request |
+| R-9 | `open → resolved_verified` | allowed (not only from `awaiting_correction`) | otherwise a case stays open after the data is fixed |
+| R-10 | Stale check input `snapshot_seen` | the `read_run_id` (uuid) shown to the user | plan names the field, not its type |
+| R-11 | Citing records on results | `match_lines.record_ids uuid[]`, `review_cases.evidence.record_ids` | plan rule "every result cites the `ext_records` rows it used" |
+| R-12 | Draft bill label | `match_lines.draft_billed boolean` | D-25 needs the "draft" label per line |
+| R-13 | WF-04 "item gone" reason | `stock_check_lines.reasons` with `item_not_found`, `permission_denied` | plan test needs a readable reason; mirrors `match_lines.reasons` |
+| R-14 | WF-04 window and threshold storage | pair config `stock_freshness_minutes` (60), `stock_threshold` ("0") | D-43 defaults; plan has no column; WF-01 keeps such settings in pair config |
+| R-15 | Incident resolve CHECKs | WF-01 CHECKs on `resolved_by`/`note` relaxed to allow a system `reconciled` close; `manual_closed` still needs user + note; backfill `manual_closed` | plan test `wf03_late_then_met_auto_verifies` resolves with no user |
+| R-16 | `category` on WF-01 incident kinds | NULL | plan defines categories only for the new failure flow; no source maps WF-01 kinds |
+| R-17 | Incident resolve without `resolution_kind` | defaults to `manual_closed` | keeps the WF-01 UI body `{"note"}` valid |
+| R-18 | Expectation target connection | from `external_links` by `correlation_id` | plan's identity rule; no extra column |
+| R-19 | WF-06 expectation target | `target_kind='stock.warehouse.orderpoint'`, id = orderpoint id | `action_replenish` takes no external id; plan's verify re-reads the orderpoint |
+| R-20 | Per-pair schedules | system job of the same kind fans out per active pair (`{pair_id}` payload) | K16 schedules are global; avoids extra tick kinds |
+| R-21 | `concurrency_key` "pair" | `wf02:<pair>`, `wf06:<pair>`; WF-04 `netsuite:<connection_id>` | K17 keys are global; WF-01 uses `wf01:<pair>` |
+| R-22 | WF-07 action-step execution kinds | `wf07_execute`, `wf07_reconcile` | plan says action steps create executions (W1) but names no job; mirrors WF-06/WF-01 |
+| R-23 | WF-07 incident on late wait | kind `waiting_data` | plan text "`waiting_data` incident" |
+| R-24 | WF-07 trigger step | library `sales_order_created`, capability `sales_order.list_changed`, gate L10 | plan has a `trigger` kind but names no trigger; the wholesale example (D-71) starts from a NetSuite SO |
+| R-25 | WF-07 step library keys | `approval`, `check_stock`, `request_purchasing`, `wait_fulfillment`, `invoice_after_fulfillment`, `manual_handoff` | plan names the steps in prose only |
+| R-26 | WF-07 condition operators | `eq, ne, gt, gte, lt, lte, exists`, compared in SQL | plan says "fixed operator set" without names |
+| R-27 | WF-07 approval rows | `workflow_key='wf07_custom'`, `subject_ref='wf07:<run_id>:<step_no>'`, `amount_minor=0`, `currency_ref='XXX'`, `currency_decimals=0`; each side-effect step needs its own preceding approval step | `approval_requests` needs these columns; `workflow_executions.approval_request_id` is UNIQUE |
+| R-28 | Wait deadline storage | `workflow_run_steps.due_at` | plan: "waits poll … with a deadline" |
+| R-29 | Publish path `…/versions/{v}/publish` | under `/workflows/definitions/{definition}/versions/{version}/publish` | matches the plan's `test` route |
+| R-30 | Resume/cancel permission | `integration.manage` | matches WF-01 `…/executions/{execution}/retry` |
+| R-31 | Missing list routes | `workflows_definitions_list`, `workflows_stock_checks_list`, `reports_cross_definitions_list` (plan `POST\|GET`) | the plan's Office pages need lists; read-only, `integration.view` |
+| R-32 | Replenishment scan / submit / acknowledge permission | `integration.approve` | plan rule "Proposals use `integration.approve`" |
+| R-33 | WF-06 approval amount | `amount_minor` = SQL-rounded `est_cost`, 0 when unknown; `required_permission='integration.approve'` | D-64 one approval, no threshold policy; column is NOT NULL |
+| R-34 | Approval `return` on a proposal | proposal → `rejected` | proposal states have no `returned` |
+| R-35 | `customer` mapping entity | added by B4 | X6 names it; only WF-07 SO steps need it (WF-05 joins by template, D-51) |
+| R-36 | Async create responses | 202 `{"data":{"<x>_id"}}` for report runs and stock checks; 202 `{"message":"ok"}` for rerun and scan | K10 id style; plan says "202 + run id" |
+| R-37 | Error codes and messages in §11.13 | named here | the plan names only `snapshot_stale`; messages follow the WF-01 wording style |
+| R-38 | **OPEN to parent:** WF-06 failed write | proposal stays `executing` while its execution is not terminal; plan test "`failed`, category `data`" read as expectation `failed` + incident category `data` | plan's proposal states have no failure state; B3 asks the parent before adding one |
+
+### 11.16 Resolved by B1.1 (2026-11-21, parent approved)
+
+| # | item | choice | reason |
+|---|---|---|---|
+| B1.1-A | R-17 at the database | `BEFORE INSERT OR UPDATE` trigger `workflow_incidents_default_kind`: `status = 'resolved'` with `resolution_kind` NULL and `resolved_by` set → `manual_closed` | a person's resolve written without a kind (WF-01 raw SQL, `tests/api/approvals_schema.rs`) stays valid; the system close still needs `reconciled` + `verified_at` |
+| B1.1-B | Expectation target connection (changes R-18) | the execution's pair (`workflow_executions` → `approval_requests` → `integration_pairs.target_connection_id`); `external_links` only when `execution_id` is NULL | `external_links` rows exist only after a verified success, so a pending or late expectation has none |

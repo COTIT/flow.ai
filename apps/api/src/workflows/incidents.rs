@@ -1,7 +1,5 @@
 //! Workflow incidents: open once per (kind, subject, execution) while open
 //! (`workflow_incidents_one_open`); resolve is a human action (routes).
-// shortcut: C4a/C4b are the callers of this contract API (§4.6); drop the allow when they land.
-#![allow(dead_code)]
 
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -27,10 +25,24 @@ pub async fn open(
     refs: IncidentRefs,
     detail: Value,
 ) -> Result<(Uuid, bool), AppError> {
+    open_classified(conn, ws, kind, subject_ref, refs, detail, None).await
+}
+
+/// `open` plus WF-03 `(category, diagnosis)` (contracts §11.3); kept when one is already open.
+pub async fn open_classified(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    kind: &str,
+    subject_ref: &str,
+    refs: IncidentRefs,
+    detail: Value,
+    class: Option<(&str, Value)>,
+) -> Result<(Uuid, bool), AppError> {
+    let (category, diagnosis) = class.unzip();
     let created = sqlx::query_scalar!(
         "INSERT INTO workflow_incidents (workspace_id, kind, subject_ref, pair_id, connection_id,
-             approval_request_id, execution_id, status, detail)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', $8)
+             approval_request_id, execution_id, status, detail, category, diagnosis)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $10)
          ON CONFLICT (workspace_id, kind, subject_ref,
              coalesce(execution_id, '00000000-0000-0000-0000-000000000000'::uuid))
              WHERE status = 'open'
@@ -44,6 +56,8 @@ pub async fn open(
         refs.approval_request_id,
         refs.execution_id,
         detail,
+        category,
+        diagnosis,
     )
     .fetch_optional(&mut *conn)
     .await?;

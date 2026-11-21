@@ -35,6 +35,7 @@ import {
   Percent,
   Banknote,
   Receipt,
+  RefreshCw,
   Undo2,
 } from "lucide-react"
 
@@ -155,6 +156,12 @@ const items: Item[] = [
     match: "/approvals",
     label: "nav.purchaseApprovals",
     icon: ClipboardCheck,
+  },
+  {
+    href: "/integrations/incidents",
+    match: "/integrations",
+    label: "nav.syncProblems",
+    icon: RefreshCw,
   },
   {
     href: "/lots",

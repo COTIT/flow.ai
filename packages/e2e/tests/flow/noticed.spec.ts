@@ -51,6 +51,29 @@ test("acknowledge keeps the alert, snooze hides it, a cleared condition removes 
   ).toContainText("1 product below its minimum stock level")
 })
 
+test("a row menu whose trigger scrolls out of the pane never stretches the page", async ({
+  page,
+  api,
+}, info) => {
+  test.skip(info.project.name !== "flow-mobile", "the pane is short on a phone")
+  sceneWorld(api)
+  // The briefing puts its chart above the list, so the last row sits low in the pane.
+  await page.goto("/scenes/pulse")
+  const pane = page.locator("main[data-flow-scroll]")
+  const trigger = page
+    .locator(`[data-item="${SPICES}"] [aria-haspopup="menu"]`)
+    .filter({ visible: true })
+    .first()
+  await trigger.click()
+  await expect(page.getByRole("menu")).toBeVisible()
+  // The pane scrolls back up with the menu open: the trigger leaves the screen below.
+  await pane.evaluate((el) => el.scrollTo(0, 0))
+  await expect
+    .poll(async () => (await trigger.boundingBox())?.y ?? 0)
+    .toBeGreaterThan(page.viewportSize()!.height)
+  // The guard then checks that only the pane scrolls, never the page.
+})
+
 test("nothing to notice is said calmly, not as an empty box", async ({
   page,
   api,

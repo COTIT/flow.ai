@@ -170,11 +170,12 @@ async function tabTo(
   target: Locator,
   { max = 80, back = false } = {}
 ) {
-  // Not on this page (e.g. the composer on /login): tabbing for it only walks focus out of the page.
+  // Not on this page (e.g. the composer on /login, or hidden on home's dashboard): tabbing for it
+  // only walks focus round the page and out of it (60 Tabs can end on <body>).
   if (
     !(await target
       .first()
-      .waitFor({ state: "attached", timeout: 2_000 })
+      .waitFor({ state: "visible", timeout: 2_000 })
       .then(
         () => true,
         () => false

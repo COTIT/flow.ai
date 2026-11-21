@@ -1,0 +1,138 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, workspace_id, execution_id, source_ref, target_kind, target_external_id,\n                due_at, status, checks, last_checked_at\n         FROM exchange_expectations\n         WHERE workspace_id = $1\n           AND (execution_id = $2 OR incident_id = $3)\n         ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "execution_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "execution_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source_ref",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "source_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "target_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "target_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "target_external_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "target_external_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "due_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "due_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "checks",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "checks"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_checked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "last_checked_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "b370ad5259b5dcb950ca2cc89255f3f9d18377aa6e17452f0df9d52205331885"
+}

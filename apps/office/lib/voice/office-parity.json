@@ -1415,5 +1415,17 @@
   },
   "workflows_executions_retry": {
     "officeOnlyBecause": "Blocked or failed workflow runs are retried or resolved by hand on the Office workflows screen after review; WF-01 routes are not assistant tools."
+  },
+  "workflows_incidents_get": {
+    "officeOnlyBecause": "Sync problems are verified and closed by hand on the Office Sync problems screen after review; WF-03 incident routes are not assistant tools."
+  },
+  "workflows_incidents_list": {
+    "officeOnlyBecause": "Sync problems are verified and closed by hand on the Office Sync problems screen after review; WF-03 incident routes are not assistant tools."
+  },
+  "workflows_incidents_resolve": {
+    "officeOnlyBecause": "Sync problems are verified and closed by hand on the Office Sync problems screen after review; WF-03 incident routes are not assistant tools."
+  },
+  "workflows_incidents_verify": {
+    "officeOnlyBecause": "Sync problems are verified and closed by hand on the Office Sync problems screen after review; WF-03 incident routes are not assistant tools."
   }
 }

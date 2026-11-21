@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- WF-03 failed synchronization detection and recovery, B1.1 (migration `20261121120000_wf03_recovery`, `docs/api/workflows.md` "WF-03"):
+  - incidents gain `category`, `diagnosis`, `verified_at`, `resolution_kind` and six kinds; the system may close only as `reconciled` after a verified read-back; `manual_closed` needs a user and a note; existing resolved rows backfilled `manual_closed`;
+  - `exchange_expectations` registered at every WF-01 write intent, due 15 minutes later; a permanent rejection fails it with a classified incident;
+  - jobs `wf03_expect_sweep` (5 min, ≤ 10 read-backs per expectation, never writes, never moves a run) and `wf03_health` (15 min connection probes);
+  - routes `GET …/workflows/incidents/{incident}` (`workflows_incidents_get`) and `POST …/incidents/{incident}/verify` (`workflows_incidents_verify`); the list takes `category`; resolve takes `resolution_kind` (409 `incident_not_verified`);
+  - Office `/integrations/incidents` (Sync problems).
+  - Tested against the in-process fakes only.
+
 - Pricing in SQL, stage 3 (migration `20261121100000_money_unit_gross`, no API shape change): one unit incl VAT (`unit_price_gross` on Till catalog and shop orders, `price_gross` on storefront products and variants) comes from `money_unit_gross(unit, vat, dp)` in the read queries, checked against a one-line `price_lines` total over 312 cases. The Rust pricing maths (`summarise`, `amounts`, `margin`, `orders::service::unit_gross`) is gone; `pricing::engine` keeps the shapes. `invoices::repo::line_cents` multiplies by `0.01` instead of dividing by 100 (exact; division rounded the quotient first).
 - Pricing in SQL, stage 2 (migration `20261121090000_price_margin`, no API shape change): calculate-items/marge, order pricing (office, shop checkout, assistant previews), invoice quote/totals/detail/PDF/approval and the credit-note refund cap now price through `price_lines` (one query per document). New `price_margin` gives the margin of lines priced elsewhere (invoices billing recognitions); `price_lines` takes its margin from it. Margin % is computed once as float8 from the exact quotient. The refund-cap message prints the cap at the currency's decimals (`21.80`, where the Rust engine sometimes printed `21.8`) (`docs/api/pricing.md`).
 - Pricing in SQL, stage 1 (migration `20261120090000_price_lines`, no API change): `price_lines(dp, quantities, prices, vats, discounts, purchase_prices, set_children)` prices item lines like `pricing::engine` in exact `numeric` (line gross/discount/excl/VAT, VAT once per exact rate, totals, margin, out-of-range line index). Golden test `tests/api/pricing_sql.rs` against `tests/fixtures/pricing_golden.json` (frozen engine output; `GOLDEN_WRITE=1` regenerates it from the engine test). Only difference: rust_decimal loses digits on products over 28 digits; SQL is exact (`docs/api/pricing.md`).

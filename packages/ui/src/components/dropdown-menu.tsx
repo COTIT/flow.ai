@@ -31,7 +31,10 @@ function DropdownMenuContent({
   >) {
   return (
     <MenuPrimitive.Portal>
+      {/* Fixed, not absolute: a menu whose trigger scrolls away inside a pane must never
+          stretch the page itself (Flow's single scroller, phone width). */}
       <MenuPrimitive.Positioner
+        positionMethod="fixed"
         className="isolate z-50 outline-none"
         align={align}
         alignOffset={alignOffset}

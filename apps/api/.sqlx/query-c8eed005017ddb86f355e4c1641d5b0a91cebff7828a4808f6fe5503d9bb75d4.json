@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE exchange_expectations SET status = 'closed', updated_at = now()\n         WHERE workspace_id = $1 AND incident_id = $2 AND status IN ('failed', 'late')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c8eed005017ddb86f355e4c1641d5b0a91cebff7828a4808f6fe5503d9bb75d4"
+}

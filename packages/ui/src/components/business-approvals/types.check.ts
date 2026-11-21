@@ -6,6 +6,8 @@ import type {
   ConnectionResource,
   ExecutionResource,
   ExecutionSummary,
+  IncidentDetail,
+  IncidentResource,
   MappingResource,
   PairResource,
 } from "@verzo/api-client/model"
@@ -15,6 +17,8 @@ import type {
   CapabilityCheck as CapabilityView,
   ConnectionView,
   ExecutionView,
+  IncidentDetailView,
+  IncidentView,
   MappingView,
   PairView,
 } from "./types"
@@ -39,4 +43,12 @@ export const fits: [
   Fits<CapabilityView, CapabilityCheck>,
   Fits<PairView, PairResource>,
   Fits<MappingView, MappingResource>,
-] = [true, true, true, true, true, true, true]
+  Fits<
+    Omit<IncidentView, "diagnosis">,
+    Omit<IncidentResource, "diagnosis" | "detail">
+  >,
+  Fits<
+    Omit<IncidentDetailView, "diagnosis">,
+    Omit<IncidentDetail, "diagnosis" | "detail">
+  >,
+] = [true, true, true, true, true, true, true, true, true]

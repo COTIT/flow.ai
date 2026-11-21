@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE exchange_expectations SET status = 'late', incident_id = $3, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status IN ('pending', 'late')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "828557af50a4b9952d4ce880016693dbdaee83952bef77f3a04c15dc44c93a0c"
+}
