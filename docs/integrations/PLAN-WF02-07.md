@@ -190,6 +190,7 @@ Status: **APPROVED 2026-11-21 by the user, all default decisions D-21..D-74 acce
 - **Jobs:** `wf03_expect_sweep` (`Every::Minutes(5)`): for each `pending`/`late` expectation past due, call the target `read`/`find_by_external_id` capability once; bounded by `checks ≤ 10` then stays `late` for humans (same rule as R3-§6c). `wf03_health` (`Every::Minutes(15)`): runs each connection probe; `Auth`/`Permission` → incident and connection status change.
 - **Routes:** `GET /workspace/{ws}/workflows/incidents?category=&status=` (extend existing), `GET …/incidents/{id}` (diagnosis + timeline from `workflow_events`), `POST …/incidents/{id}/verify` (runs one read-back now), existing `…/resolve` gains `resolution_kind`. Retry stays the existing `POST …/executions/{id}/retry`.
 - **UI:** Office `/integrations/incidents` (list by category, detail with timeline and the existing retry/resolve actions). Flow shows only the open-incident count in its attention strip (Flow stays simple).
+- Flow open-incident count deferred: needs an attention `sync_problems` group (option a), done as its own follow-up.
 
 ### 4.5 Acceptance tests
 | Test | Proves |
