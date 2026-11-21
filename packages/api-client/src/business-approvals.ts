@@ -20,6 +20,10 @@ import {
   workflowsExecutionsGet,
   workflowsExecutionsResolve,
   workflowsExecutionsRetry,
+  workflowsIncidentsGet,
+  workflowsIncidentsList,
+  workflowsIncidentsResolve,
+  workflowsIncidentsVerify,
 } from "./generated/workflows/workflows"
 import { useIdempotencyKey } from "./idempotency"
 
@@ -296,6 +300,120 @@ export function usePurchaseApprovals<
       act.reset()
       void detail.refetch()
       if (request?.execution) void execution.refetch()
+    },
+  }
+}
+
+// --- Sync problems (WF-03 incidents, contracts §11.7) ------------------------------------
+
+/** Incidents by status and category, newest first. */
+export function useIncidents<T>(params: {
+  status?: "open" | "resolved"
+  category?: string
+  page_size?: string
+}) {
+  const ws = useWorkspace()
+  return useQuery({
+    queryKey: [...ROOT, ws, "incidents", params],
+    enabled: Boolean(ws),
+    queryFn: ({ signal }) =>
+      as<List<T>>(workflowsIncidentsList(ws, params, undefined, signal)),
+  })
+}
+
+/** One incident with its watched expectation and timeline. */
+export function useIncident<T>(id: string | null | undefined) {
+  const ws = useWorkspace()
+  return useQuery({
+    queryKey: [...ROOT, ws, "incident", id],
+    enabled: Boolean(ws && id),
+    queryFn: ({ signal }) =>
+      as<One<T>>(workflowsIncidentsGet(ws, id!, undefined, signal)),
+  })
+}
+
+/** `verify` (one read-back now) or `resolve` (close by hand with a note). */
+export function useIncidentAction<T>() {
+  const ws = useWorkspace()
+  const client = useQueryClient()
+  const key = useIdempotencyKey()
+  return useMutation({
+    mutationFn: (v: {
+      id: string
+      action: "verify" | "resolve"
+      note?: string
+    }) =>
+      as<One<T>>(
+        v.action === "verify"
+          ? workflowsIncidentsVerify(ws, v.id, key.request)
+          : workflowsIncidentsResolve(
+              ws,
+              v.id,
+              { note: v.note ?? "", resolution_kind: "manual_closed" },
+              key.request
+            )
+      ),
+    onSettled: (_d, error) => {
+      key.settle(error)
+      return client.invalidateQueries({ queryKey: [...ROOT, ws] })
+    },
+  })
+}
+
+/**
+ * The sync problems screen (Office): open/closed and category filters, the selected
+ * incident, and its Check now / Close actions. The API decides; this only fetches and sends.
+ */
+export function useIncidentsScreen<
+  I extends { id: string; status: string },
+  D = I,
+>() {
+  const [status, setStatus] = React.useState<"open" | "resolved">("open")
+  const [category, setCategory] = React.useState<string | null>(null)
+  const [selectedId, setSelectedId] = React.useState<string | null>(null)
+  const [done, setDone] = React.useState<"verified" | "resolved" | null>(null)
+  const list = useIncidents<I>({ status, ...(category ? { category } : {}) })
+  const detail = useIncident<D>(selectedId)
+  const act = useIncidentAction<I>()
+  const choose = (id: string | null) => {
+    setSelectedId(id)
+    setDone(null)
+    act.reset()
+  }
+  return {
+    status,
+    setStatus: (s: "open" | "resolved") => {
+      setStatus(s)
+      choose(null)
+    },
+    category,
+    setCategory: (c: string | null) => {
+      setCategory(c)
+      choose(null)
+    },
+    list,
+    selectedId,
+    select: choose,
+    detail,
+    incident: detail.data?.data,
+    busy: act.isPending,
+    error: act.error,
+    done,
+    verify: () => {
+      if (!selectedId) return
+      setDone(null)
+      act.mutate(
+        { id: selectedId, action: "verify" },
+        { onSuccess: () => setDone("verified") }
+      )
+    },
+    resolve: (note: string) => {
+      if (!selectedId) return
+      setDone(null)
+      act.mutate(
+        { id: selectedId, action: "resolve", note },
+        { onSuccess: () => setDone("resolved") }
+      )
     },
   }
 }
