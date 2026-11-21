@@ -421,11 +421,12 @@ pub struct MarginPart {
 impl MarginResource {
     /// Shape `m` like Laravel, legacy keys included (vimdesk-web reads both).
     pub fn new(m: &Margin) -> Self {
-        let (cost, pct, amount) = (
-            php_number(m.cost),
-            php_number(m.percentage),
-            php_number(m.amount),
-        );
+        // Whole percentages print without decimals, like `php_number`.
+        let pct = match m.percentage {
+            p if p.fract() == 0.0 && p.abs() < 9e15 => Value::from(p as i64),
+            p => Value::from(p),
+        };
+        let (cost, amount) = (php_number(m.cost), php_number(m.amount));
         let items = json!({
             "cost_excl": cost, "revenue_excl": php_number(m.revenue),
             "margin_amount": amount, "margin_percentage": pct,

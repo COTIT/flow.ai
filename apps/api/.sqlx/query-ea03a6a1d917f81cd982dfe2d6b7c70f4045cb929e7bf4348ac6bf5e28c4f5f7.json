@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id AS \"id!\",\n                  round(l.price * (100 + l.vat) / 100 * power(10::numeric, $3::int))::bigint\n                      AS \"unit_price_minor!\",\n                  e.excl::bigint AS \"subtotal_minor!\",\n                  (e.excl + round(e.excl * l.vat / 100))::bigint AS \"total_minor!\"\n           FROM items l\n           CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g\n           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage / 100) AS excl) e\n           WHERE l.workspace_id = $1 AND l.invoice_id = $2",
+  "query": "SELECT l.id AS \"id!\",\n                  round(l.price * (100 + l.vat) * 0.01 * power(10::numeric, $3::int))::bigint\n                      AS \"unit_price_minor!\",\n                  e.excl::bigint AS \"subtotal_minor!\",\n                  (e.excl + round(e.excl * l.vat * 0.01))::bigint AS \"total_minor!\"\n           FROM items l\n           CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g\n           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage * 0.01) AS excl) e\n           WHERE l.workspace_id = $1 AND l.invoice_id = $2",
   "describe": {
     "columns": [
       {
@@ -47,5 +47,5 @@
       null
     ]
   },
-  "hash": "17728d548c75c55433088ed031b4facc5a459600af2bb42674a8492f290bab21"
+  "hash": "ea03a6a1d917f81cd982dfe2d6b7c70f4045cb929e7bf4348ac6bf5e28c4f5f7"
 }

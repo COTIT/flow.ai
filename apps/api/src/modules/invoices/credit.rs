@@ -75,7 +75,7 @@ pub async fn credit(
         )
         .unwrap_or(2),
     };
-    let taken = credit_lines(&lines, input, dp)?;
+    let taken = credit_lines(&mut tx, &lines, input, dp).await?;
     if taken.is_empty() {
         return Err(AppError::Unprocessable(NO_ITEMS.into()));
     }
@@ -165,11 +165,22 @@ pub async fn credit(
 /// - Else each selected line with `credit_amount` > 0: that quantity; with a `return_amount`
 ///   (incl. VAT, for that quantity) the unit price becomes return / (1 + VAT) / quantity and
 ///   the discount goes.
-fn credit_lines<'a>(
+async fn credit_lines<'a>(
+    conn: &mut sqlx::PgConnection,
     lines: &'a [ItemRow],
     input: &CreditInput,
     dp: u32,
 ) -> Result<Vec<Taken<'a>>, AppError> {
+    // Caps of every selection with a refund, priced in one query.
+    let capped: Vec<(Uuid, Decimal)> = input
+        .items
+        .iter()
+        .filter_map(|sel| match (sel.return_amount, sel.credit_amount) {
+            (Some(_), Some(q)) if q > Decimal::ZERO => Some((sel.id, q)),
+            _ => None,
+        })
+        .collect();
+    let caps = paid_for(conn, lines, &capped, dp).await?;
     let mut errors = Errors::default();
     for sel in &input.items {
         let field = |k: &str| format!("items.{}.{k}", sel.index);
@@ -194,7 +205,11 @@ fn credit_lines<'a>(
             && q > Decimal::ZERO
         {
             let f = field("return_amount");
-            let cap = paid_for(l, q, dp).ok_or_else(out_of_range)?;
+            let cap = capped
+                .iter()
+                .position(|&(i, cq)| i == sel.id && cq == q)
+                .map(|n| caps[n])
+                .ok_or_else(out_of_range)?;
             if ret < Decimal::ZERO {
                 errors.add(&f, format!("The {} must be at least 0.", human(&f)));
             } else if ret > cap {
@@ -246,21 +261,36 @@ fn out_of_range() -> AppError {
     AppError::field("items", "The item totals are out of range.")
 }
 
-/// Incl. VAT total of `quantity` of line `l` at `dp` decimals, as the invoice priced it
-/// (`pricing::engine`: gross, discount and the line's VAT each rounded).
-fn paid_for(l: &ItemRow, quantity: Decimal, dp: u32) -> Option<Decimal> {
-    let a = engine::amounts(
-        &engine::Line {
-            quantity,
-            price: l.price,
-            vat: l.vat,
-            discount: l.discount_percentage,
-            purchase_price: None,
-            set_child: false,
-        },
-        dp,
-    )?;
-    a.excl.checked_add(a.line_vat)
+/// Incl. VAT total of each `(item, quantity)` of `lines` at `dp`, as the invoice priced it
+/// (Postgres `price_lines`: gross, discount and the line's VAT each rounded). 422 out of range.
+async fn paid_for(
+    conn: &mut sqlx::PgConnection,
+    lines: &[ItemRow],
+    wanted: &[(Uuid, Decimal)],
+    dp: u32,
+) -> Result<Vec<Decimal>, AppError> {
+    let priced: Vec<engine::Line> = wanted
+        .iter()
+        .map(|&(id, quantity)| {
+            let l = lines.iter().find(|l| l.id == id);
+            engine::Line {
+                quantity,
+                price: l.map_or(Decimal::ZERO, |l| l.price),
+                vat: l.map_or(Decimal::ZERO, |l| l.vat),
+                discount: l.map_or(Decimal::ZERO, |l| l.discount_percentage),
+                purchase_price: None,
+                set_child: false,
+            }
+        })
+        .collect();
+    let s = engine::price(conn, &priced, dp)
+        .await?
+        .map_err(|_| out_of_range())?
+        .summary;
+    s.lines
+        .iter()
+        .map(|a| a.excl.checked_add(a.line_vat).ok_or_else(out_of_range))
+        .collect()
 }
 
 /// Excl. VAT unit price of a refund `ret` (incl. VAT) over `quantity`, at the column's 8
@@ -282,10 +312,10 @@ mod tests {
         Decimal::from_str(s).unwrap()
     }
 
-    #[test]
-    fn the_refund_cap_is_the_line_as_priced() {
-        let line = |price: &str, discount: &str| ItemRow {
-            id: uuid::Uuid::nil(),
+    #[sqlx::test]
+    async fn the_refund_cap_is_the_line_as_priced(pool: sqlx::PgPool) {
+        let line = |id: u128, price: &str, discount: &str| ItemRow {
+            id: Uuid::from_u128(id),
             product_id: None,
             product_variant_id: None,
             mutate_from_warehouse_id: None,
@@ -302,10 +332,16 @@ mod tests {
             credit_amount: Decimal::ZERO,
             mutated_from_stock: Decimal::ZERO,
         };
+        let lines = [line(1, "0.125", "0"), line(2, "10", "10")];
+        let mut conn = pool.acquire().await.unwrap();
+        let mut cap = async |id: u128, q: &str, dp: u32| {
+            let wanted = [(Uuid::from_u128(id), d(q))];
+            paid_for(&mut conn, &lines, &wanted, dp).await.unwrap()[0]
+        };
         // 0.375 -> 0.38 excl, 0.08 VAT: the line shows 0.46 (a single rounding gave 0.45).
-        assert_eq!(paid_for(&line("0.125", "0"), d("3"), 2), Some(d("0.46")));
-        assert_eq!(paid_for(&line("0.125", "0"), d("3"), 3), Some(d("0.454")));
-        assert_eq!(paid_for(&line("10", "10"), d("2"), 2), Some(d("21.78")));
+        assert_eq!(cap(1, "3", 2).await, d("0.46"));
+        assert_eq!(cap(1, "3", 3).await, d("0.454"));
+        assert_eq!(cap(2, "2", 2).await, d("21.78"));
     }
 
     #[test]
