@@ -9,7 +9,6 @@ use uuid::Uuid;
 use crate::{
     http::list::Meta,
     modules::{
-        orders::service::unit_gross,
         storefront::dto::VariantOption,
         till_catalog::repo::{ProductRow, VariantRow},
     },
@@ -76,8 +75,6 @@ pub struct TillVariant {
 
 impl From<ProductRow> for TillProduct {
     fn from(p: ProductRow) -> Self {
-        let dp = u32::try_from(p.decimals).unwrap_or(2);
-        let gross = |unit: i64| unit_gross(unit, p.vat, dp);
         let variants = p
             .variants
             .0
@@ -89,12 +86,12 @@ impl From<ProductRow> for TillProduct {
                 barcode: v.barcode,
                 is_default: v.is_default,
                 unit_price: v.unit_price,
-                unit_price_gross: gross(v.unit_price),
+                unit_price_gross: v.unit_price_gross,
                 options: v.options.into_iter().map(Into::into).collect(),
             })
             .collect();
         Self {
-            unit_price_gross: gross(p.unit_price),
+            unit_price_gross: p.unit_price_gross,
             id: p.id,
             name: p.name,
             r#type: p.r#type,

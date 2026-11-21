@@ -467,6 +467,8 @@ pub struct LineRow {
     pub picked: Decimal,
     pub deducted: Decimal,
     pub returned: Decimal,
+    /// One unit incl VAT at the order's decimals (`money_unit_gross`); None past range.
+    pub unit_price_gross: Option<i64>,
 }
 
 /// Lines of `order_ids` in display order.
@@ -477,11 +479,15 @@ pub async fn lines(
 ) -> Result<Vec<LineRow>, sqlx::Error> {
     sqlx::query_as!(
         LineRow,
-        "SELECT id, order_id, product_id, product_variant_id, title, quantity, unit_price,
-                vat_rate, discount_percentage, line_excl, line_vat, tracked, picked, deducted,
-                returned
-         FROM order_lines WHERE workspace_id = $1 AND order_id = ANY($2)
-         ORDER BY order_id, position, id",
+        "SELECT l.id, l.order_id, l.product_id, l.product_variant_id, l.title, l.quantity,
+                l.unit_price, l.vat_rate, l.discount_percentage, l.line_excl, l.line_vat,
+                l.tracked, l.picked, l.deducted, l.returned,
+                money_unit_gross(l.unit_price, l.vat_rate, c.decimals) AS unit_price_gross
+         FROM order_lines l
+         JOIN orders o ON o.workspace_id = l.workspace_id AND o.id = l.order_id
+         JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+         WHERE l.workspace_id = $1 AND l.order_id = ANY($2)
+         ORDER BY l.order_id, l.position, l.id",
         workspace_id,
         order_ids,
     )

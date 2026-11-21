@@ -83,6 +83,8 @@ mod payments;
 mod payments_stripe;
 #[path = "api/period_close.rs"]
 mod period_close;
+#[path = "api/pricing_sql.rs"]
+mod pricing_sql;
 #[path = "api/provider_observations.rs"]
 mod provider_observations;
 #[path = "api/purchasing.rs"]
