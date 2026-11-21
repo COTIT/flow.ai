@@ -15,4 +15,9 @@ export interface IncidentResolveRequest {
      * @nullable
      */
   note?: string | null;
+  /**
+     * `reconciled` (needs a verified read-back) or `manual_closed` (default).
+     * @nullable
+     */
+  resolution_kind?: string | null;
 }

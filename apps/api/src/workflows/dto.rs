@@ -37,6 +37,8 @@ pub struct IncidentListQuery {
     /// open or resolved.
     pub status: Option<String>,
     pub kind: Option<String>,
+    /// transient, authorization, data, conflict, missing or unknown_outcome.
+    pub category: Option<String>,
     pub page: Option<String>,
     pub page_size: Option<String>,
 }
@@ -105,13 +107,33 @@ impl Validate for ResolveRequest {
 pub struct IncidentResolveRequest {
     #[schema(max_length = 2000)]
     note: Option<String>,
+    /// `reconciled` (needs a verified read-back) or `manual_closed` (default).
+    resolution_kind: Option<String>,
+}
+
+/// Valid incident resolve: note + resolution kind.
+pub struct IncidentResolve {
+    pub note: String,
+    pub resolution_kind: String,
 }
 
 impl Validate for IncidentResolveRequest {
-    type Valid = String;
+    type Valid = IncidentResolve;
 
-    fn validate(self, r: &mut Rules) -> Option<String> {
-        Some(r.text("note", self.note, REASON_MAX))
+    fn validate(self, r: &mut Rules) -> Option<IncidentResolve> {
+        let note = r.text("note", self.note, REASON_MAX);
+        let resolution_kind = self
+            .resolution_kind
+            .unwrap_or_else(|| "manual_closed".into());
+        r.check(
+            "resolution_kind",
+            ["reconciled", "manual_closed"].contains(&resolution_kind.as_str()),
+            "The selected resolution kind is invalid.",
+        );
+        Some(IncidentResolve {
+            note,
+            resolution_kind,
+        })
     }
 }
 
@@ -191,4 +213,32 @@ pub struct IncidentResource {
     pub note: Option<String>,
     pub resolved_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    /// WF-03 category; null on WF-01 kinds.
+    pub category: Option<String>,
+    /// `{sentence, records, last_attempt}`; the provider code is not exposed.
+    #[schema(value_type = Option<Object>)]
+    pub diagnosis: Option<Value>,
+    pub verified_at: Option<DateTime<Utc>>,
+    /// `reconciled` or `manual_closed` once resolved.
+    pub resolution_kind: Option<String>,
+}
+
+/// Expectation behind an incident (contracts §11.7).
+#[derive(Serialize, ToSchema)]
+pub struct ExpectationView {
+    pub status: String,
+    pub due_at: DateTime<Utc>,
+    pub checks: i16,
+    pub last_checked_at: Option<DateTime<Utc>>,
+    pub target_kind: String,
+    pub target_external_id: String,
+}
+
+/// Incident + expectation + timeline (contracts §11.7).
+#[derive(Serialize, ToSchema)]
+pub struct IncidentDetail {
+    #[serde(flatten)]
+    pub incident: IncidentResource,
+    pub expectation: Option<ExpectationView>,
+    pub timeline: Vec<EventView>,
 }

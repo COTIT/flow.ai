@@ -16,8 +16,8 @@ use crate::{
     idempotency::{Answer, Keyed},
     workflows::{
         dto::{
-            ExecutionListQuery, ExecutionResource, IncidentListQuery, IncidentResolveRequest,
-            IncidentResource, ResolveRequest, RetryRequest,
+            ExecutionListQuery, ExecutionResource, IncidentDetail, IncidentListQuery,
+            IncidentResolveRequest, IncidentResource, ResolveRequest, RetryRequest,
         },
         service,
     },
@@ -136,7 +136,7 @@ pub async fn resolve(
         (status = 200, body = Paginated<IncidentResource>, description = "One page, newest first"),
         (status = 403, body = MessageBody, description = "Missing `integration.view`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Unknown status"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown status or category"),
     ),
     security(("bearer" = []))
 )]
@@ -150,11 +150,61 @@ pub async fn incidents(
     ))
 }
 
+/// GET /workflows/incidents/{incident}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/workflows/incidents/{incident}", tag = "workflows",
+    operation_id = "workflows_incidents_get", summary = "Get a workflow incident",
+    description = "Adds the watched `expectation` and the run's `timeline` (readable `summary`).",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("incident" = Uuid, Path, description = "Incident id")),
+    responses(
+        (status = 200, body = Envelope<IncidentDetail>, description = "The incident"),
+        (status = 403, body = MessageBody, description = "Missing `integration.view`"),
+        (status = 404, body = MessageBody, description = "Unknown or foreign incident"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn get_incident(
+    State(state): State<AppState>,
+    access: Can<IntegrationView>,
+    Path((_, id)): Path<(String, String)>,
+) -> Result<Data<IncidentDetail>, AppError> {
+    Ok(Data(
+        service::get_incident(&state, access.workspace_id, &id).await?,
+    ))
+}
+
+/// POST /workflows/incidents/{incident}/verify.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/workflows/incidents/{incident}/verify", tag = "workflows",
+    operation_id = "workflows_incidents_verify", summary = "Check the other system now",
+    description = "One read-back of the watched record. A match closes the incident as `reconciled` with `verified_at`. Never writes to the other system.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"), ("incident" = Uuid, Path, description = "Incident id"),
+        ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters; a retry replays the first answer."),
+    ),
+    responses(
+        (status = 200, body = Envelope<IncidentDetail>, description = "Checked"),
+        (status = 403, body = MessageBody, description = "Missing `integration.reconcile`"),
+        (status = 404, body = MessageBody, description = "Unknown or foreign incident"),
+        (status = 409, body = MessageBody, description = "`incident_already_resolved`"),
+        (status = 422, body = MessageBody, description = "`incident_not_verifiable`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn verify_incident(
+    State(state): State<AppState>,
+    access: Can<IntegrationReconcile>,
+    Path((_, id)): Path<(String, String)>,
+    crate::idempotency::KeyOnly(key): crate::idempotency::KeyOnly,
+) -> Result<Answer, AppError> {
+    service::verify_incident(&state, &access, &id, key).await
+}
+
 /// POST /workflows/incidents/{incident}/resolve.
 #[utoipa::path(
     post, path = "/workspace/{workspace}/workflows/incidents/{incident}/resolve", tag = "workflows",
     operation_id = "workflows_incidents_resolve", summary = "Resolve an incident",
-    description = "Not the requester of the linked request. Once; no reopen.",
+    description = "Not the requester of the linked request. Once; no reopen. `resolution_kind` `manual_closed` (default) or `reconciled` (needs `verified_at`).",
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"), ("incident" = Uuid, Path, description = "Incident id"),
         ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters; a retry replays the first answer."),
@@ -164,8 +214,8 @@ pub async fn incidents(
         (status = 200, body = Envelope<IncidentResource>, description = "Resolved"),
         (status = 403, body = MessageBody, description = "`four_eyes_required`, or missing `integration.reconcile`"),
         (status = 404, body = MessageBody, description = "Unknown or foreign incident"),
-        (status = 409, body = MessageBody, description = "`incident_already_resolved`"),
-        (status = 422, body = ValidationErrorBody, description = "Note missing"),
+        (status = 409, body = MessageBody, description = "`incident_already_resolved`, or `incident_not_verified` (`reconciled` before a verified read-back)"),
+        (status = 422, body = ValidationErrorBody, description = "Note missing, unknown resolution kind"),
     ),
     security(("bearer" = []))
 )]

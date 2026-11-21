@@ -58,6 +58,8 @@ pub struct State {
     pub tax_total: String,
     /// Edit a stored PO before it is read back.
     pub tamper: Option<fn(&mut Value)>,
+    /// Error replies for the next externalId lookups (WF-03), status + body.
+    pub lookup_errors: VecDeque<(u16, Value)>,
 }
 
 pub type Shared = Arc<Mutex<State>>;
@@ -190,6 +192,10 @@ async fn handle(ns: Shared, base: String, req: Request<Body>) -> Response<Body> 
                 g.notified().await;
             }
             let wanted = uri.split("%22").nth(1).map(str::to_owned);
+            let queued = ns.lock().unwrap().lookup_errors.pop_front();
+            if let Some((status, body)) = queued {
+                return reply(status, None, &body);
+            }
             let s = ns.lock().unwrap();
             let items: Vec<Value> = if s.miss_lookup {
                 vec![]

@@ -1551,3 +1551,10 @@ WF-06 and WF-07 executions reuse the WF-01 kinds (§3.7). New: `expectation_met`
 | R-36 | Async create responses | 202 `{"data":{"<x>_id"}}` for report runs and stock checks; 202 `{"message":"ok"}` for rerun and scan | K10 id style; plan says "202 + run id" |
 | R-37 | Error codes and messages in §11.13 | named here | the plan names only `snapshot_stale`; messages follow the WF-01 wording style |
 | R-38 | **OPEN to parent:** WF-06 failed write | proposal stays `executing` while its execution is not terminal; plan test "`failed`, category `data`" read as expectation `failed` + incident category `data` | plan's proposal states have no failure state; B3 asks the parent before adding one |
+
+### 11.16 Resolved by B1.1 (2026-11-21, parent approved)
+
+| # | item | choice | reason |
+|---|---|---|---|
+| B1.1-A | R-17 at the database | `BEFORE INSERT OR UPDATE` trigger `workflow_incidents_default_kind`: `status = 'resolved'` with `resolution_kind` NULL and `resolved_by` set → `manual_closed` | a person's resolve written without a kind (WF-01 raw SQL, `tests/api/approvals_schema.rs`) stays valid; the system close still needs `reconciled` + `verified_at` |
+| B1.1-B | Expectation target connection (changes R-18) | the execution's pair (`workflow_executions` → `approval_requests` → `integration_pairs.target_connection_id`); `external_links` only when `execution_id` is NULL | `external_links` rows exist only after a verified success, so a pending or late expectation has none |

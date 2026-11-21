@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT outcome FROM workflow_execution_attempts\n                 WHERE workspace_id = $1 AND execution_id = $2 ORDER BY attempt_no DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "outcome",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_execution_attempts",
+            "name": "outcome"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6170cadbe33c2a0f065a81fef6af6a8fd1608c86c9f189e79179b6e341fe965c"
+}

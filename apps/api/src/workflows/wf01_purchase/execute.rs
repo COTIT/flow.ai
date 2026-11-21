@@ -30,6 +30,7 @@ use crate::{
         events::{self, Actor, EventRef},
         executions::{self, Patch, Status},
         incidents::{self, IncidentRefs},
+        recovery::{category, expectations},
     },
 };
 
@@ -327,6 +328,15 @@ pub async fn execute(
             drop(tx);
             return owner_lost(db, j, &e).await;
         };
+        let watch = expectations::New {
+            workflow_key: "wf01_purchase",
+            correlation_id: &e.correlation_id,
+            execution_id: Some(e.id),
+            source_ref: &e.subject_ref,
+            target_kind: "purchaseOrder",
+            target_external_id: &e.correlation_id,
+        };
+        expectations::register(&mut tx, j.ws, &watch).await?;
         let at = EventRef {
             attempt_no: Some(n),
             ..e.at()
@@ -896,7 +906,9 @@ async fn stale(db: &PgPool, j: &Job, e: &Loaded, n: i16, ev: Value) -> Result<St
     Ok(Step::Done)
 }
 
-/// Settle a non-created attempt: fenced move first, then outcome, event, reconcile job.
+/// Settle a non-created attempt: fenced move first, then outcome, event, reconcile job; a
+/// permanent rejection also fails the WF-03 expectation in the same transaction.
+#[allow(clippy::too_many_arguments)]
 async fn settle_attempt(
     db: &PgPool,
     j: &Job,
@@ -905,6 +917,7 @@ async fn settle_attempt(
     outcome: &str,
     ev: Value,
     dest: Dest<'_>,
+    permanent: Option<&ProviderError>,
 ) -> Result<Step, AppError> {
     let mut tx = db.begin().await?;
     let (to, patch) = match &dest {
@@ -954,6 +967,10 @@ async fn settle_attempt(
     events::record(&mut *tx, j.ws, at, "api_result", payload, Actor::System).await?;
     if matches!(dest, Dest::Awaiting { .. }) {
         jobs::enqueue(&mut tx, &reconcile::job(j.ws, e.id)).await?;
+    }
+    if let Some(err) = permanent {
+        let c = category::classify(err.class, err.http_status, &err.detail);
+        expectations::fail_for_execution(&mut tx, j.ws, e.id, c, class_str(err.class)).await?;
     }
     tx.commit().await?;
     Ok(Step::Done)
@@ -1019,14 +1036,14 @@ async fn after_create(
                 class: "ambiguous",
                 text: AMBIGUOUS.into(),
             };
-            return settle_attempt(db, j, e, n, "ambiguous", evidence(&err), dest).await;
+            return settle_attempt(db, j, e, n, "ambiguous", evidence(&err), dest, None).await;
         }
         CreateOutcome::Conflict(err) => {
             let dest = Dest::Awaiting {
                 class: "conflict",
                 text: err.detail.clone(),
             };
-            return settle_attempt(db, j, e, n, "conflict", evidence(&err), dest).await;
+            return settle_attempt(db, j, e, n, "conflict", evidence(&err), dest, None).await;
         }
         CreateOutcome::Rejected(err) => err,
     };
@@ -1089,5 +1106,6 @@ async fn after_create(
             },
         },
     };
-    settle_attempt(db, j, e, n, outcome, evidence(&err), dest).await
+    let permanent = category::permanent(err.class).then_some(&err);
+    settle_attempt(db, j, e, n, outcome, evidence(&err), dest, permanent).await
 }

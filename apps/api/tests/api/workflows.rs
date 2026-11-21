@@ -517,3 +517,189 @@ async fn other_workspace_gets_404(pool: PgPool) {
         .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
+
+// WF-03 (contracts §11.7): an `exchange_late` incident with its expectation.
+async fn late_incident(w: &W) -> String {
+    let inc: String = sqlx::query_scalar(
+        "INSERT INTO workflow_incidents (workspace_id, kind, subject_ref, approval_request_id,
+             execution_id, status, detail, category, diagnosis)
+         SELECT workspace_id, 'exchange_late', 'odoo:x:purchase.order:17', approval_request_id, id,
+             'open', '{}', 'missing',
+             '{\"code\":\"not_found\",\"sentence\":\"The record has not appeared in the other system in time.\",\"records\":[],\"last_attempt\":null}'
+         FROM workflow_executions WHERE id = $1::uuid RETURNING id::text",
+    )
+    .bind(&w.exec)
+    .fetch_one(&w.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO exchange_expectations (workspace_id, workflow_key, correlation_id, execution_id,
+             source_ref, target_kind, target_external_id, due_at, status, checks, incident_id)
+         SELECT workspace_id, 'wf01_purchase', correlation_id, id, 'odoo:x:purchase.order:17',
+             'purchaseOrder', correlation_id, now(), 'late', 3, $2::uuid
+         FROM workflow_executions WHERE id = $1::uuid",
+    )
+    .bind(&w.exec)
+    .bind(&inc)
+    .execute(&w.pool)
+    .await
+    .unwrap();
+    inc
+}
+
+#[sqlx::test]
+async fn wf03_incident_detail_category_and_resolve_kinds(pool: PgPool) {
+    let w = world(pool).await;
+    let inc = late_incident(&w).await;
+    let get = |uri: String| {
+        let (u, w) = (w.uri(&uri), &w);
+        async move { send(&w.app, Method::GET, &u, None, Some(&w.vi)).await }
+    };
+    let (s, b) = get("incidents?category=missing".into()).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(b["data"][0]["category"], "missing");
+    assert!(
+        b["data"][0]["diagnosis"].get("code").is_none(),
+        "no raw code"
+    );
+    let (s, b) = get("incidents?category=conflict".into()).await;
+    assert_eq!(
+        (s, b["data"].as_array().unwrap().len()),
+        (StatusCode::OK, 0)
+    );
+    let (s, b) = get("incidents?category=nope".into()).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(b["errors"]["category"].is_array());
+    let (s, b) = get(format!("incidents/{inc}")).await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    let d = &b["data"];
+    assert_eq!(d["kind"], "exchange_late");
+    assert!(
+        d["diagnosis"]["sentence"]
+            .as_str()
+            .unwrap()
+            .starts_with("The record")
+    );
+    assert!(d["diagnosis"].get("code").is_none());
+    assert_eq!(d["expectation"]["status"], "late");
+    assert_eq!(d["expectation"]["checks"], 3);
+    assert!(d["timeline"].is_array());
+
+    let path = format!("incidents/{inc}/resolve");
+    let (s, b) = w
+        .post(
+            &w.rex,
+            &path,
+            json!({"note": "n", "resolution_kind": "reconciled"}),
+        )
+        .await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (StatusCode::CONFLICT, json!("incident_not_verified"))
+    );
+    let (s, b) = w
+        .post(
+            &w.rex,
+            &path,
+            json!({"note": "n", "resolution_kind": "whatever"}),
+        )
+        .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(b["errors"]["resolution_kind"].is_array());
+    let (s, b) = w
+        .post(
+            &w.rex,
+            &path,
+            json!({"note": "PO entered by hand in NetSuite"}),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert_eq!(b["data"]["resolution_kind"], "manual_closed");
+    let exp: String = sqlx::query_scalar("SELECT status FROM exchange_expectations")
+        .fetch_one(&w.pool)
+        .await
+        .unwrap();
+    assert_eq!(exp, "closed");
+    let (s, b) = w
+        .post(&w.rex, &format!("incidents/{inc}/verify"), json!({}))
+        .await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (StatusCode::CONFLICT, json!("incident_already_resolved"))
+    );
+}
+
+#[sqlx::test]
+async fn wf03_verify_needs_reconcile_and_an_expectation(pool: PgPool) {
+    let w = world(pool).await;
+    let inc: String = sqlx::query_scalar(
+        "INSERT INTO workflow_incidents (workspace_id, kind, subject_ref, execution_id, status, detail)
+         SELECT workspace_id, 'duplicate_obligation_risk', 's:1', id, 'open', '{}'
+         FROM workflow_executions WHERE id = $1::uuid RETURNING id::text",
+    )
+    .bind(&w.exec)
+    .fetch_one(&w.pool)
+    .await
+    .unwrap();
+    let path = format!("incidents/{inc}/verify");
+    let (s, _) = w.post(&w.vi, &path, json!({})).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    let (s, b) = w.post(&w.rex, &path, json!({})).await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            json!("incident_not_verifiable")
+        )
+    );
+}
+
+#[sqlx::test]
+async fn wf03_retry_by_requester_403(pool: PgPool) {
+    let w = world(pool).await;
+    w.after_attempt("awaiting_reconciliation", "ambiguous")
+        .await;
+    let (s, b) = w
+        .resolve(
+            &w.rita,
+            json!({"action": "allow_retry", "reason": "Checked: no PO"}),
+        )
+        .await;
+    assert_eq!(
+        (s, b["code"].clone()),
+        (StatusCode::FORBIDDEN, json!("four_eyes_required"))
+    );
+    assert_eq!(w.status().await.1, 0, "no grant");
+}
+
+#[sqlx::test]
+async fn wf03_other_workspace_refused(pool: PgPool) {
+    let w = world(pool).await;
+    let inc = late_incident(&w).await;
+    let (eve, eve_ws) = signup(&w.app, "eve@example.com", "evil").await;
+    let own = format!("/v1/workspace/{eve_ws}/workflows/incidents/{inc}");
+    for (m, uri, body) in [
+        (Method::GET, own.clone(), None),
+        (Method::POST, format!("{own}/verify"), Some(json!({}))),
+        (
+            Method::POST,
+            format!("{own}/resolve"),
+            Some(json!({"note": "x"})),
+        ),
+        (Method::GET, w.uri(&format!("incidents/{inc}")), None),
+        (
+            Method::POST,
+            w.uri(&format!("incidents/{inc}/verify")),
+            Some(json!({})),
+        ),
+    ] {
+        let (s, _) = send(&w.app, m, &uri, body, Some(&eve)).await;
+        assert_eq!(s, StatusCode::NOT_FOUND, "{uri}");
+    }
+    let open: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM workflow_incidents WHERE status = 'open'")
+            .fetch_one(&w.pool)
+            .await
+            .unwrap();
+    assert_eq!(open, 1, "nothing changed");
+}

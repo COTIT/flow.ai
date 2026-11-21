@@ -25108,6 +25108,80 @@
     },
     "confirmationFields": []
   },
+  "workflows_incidents_get": {
+    "method": "GET",
+    "path": "/workspace/{workspace}/workflows/incidents/{incident}",
+    "disposition": "internal",
+    "reason": "WF-03 recovery route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.view"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-03 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#get_incident",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "read",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
+  "workflows_incidents_verify": {
+    "method": "POST",
+    "path": "/workspace/{workspace}/workflows/incidents/{incident}/verify",
+    "disposition": "internal",
+    "reason": "WF-03 recovery route: native Office use only; not an assistant tool.",
+    "authorization": {
+      "schemes": [
+        "bearer"
+      ],
+      "requirements": [
+        {
+          "bearer": []
+        }
+      ],
+      "boundary": "workspace",
+      "allOf": [
+        "integration.reconcile"
+      ],
+      "anyOf": [],
+      "roleAnyOf": [],
+      "predicates": [
+        "Internal: WF-03 routes are not assistant tools; native Office use only"
+      ],
+      "authority": [
+        "apps/api/src/workflows/handlers.rs#verify_incident",
+        "apps/api/src/workflows/service.rs"
+      ]
+    },
+    "effects": [],
+    "risk": "write",
+    "handoff": null,
+    "reconciliation": [],
+    "retry": {
+      "mode": "reconcile_only"
+    },
+    "confirmationFields": []
+  },
   "workflows_incidents_resolve": {
     "method": "POST",
     "path": "/workspace/{workspace}/workflows/incidents/{incident}/resolve",

@@ -243,17 +243,23 @@ pub struct IncidentRow {
     pub note: Option<String>,
     pub resolved_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub category: Option<String>,
+    pub diagnosis: Option<Value>,
+    pub verified_at: Option<DateTime<Utc>>,
+    pub resolution_kind: Option<String>,
     /// Requester of the linked request (direct or through the execution).
     pub requester_user_id: Option<Uuid>,
     pub total: i64,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn incidents(
     db: impl PgExecutor<'_>,
     ws: Uuid,
     id: Option<Uuid>,
     status: Option<&str>,
     kind: Option<&str>,
+    category: Option<&str>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<IncidentRow>, sqlx::Error> {
@@ -261,6 +267,7 @@ pub async fn incidents(
         IncidentRow,
         r#"SELECT i.id, i.kind, i.subject_ref, i.status, i.pair_id, i.approval_request_id,
                   i.execution_id, i.detail, i.note, i.resolved_by, i.created_at,
+                  i.category, i.diagnosis, i.verified_at, i.resolution_kind,
                   r.requester_user_id AS "requester_user_id?", count(*) OVER () AS "total!"
            FROM workflow_incidents i
            LEFT JOIN workflow_executions e ON e.id = i.execution_id
@@ -269,6 +276,7 @@ pub async fn incidents(
              AND ($2::uuid IS NULL OR i.id = $2)
              AND ($3::text IS NULL OR i.status = $3)
              AND ($4::text IS NULL OR i.kind = $4)
+             AND ($7::text IS NULL OR i.category = $7)
            ORDER BY i.id DESC LIMIT $5 OFFSET $6"#,
         ws,
         id,
@@ -276,27 +284,31 @@ pub async fn incidents(
         kind,
         limit,
         offset,
+        category,
     )
     .fetch_all(db)
     .await
 }
 
-/// `open` → `resolved`; false when already resolved or not in the workspace.
+/// `open` → `resolved` by a person; false when already resolved or not in the workspace.
+/// `reconciled` also needs `verified_at` (DB CHECK; the service answers 409 first).
 pub async fn resolve_incident(
     db: impl PgExecutor<'_>,
     ws: Uuid,
     id: Uuid,
     by: Uuid,
     note: &str,
+    kind: &str,
 ) -> Result<bool, sqlx::Error> {
     let n = sqlx::query!(
         "UPDATE workflow_incidents SET status = 'resolved', resolved_by = $3, resolved_at = now(),
-             note = $4, updated_at = now()
+             note = $4, resolution_kind = $5, updated_at = now()
          WHERE workspace_id = $1 AND id = $2 AND status = 'open'",
         ws,
         id,
         by,
         note,
+        kind,
     )
     .execute(db)
     .await?

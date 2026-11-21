@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE exchange_expectations\n         SET checks = least(checks + CASE WHEN $3 THEN 1 ELSE 0 END, 10),\n             last_checked_at = now(), updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc5ac7a8a06f9d03e8b7f31087b2bf86739099ee94d99ed7cc4c574385de8b68"
+}
