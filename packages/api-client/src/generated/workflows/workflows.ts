@@ -26,6 +26,7 @@ import type {
 
 import type {
   EnvelopeExecutionResource,
+  EnvelopeIncidentDetail,
   EnvelopeIncidentResource,
   IncidentResolveRequest,
   MessageBody,
@@ -502,7 +503,107 @@ export function useWorkflowsIncidentsList<TData = Awaited<ReturnType<typeof work
 
 
 /**
- * Not the requester of the linked request. Once; no reopen.
+ * Adds the watched `expectation` and the run's `timeline` (readable `summary`).
+ * @summary Get a workflow incident
+ */
+export const workflowsIncidentsGet = (
+    workspace: string,
+    incident: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeIncidentDetail>(
+      {url: `/workspace/${workspace}/workflows/incidents/${incident}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getWorkflowsIncidentsGetQueryKey = (workspace: string,
+    incident: string,) => {
+    return [
+    `/workspace/${workspace}/workflows/incidents/${incident}`
+    ] as const;
+    }
+
+
+export const getWorkflowsIncidentsGetQueryOptions = <TData = Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    incident: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWorkflowsIncidentsGetQueryKey(workspace,incident);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof workflowsIncidentsGet>>> = ({ signal }) => workflowsIncidentsGet(workspace,incident, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && incident !== null && incident !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type WorkflowsIncidentsGetQueryResult = NonNullable<Awaited<ReturnType<typeof workflowsIncidentsGet>>>
+export type WorkflowsIncidentsGetQueryError = ErrorType<MessageBody>
+
+
+export function useWorkflowsIncidentsGet<TData = Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    incident: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof workflowsIncidentsGet>>,
+          TError,
+          Awaited<ReturnType<typeof workflowsIncidentsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWorkflowsIncidentsGet<TData = Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    incident: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof workflowsIncidentsGet>>,
+          TError,
+          Awaited<ReturnType<typeof workflowsIncidentsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWorkflowsIncidentsGet<TData = Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    incident: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a workflow incident
+ */
+
+export function useWorkflowsIncidentsGet<TData = Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    incident: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof workflowsIncidentsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWorkflowsIncidentsGetQueryOptions(workspace,incident,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Not the requester of the linked request. Once; no reopen. `resolution_kind` `manual_closed` (default) or `reconciled` (needs `verified_at`).
  * @summary Resolve an incident
  */
 export const workflowsIncidentsResolve = (
@@ -570,4 +671,71 @@ export const useWorkflowsIncidentsResolve = <TError = ErrorType<MessageBody | Va
         TContext
       > => {
       return useMutation(getWorkflowsIncidentsResolveMutationOptions(options), queryClient);
+    }
+    /**
+ * One read-back of the watched record. A match closes the incident as `reconciled` with `verified_at`. Never writes to the other system.
+ * @summary Check the other system now
+ */
+export const workflowsIncidentsVerify = (
+    workspace: string,
+    incident: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeIncidentDetail>(
+      {url: `/workspace/${workspace}/workflows/incidents/${incident}/verify`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getWorkflowsIncidentsVerifyMutationKey = () => ['workflowsIncidentsVerify'] as const;
+
+export const getWorkflowsIncidentsVerifyMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof workflowsIncidentsVerify>>, TError,WorkflowsIncidentsVerifyMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof workflowsIncidentsVerify>>, TError,WorkflowsIncidentsVerifyMutationVariables, TContext> => {
+
+const mutationKey = getWorkflowsIncidentsVerifyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof workflowsIncidentsVerify>>, WorkflowsIncidentsVerifyMutationVariables> = (props) => {
+          const {workspace,incident} = props ?? {};
+
+          return  workflowsIncidentsVerify(workspace,incident,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type WorkflowsIncidentsVerifyMutationResult = NonNullable<Awaited<ReturnType<typeof workflowsIncidentsVerify>>>
+
+    export type WorkflowsIncidentsVerifyMutationError = ErrorType<MessageBody>
+    export type WorkflowsIncidentsVerifyMutationVariables = {workspace: string;incident: string}
+
+    /**
+ * @summary Check the other system now
+ */
+export const useWorkflowsIncidentsVerify = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof workflowsIncidentsVerify>>, TError,WorkflowsIncidentsVerifyMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof workflowsIncidentsVerify>>,
+        TError,
+        WorkflowsIncidentsVerifyMutationVariables,
+        TContext
+      > => {
+      return useMutation(getWorkflowsIncidentsVerifyMutationOptions(options), queryClient);
     }

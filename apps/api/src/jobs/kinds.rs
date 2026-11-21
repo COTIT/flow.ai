@@ -75,6 +75,10 @@ pub const WF01_FULL_SCAN: &str = "wf01_full_scan";
 pub const WF01_EXECUTE: &str = "wf01_execute";
 /// WF-01: settle an ambiguous write (`wf01_purchase::reconcile`).
 pub const WF01_RECONCILE: &str = "wf01_reconcile";
+/// WF-03: system job checking due exchange expectations (`recovery::sweep`).
+pub const WF03_EXPECT_SWEEP: &str = "wf03_expect_sweep";
+/// WF-03: system job probing every live connection (`recovery::health`).
+pub const WF03_HEALTH: &str = "wf03_health";
 
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
@@ -101,13 +105,15 @@ pub const KINDS: &[&str] = &[
     WF01_FULL_SCAN,
     WF01_EXECUTE,
     WF01_RECONCILE,
+    WF03_EXPECT_SWEEP,
+    WF03_HEALTH,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 11] = [
+pub static SCHEDULES: [Schedule; 13] = [
     Schedule {
         name: WF01_TICK,
         kind: WF01_TICK,
@@ -162,6 +168,16 @@ pub static SCHEDULES: [Schedule; 11] = [
         name: SCHEDULED_REPORTS,
         kind: SCHEDULED_REPORTS,
         every: Every::Minutes(5),
+    },
+    Schedule {
+        name: WF03_EXPECT_SWEEP,
+        kind: WF03_EXPECT_SWEEP,
+        every: Every::Minutes(5),
+    },
+    Schedule {
+        name: WF03_HEALTH,
+        kind: WF03_HEALTH,
+        every: Every::Minutes(15),
     },
 ];
 
@@ -240,6 +256,8 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         WF01_FULL_SCAN => return crate::workflows::wf01_purchase::full_scan::run(ctx, &job).await,
         WF01_EXECUTE => return crate::workflows::wf01_purchase::execute::run(ctx, &job).await,
         WF01_RECONCILE => return crate::workflows::wf01_purchase::reconcile::run(ctx, &job).await,
+        WF03_EXPECT_SWEEP => return crate::workflows::recovery::sweep::run(ctx).await,
+        WF03_HEALTH => return crate::workflows::recovery::health::run(ctx).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(

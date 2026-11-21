@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- WF-03 failed synchronization detection and recovery, B1.1 (migration `20261121120000_wf03_recovery`, `docs/api/workflows.md` "WF-03"):
+  - incidents gain `category`, `diagnosis`, `verified_at`, `resolution_kind` and six kinds; the system may close only as `reconciled` after a verified read-back; `manual_closed` needs a user and a note; existing resolved rows backfilled `manual_closed`;
+  - `exchange_expectations` registered at every WF-01 write intent, due 15 minutes later; a permanent rejection fails it with a classified incident;
+  - jobs `wf03_expect_sweep` (5 min, ≤ 10 read-backs per expectation, never writes, never moves a run) and `wf03_health` (15 min connection probes);
+  - routes `GET …/workflows/incidents/{incident}` (`workflows_incidents_get`) and `POST …/incidents/{incident}/verify` (`workflows_incidents_verify`); the list takes `category`; resolve takes `resolution_kind` (409 `incident_not_verified`);
+  - Office `/integrations/incidents` (Sync problems).
+  - Tested against the in-process fakes only.
+
 - Flow ERP M7-D, Till returns lookup (no migration): `GET /till/sales/lookup?number=` (`till_sales_lookup`, member bearer + `X-Till-Session`, `cashregister.refund`) finds a till sale of the workspace by receipt number with line ids, `returnable` per line and the sale's credits with `refundable`. The credit-capacity SQL (`sales_returns::repo::credit_left!`) and the refundable SQL (`till_refunds::service::refundable!`) are shared with the return and refund checks, so the lookup equals what they accept (`docs/api/till.md`).
 - Flow ERP M7, cost facts stay with `accounting.read` (no migration, same rule as payables/purchasing): stocktake `positive_adjustment_value` and post-review line `value`, sales-return restock line `value` (now nullable) and the restock-undo review `value` are null for members without `accounting.read`, on reads, write answers and the Till return answer. Without it a count's null value keeps the stored one, so a counter can't clear a value they can't see (`docs/api/stocktakes.md`, `docs/api/sales-returns.md`).
 - Flow ERP M7-C, small Office reads (no migration): `GET /accounting/accounts/{id}` (`accounting_accounts_get`, `accounting.read`); `q` search on `accounting_accounts_list` (code or name) and `warehouses_list` (name or alias), escaped ILIKE, max 100 characters, workspace-scoped; the setup resource carries `business_date` (today in the book timezone, workspace timezone, else UTC; same SQL as purchase orders); `stocktakes_post_review` carries `functional_currency` (null before it is set); `imports_list` takes `profile`.

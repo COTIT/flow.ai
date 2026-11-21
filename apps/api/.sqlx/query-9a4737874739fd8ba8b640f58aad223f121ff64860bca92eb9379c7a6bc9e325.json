@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workflow_incidents (workspace_id, kind, subject_ref, pair_id, connection_id,\n             approval_request_id, execution_id, status, detail, category, diagnosis)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', $8, $9, $10)\n         ON CONFLICT (workspace_id, kind, subject_ref,\n             coalesce(execution_id, '00000000-0000-0000-0000-000000000000'::uuid))\n             WHERE status = 'open'\n         DO NOTHING\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Jsonb",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9a4737874739fd8ba8b640f58aad223f121ff64860bca92eb9379c7a6bc9e325"
+}

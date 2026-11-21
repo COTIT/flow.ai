@@ -7,12 +7,13 @@ use serde_json::{Value, json};
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
-use super::execute::{Job, Loaded};
+use super::execute::{Job, Loaded, load};
 use crate::{
     error::AppError,
     integrations::{
-        capability::TargetPo,
+        capability::{ProviderError, PurchaseOrderSink, TargetPo},
         links::{self, NewLink},
+        providers::SinkClient,
     },
     jobs::runner::Step,
     workflows::{
@@ -138,6 +139,7 @@ pub(super) async fn succeed(
         return Ok(false);
     }
     links::upsert(tx, ws, &link(e, po_id), "linked").await?;
+    crate::workflows::recovery::expectations::met_for_execution(tx, ws, e.id, po_id).await?;
     if variance {
         let d =
             json!({"target_id": po_id, "detail": "NetSuite tax differs from the Odoo estimate."});
@@ -214,6 +216,53 @@ pub(super) async fn settle(
     }
     tx.commit().await?;
     Ok(Step::Done)
+}
+
+/// WF-03 read-back of one execution's PO.
+pub(crate) enum Readback {
+    /// Found and V1/V2 hold (tax variance included): the PO id.
+    Matched(String),
+    /// Found but differs: the open `target_conflict` incident.
+    Differs(Uuid),
+    Missing,
+    Failed(ProviderError),
+}
+
+/// WF-03 check (contracts §11.3): one externalId lookup, compared like verify. A difference
+/// opens WF-01's `target_conflict`; nothing is ever written to NetSuite and the run is not moved.
+pub(crate) async fn readback(
+    db: &PgPool,
+    ws: Uuid,
+    execution: Uuid,
+    sink: &SinkClient,
+) -> Result<Readback, AppError> {
+    let Some(e) = load(db, ws, execution).await? else {
+        return Ok(Readback::Missing);
+    };
+    let po = match sink.find_by_external_id(&e.correlation_id).await {
+        Ok(Some(po)) => po,
+        Ok(None) => return Ok(Readback::Missing),
+        Err(err) => return Ok(Readback::Failed(err)),
+    };
+    let mut tx = db.begin().await?;
+    let out = match compare(&mut tx, ws, &e, &po).await? {
+        Verdict::Match | Verdict::Variance => Readback::Matched(po.id),
+        Verdict::Mismatch(fields) => {
+            flag_mismatch(&mut tx, ws, &e, &po.id, &fields, true).await?;
+            let (id, _) = incidents::open(
+                &mut tx,
+                ws,
+                "target_conflict",
+                &e.subject_ref,
+                e.refs(),
+                json!({"target_id": po.id}),
+            )
+            .await?;
+            Readback::Differs(id)
+        }
+    };
+    tx.commit().await?;
+    Ok(out)
 }
 
 #[cfg(test)]

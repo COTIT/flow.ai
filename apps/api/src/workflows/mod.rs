@@ -7,6 +7,7 @@ pub mod events;
 pub mod executions;
 mod handlers;
 pub mod incidents;
+pub mod recovery;
 mod repo;
 pub mod routes;
 mod service;

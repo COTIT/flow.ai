@@ -11960,6 +11960,47 @@
         ],
         "type": "object"
       },
+      "Envelope_IncidentDetail": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncidentResource"
+              },
+              {
+                "properties": {
+                  "expectation": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/ExpectationView"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "timeline": {
+                    "items": {
+                      "$ref": "#/components/schemas/EventView"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "timeline"
+                ],
+                "type": "object"
+              }
+            ],
+            "description": "Incident + expectation + timeline (contracts §11.7)."
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_IncidentResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -15310,6 +15351,43 @@
         ],
         "type": "object"
       },
+      "ExpectationView": {
+        "description": "Expectation behind an incident (contracts §11.7).",
+        "properties": {
+          "checks": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "due_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "last_checked_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "target_external_id": {
+            "type": "string"
+          },
+          "target_kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "due_at",
+          "checks",
+          "target_kind",
+          "target_external_id"
+        ],
+        "type": "object"
+      },
       "ExplicitAllocationPayload": {
         "description": "An explicit share of a landed component for one receipt line.",
         "properties": {
@@ -17161,6 +17239,38 @@
         ],
         "type": "object"
       },
+      "IncidentDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/IncidentResource"
+          },
+          {
+            "properties": {
+              "expectation": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ExpectationView"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timeline": {
+                "items": {
+                  "$ref": "#/components/schemas/EventView"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "timeline"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Incident + expectation + timeline (contracts §11.7)."
+      },
       "IncidentRef": {
         "description": "An open incident on the request.",
         "properties": {
@@ -17187,6 +17297,13 @@
               "string",
               "null"
             ]
+          },
+          "resolution_kind": {
+            "description": "`reconciled` (needs a verified read-back) or `manual_closed` (default).",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "type": "object"
@@ -17201,12 +17318,26 @@
               "null"
             ]
           },
+          "category": {
+            "description": "WF-03 category; null on WF-01 kinds.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
           },
           "detail": {
             "type": "object"
+          },
+          "diagnosis": {
+            "description": "`{sentence, records, last_attempt}`; the provider code is not exposed.",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "execution_id": {
             "format": "uuid",
@@ -17235,6 +17366,13 @@
               "null"
             ]
           },
+          "resolution_kind": {
+            "description": "`reconciled` or `manual_closed` once resolved.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "resolved_by": {
             "format": "uuid",
             "type": [
@@ -17247,6 +17385,13 @@
           },
           "subject_ref": {
             "type": "string"
+          },
+          "verified_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -171323,6 +171468,15 @@
             }
           },
           {
+            "description": "transient, authorization, data, conflict, missing or unknown_outcome.",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "page",
             "required": false,
@@ -171408,7 +171562,7 @@
                 }
               }
             },
-            "description": "Unknown status"
+            "description": "Unknown status or category"
           },
           "429": {
             "content": {
@@ -171468,9 +171622,154 @@
         ]
       }
     },
+    "/workspace/{workspace}/workflows/incidents/{incident}": {
+      "get": {
+        "description": "Adds the watched `expectation` and the run's `timeline` (readable `summary`).",
+        "operationId": "workflows_incidents_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Incident id",
+            "in": "path",
+            "name": "incident",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_IncidentDetail"
+                }
+              }
+            },
+            "description": "The incident"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `integration.view`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown or foreign incident"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Optional assistant action approval unavailable, changed, expired or consumed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a workflow incident",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
     "/workspace/{workspace}/workflows/incidents/{incident}/resolve": {
       "post": {
-        "description": "Not the requester of the linked request. Once; no reopen.",
+        "description": "Not the requester of the linked request. Once; no reopen. `resolution_kind` `manual_closed` (default) or `reconciled` (needs `verified_at`).",
         "operationId": "workflows_incidents_resolve",
         "parameters": [
           {
@@ -171585,7 +171884,7 @@
                 }
               }
             },
-            "description": "`incident_already_resolved`"
+            "description": "`incident_already_resolved`, or `incident_not_verified` (`reconciled` before a verified read-back)"
           },
           "413": {
             "content": {
@@ -171605,7 +171904,7 @@
                 }
               }
             },
-            "description": "Note missing"
+            "description": "Note missing, unknown resolution kind"
           },
           "429": {
             "content": {
@@ -171660,6 +171959,173 @@
           }
         ],
         "summary": "Resolve an incident",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/workspace/{workspace}/workflows/incidents/{incident}/verify": {
+      "post": {
+        "description": "One read-back of the watched record. A match closes the incident as `reconciled` with `verified_at`. Never writes to the other system.",
+        "operationId": "workflows_incidents_verify",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Incident id",
+            "in": "path",
+            "name": "incident",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to 255 visible characters; a retry replays the first answer.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_IncidentDetail"
+                }
+              }
+            },
+            "description": "Checked"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Malformed optional assistant action headers"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing `integration.reconcile`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown or foreign incident"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`incident_already_resolved`"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`incident_not_verifiable`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check the other system now",
         "tags": [
           "workflows"
         ]

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.target_connection_id\n         FROM workflow_executions e\n         JOIN approval_requests q ON q.workspace_id = e.workspace_id AND q.id = e.approval_request_id\n         JOIN integration_pairs p ON p.workspace_id = q.workspace_id AND p.id = q.pair_id\n         WHERE e.workspace_id = $1 AND e.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "target_connection_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "integration_pairs",
+            "name": "target_connection_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b14a380868801ec0e86a331d7385cc18e3dc3ed2ed2e5f39db0311c7cf9eb327"
+}

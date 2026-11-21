@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.kind, i.subject_ref, i.status, i.pair_id, i.approval_request_id,\n                  i.execution_id, i.detail, i.note, i.resolved_by, i.created_at,\n                  r.requester_user_id AS \"requester_user_id?\", count(*) OVER () AS \"total!\"\n           FROM workflow_incidents i\n           LEFT JOIN workflow_executions e ON e.id = i.execution_id\n           LEFT JOIN approval_requests r ON r.id = coalesce(i.approval_request_id, e.approval_request_id)\n           WHERE i.workspace_id = $1\n             AND ($2::uuid IS NULL OR i.id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($4::text IS NULL OR i.kind = $4)\n           ORDER BY i.id DESC LIMIT $5 OFFSET $6",
+  "query": "SELECT i.id, i.kind, i.subject_ref, i.status, i.pair_id, i.approval_request_id,\n                  i.execution_id, i.detail, i.note, i.resolved_by, i.created_at,\n                  i.category, i.diagnosis, i.verified_at, i.resolution_kind,\n                  r.requester_user_id AS \"requester_user_id?\", count(*) OVER () AS \"total!\"\n           FROM workflow_incidents i\n           LEFT JOIN workflow_executions e ON e.id = i.execution_id\n           LEFT JOIN approval_requests r ON r.id = coalesce(i.approval_request_id, e.approval_request_id)\n           WHERE i.workspace_id = $1\n             AND ($2::uuid IS NULL OR i.id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($4::text IS NULL OR i.kind = $4)\n             AND ($7::text IS NULL OR i.category = $7)\n           ORDER BY i.id DESC LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -126,6 +126,50 @@
       },
       {
         "ordinal": 11,
+        "name": "category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "category"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "diagnosis",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "diagnosis"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "verified_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "verified_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "resolution_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workflow_incidents",
+            "name": "resolution_kind"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
         "name": "requester_user_id?",
         "type_info": "Uuid",
         "origin": {
@@ -136,7 +180,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 16,
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -149,7 +193,8 @@
         "Text",
         "Text",
         "Int8",
-        "Int8"
+        "Int8",
+        "Text"
       ]
     },
     "nullable": [
@@ -165,8 +210,12 @@
       true,
       false,
       true,
+      true,
+      true,
+      true,
+      true,
       null
     ]
   },
-  "hash": "c48a838be842911598fc3bcc8fc92907b6e3ee5a52135c91a4a7654530926f16"
+  "hash": "dd1436efe7bb9f11551a1b54c19447f7c908d026ca8a85c8346f08d218e220cd"
 }

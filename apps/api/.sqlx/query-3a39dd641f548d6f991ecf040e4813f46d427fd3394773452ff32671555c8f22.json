@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workflow_incidents SET status = 'resolved', resolved_by = $3, resolved_at = now(),\n             note = $4, resolution_kind = $5, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status = 'open'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3a39dd641f548d6f991ecf040e4813f46d427fd3394773452ff32671555c8f22"
+}

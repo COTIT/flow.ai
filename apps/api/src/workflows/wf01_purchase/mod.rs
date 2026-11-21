@@ -14,7 +14,7 @@ pub mod poll;
 pub mod reconcile;
 pub mod sweep;
 pub mod tick;
-mod verify;
+pub(crate) mod verify;
 
 #[cfg(test)]
 mod exec_tests;
@@ -24,6 +24,8 @@ mod fake_netsuite;
 mod fake_odoo;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod wf03_tests;
 
 use serde_json::{Value, json};
 use sqlx::PgPool;

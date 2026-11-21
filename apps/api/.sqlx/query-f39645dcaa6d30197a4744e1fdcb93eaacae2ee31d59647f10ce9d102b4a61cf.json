@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE exchange_expectations SET status = 'met', updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status IN ('pending', 'late')\n         RETURNING incident_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "incident_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exchange_expectations",
+            "name": "incident_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f39645dcaa6d30197a4744e1fdcb93eaacae2ee31d59647f10ce9d102b4a61cf"
+}
