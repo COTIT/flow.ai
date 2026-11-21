@@ -858,3 +858,56 @@ pub async fn insert_legacy(
     .fetch_one(conn)
     .await?)
 }
+
+/// One row of the candidates read: the order, and per recognised line its sale and capacity.
+#[derive(FromRow)]
+pub struct CandidateRow {
+    pub order_id: Uuid,
+    pub order_number: String,
+    pub relation_name: Option<String>,
+    pub recognition_id: Option<Uuid>,
+    pub source_kind: Option<String>,
+    pub accounting_date: Option<NaiveDate>,
+    pub billed: Option<bool>,
+    pub recognition_line_id: Option<Uuid>,
+    pub order_line_id: Option<Uuid>,
+    pub product_id: Option<Uuid>,
+    pub product_name: Option<String>,
+    pub recognised: Option<Decimal>,
+    pub creditable: Option<Decimal>,
+}
+
+/// Order `order` with every recognition line of its sales and the credit left on each (same
+/// SQL as the create check). Empty when the order is not in the workspace.
+pub async fn candidates(
+    conn: &mut PgConnection,
+    ws: Uuid,
+    order: Uuid,
+) -> Result<Vec<CandidateRow>, AppError> {
+    Ok(sqlx::query_as(concat!(
+        "SELECT o.id AS order_id, o.number AS order_number,
+                coalesce(rel.company_name, rel.alias) AS relation_name,
+                g.id AS recognition_id, g.source_kind, g.accounting_date,
+                g.source_kind = 'invoice' OR EXISTS (
+                    SELECT 1 FROM invoice_recognition_links k
+                    WHERE k.workspace_id = g.workspace_id AND k.recognition_id = g.id
+                      AND k.state = 'issued') AS billed,
+                l.id AS recognition_line_id, l.order_line_id, l.product_id,
+                p.name AS product_name, l.quantity AS recognised,
+                greatest(",
+        credit_left!(),
+        ", 0) AS creditable
+         FROM orders o
+         LEFT JOIN relations rel ON rel.workspace_id = o.workspace_id AND rel.id = o.relation_id
+         LEFT JOIN sales_recognitions g ON g.workspace_id = o.workspace_id AND g.order_id = o.id
+         LEFT JOIN sales_recognition_lines l
+                ON l.workspace_id = g.workspace_id AND l.recognition_id = g.id
+         LEFT JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+         WHERE o.workspace_id = $1 AND o.id = $2
+         ORDER BY g.accounting_date, g.created_at, g.id, l.id"
+    ))
+    .bind(ws)
+    .bind(order)
+    .fetch_all(conn)
+    .await?)
+}

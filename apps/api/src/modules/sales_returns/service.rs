@@ -38,7 +38,8 @@ use crate::{
                 ActionReview, FingerprintPayload, LegacyCostPayload, LegacyCostResource,
                 PostReview, RestockLine, RestockLineResource, RestockPayload, RestockResource,
                 RestockReversePayload, ReturnCreatePayload, ReturnInput, ReturnLineResource,
-                ReturnUpdatePayload, ReversePayload, SalesReturnResource,
+                ReturnUpdatePayload, ReversePayload, SalesReturnCandidateLine,
+                SalesReturnCandidateSale, SalesReturnCandidates, SalesReturnResource,
             },
             repo::{self, LineRow, NewReturn, RestockRow, ReturnRow, Sale},
         },
@@ -1385,4 +1386,63 @@ pub async fn legacy_create(
     idempotency::command_finish(&mut tx, ws, OP, &cmd, &answer, &[id]).await?;
     tx.commit().await?;
     Ok(answer)
+}
+
+/// GET /sales-returns/candidates: the order's recognised sales with the credit left per line
+/// (the create check's SQL). Read-only, one query; 404 outside the workspace.
+pub async fn candidates(
+    state: &AppState,
+    ws: Uuid,
+    order: Uuid,
+) -> Result<SalesReturnCandidates, AppError> {
+    let mut conn = state.db.acquire().await?;
+    let rows = repo::candidates(&mut conn, ws, order).await?;
+    let head = rows.first().ok_or(AppError::NotFound)?;
+    let mut out = SalesReturnCandidates {
+        order_id: head.order_id,
+        order_number: head.order_number.clone(),
+        relation_name: head.relation_name.clone(),
+        recognitions: Vec::new(),
+    };
+    for r in rows {
+        let (Some(rec), Some(source_kind), Some(date), Some(line), Some(recognised), Some(left)) = (
+            r.recognition_id,
+            r.source_kind,
+            r.accounting_date,
+            r.recognition_line_id,
+            r.recognised,
+            r.creditable,
+        ) else {
+            continue;
+        };
+        if out
+            .recognitions
+            .last()
+            .is_none_or(|s| s.recognition_id != rec)
+        {
+            out.recognitions.push(SalesReturnCandidateSale {
+                recognition_id: rec,
+                source_kind,
+                kind: if r.billed.unwrap_or(false) {
+                    "invoice_credit"
+                } else {
+                    "receipt_credit"
+                }
+                .to_owned(),
+                accounting_date: date,
+                lines: Vec::new(),
+            });
+        }
+        if let Some(s) = out.recognitions.last_mut() {
+            s.lines.push(SalesReturnCandidateLine {
+                recognition_line_id: line,
+                order_line_id: r.order_line_id,
+                product_id: r.product_id,
+                product_name: r.product_name,
+                recognised: qty(recognised),
+                creditable: qty(left),
+            });
+        }
+    }
+    Ok(out)
 }

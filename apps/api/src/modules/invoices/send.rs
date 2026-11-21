@@ -378,6 +378,8 @@ pub(crate) async fn issue_in(
     };
     // Laravel UpdateInvoiceBalanceAfterPayment on a zero total: paid, or credited. Payments
     // booked on the draft (an order paid online) count from the start.
+    // Must match invoice_payments::service::rebalance (same balance::status); guarded by
+    // tests/api/invoice_send.rs a_paid_orders_invoice_is_sent_paid.
     let (paid, cash) = invoice_payments::service::paid_and_cash(&mut *tx, workspace_id, id).await?;
     let dp = currencies::repo::share_decimals(&mut *tx, workspace_id, locked.currency_id)
         .await?

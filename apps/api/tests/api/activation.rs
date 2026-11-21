@@ -326,3 +326,65 @@ async fn opening_baselines_list_what_the_opening_carried(pool: PgPool) {
             .await;
     assert_eq!(s, StatusCode::FORBIDDEN);
 }
+
+#[sqlx::test]
+async fn opening_baselines_page_in_source_order(pool: PgPool) {
+    let (o, _, batches) = opened(pool.clone()).await;
+    let fp = o.open_books(&batches).await;
+    o.go_active(&batches, &fp).await;
+    // Second baseline: a settled payable cloned from the invoice row (sorts after invoices).
+    sqlx::query(
+        "INSERT INTO accounting_opening_baselines (workspace_id, line_id, source_kind, source_id,
+             currency_id, face, settled, credited, refunded, outstanding, carrying, effect_id, coverage)
+         SELECT workspace_id, line_id, 'supplier_bill', uuidv7(), currency_id, face, face, 0, 0,
+                0, 0, effect_id, coverage
+         FROM accounting_opening_baselines WHERE workspace_id = $1::uuid",
+    )
+    .bind(&o.w.ws)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let get = |q: &'static str| {
+        let w = &o.w;
+        async move {
+            let (s, b) = w
+                .call(
+                    Method::GET,
+                    &format!("/opening-baselines{q}"),
+                    None,
+                    &w.owner,
+                )
+                .await;
+            assert_eq!(s, StatusCode::OK, "{b}");
+            b
+        }
+    };
+    let b = get("").await;
+    assert_eq!(b["data"].as_array().unwrap().len(), 2, "{b}");
+    assert_eq!(
+        b["meta"],
+        json!({"current_page": 1, "from": 1, "to": 2, "last_page": 1, "per_page": 50, "total": 2})
+    );
+    let b = get("?page_size=1").await;
+    assert_eq!(b["data"][0]["source_kind"], "invoice", "{b}");
+    assert_eq!(
+        (&b["meta"]["total"], &b["meta"]["last_page"]),
+        (&json!(2), &json!(2))
+    );
+    let b = get("?page_size=1&page=2").await;
+    assert_eq!(b["data"].as_array().unwrap().len(), 1, "{b}");
+    assert_eq!(b["data"][0]["source_kind"], "supplier_bill", "{b}");
+    // Past the end: empty page, total still counted.
+    let b = get("?page_size=1&page=3").await;
+    assert_eq!(b["data"], json!([]), "{b}");
+    assert_eq!(
+        (&b["meta"]["total"], &b["meta"]["from"]),
+        (&json!(2), &json!(null))
+    );
+    // Junk falls back to the defaults.
+    let b = get("?page=x&page_size=-4").await;
+    assert_eq!(
+        (&b["meta"]["current_page"], &b["meta"]["per_page"]),
+        (&json!(1), &json!(50))
+    );
+}

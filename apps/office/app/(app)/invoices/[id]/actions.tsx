@@ -42,6 +42,7 @@ import { useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 import { invoiceDeliveryNotice } from "@/lib/invoice-delivery"
 
+import { useBookToday } from "../../accounting/shared"
 import { invoiceMoney, invoiceNumber } from "../shared"
 
 // The rights each action's route checks (docs/api/invoices.md, invoice-payments.md).
@@ -99,8 +100,6 @@ const ADDRESS_KEYS = [
 /** 503 = the server has no PDF renderer, file store or mail set up (staging). */
 const unavailable = (e: unknown) =>
   (e as { response?: { status?: number } } | null)?.response?.status === 503
-
-const today = () => new Date().toISOString().slice(0, 10)
 
 /** OfficeOrder's Next step card for an invoice: only the API's `allowed_actions` show. */
 export function NextStep({
@@ -485,6 +484,7 @@ function PayDialog({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   // The amount goes to the API as typed; it checks the number and its decimals.
@@ -545,7 +545,7 @@ function PayDialog({
           })}
         </p>
         <Field id="pay-date" label={t("invoices.payDate")} errors={errors.date}>
-          <Input name="date" type="date" defaultValue={today()} required />
+          <Input name="date" type="date" key={bookToday} defaultValue={bookToday} required />
         </Field>
         <Field
           id="pay-method"
@@ -718,6 +718,7 @@ function MarkDialog({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const key = useIdempotencyKey()
   const mark = useInvoicePaymentsMarkAsCredited({
@@ -751,7 +752,7 @@ function MarkDialog({
           label={t("invoices.payDate")}
           errors={errors.date}
         >
-          <Input name="date" type="date" defaultValue={today()} required />
+          <Input name="date" type="date" key={bookToday} defaultValue={bookToday} required />
         </Field>
         <Field
           id="mark-method"

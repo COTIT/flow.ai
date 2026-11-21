@@ -31,7 +31,8 @@ import { Capped, NoAccess } from "@/components/states"
 import { useCan, useRights } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 
-import { showMoney, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { showMoney } from "../../purchases/shared"
 
 type Form = {
   supplier_id: string
@@ -56,6 +57,7 @@ export default function NewSupplierPaymentPage({
   searchParams: Promise<{ direction?: string; supplier?: string }>
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const router = useRouter()
   const word = usePayWord()
@@ -77,7 +79,7 @@ export default function NewSupplierPaymentPage({
     currency_id: "",
     direction: q.direction === "refund_received" ? "refund_received" : "payment",
     amount: "",
-    date: today(),
+    date: "",
     place: "",
     reference: "",
     evidence_ref: "",
@@ -110,7 +112,7 @@ export default function NewSupplierPaymentPage({
       currency_id: currency,
       direction: f.direction,
       amount: f.amount.trim(),
-      date: f.date,
+      date: f.date || bookToday,
       reference: f.reference.trim() || null,
       evidence_ref: f.evidence_ref.trim() || null,
       note: f.note.trim() || null,
@@ -224,7 +226,7 @@ export default function NewSupplierPaymentPage({
               <Input inputMode="decimal" required value={f.amount} onChange={(e) => set({ amount: e.target.value })} />
             </Field>
             <Field id="pay-date" label={t("payables.payments.date")} errors={err("date")}>
-              <Input type="date" required value={f.date} onChange={(e) => set({ date: e.target.value })} />
+              <Input type="date" required value={f.date || bookToday} onChange={(e) => set({ date: e.target.value })} />
             </Field>
             <Field
               id="pay-place"

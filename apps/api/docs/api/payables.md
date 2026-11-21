@@ -62,6 +62,8 @@ Each line names exactly one of:
 - `product_id`: goods. Matched to receipt lines of the same product, supplier and currency.
 - `landed_cost_id`: clears one landed component booked on a receipt. The component's currency
   must be the bill's, `quantity` is 1, and each component is reserved by one live bill.
+  The read line carries `landed: {purchase_order_id, purchase_order_number, receipt_id,
+  receipt_number, evidence_ref, amount}` (null on other kinds).
 - `expense_account_id`: an active expense account that isn't a mapped control account.
 
 It also takes `quantity`, `unit_price` (per base unit, ≤8 places), an optional `tax_profile_id`
@@ -229,9 +231,13 @@ gets 404. Each quantity or residual is exactly what the matching write accepts a
 | Route | Permission | Returns |
 |---|---|---|
 | `GET /supplier-bills/{id}/match-candidates` | `supplierbill.match` | `{bill_id, candidates: [{bill_line_id, receipt_line_id, receipt_id, receipt_number, purchase_order_id, purchase_order_number, booked_at, matchable}]}` |
+| `GET /supplier-bills/landed-candidates?currency_id=&bill_id=` | `supplierbill.create` | `{candidates: [{landed_cost_id, purchase_order_id, purchase_order_number, receipt_id, receipt_number, evidence_ref, amount}]}` |
 | `GET /purchase-returns/candidates?receipt_id=` | `purchasereturn.create` | receipt, supplier, currency and per booked valued line `{receipt_line_id, product_id, product_name, warehouse_id, warehouse_name, booked, unbilled_returnable, billed: [{bill_allocation_id, bill_id, bill_number, supplier_invoice_number, returnable}]}` |
 | `GET /supplier-payments/{id}/targets` | `supplierpayment.allocate` | paged `{open_item_id, classification, source_kind, source_id, source_number, supplier_invoice_number, issue_date, due_date, amount, residual}` |
 
+- Landed candidates: booked landed components in `currency_id` (required, 422 without) that no
+  draft or posted bill holds; `bill_id` keeps that draft's own components listed (edit). Newest
+  first, at most 500. `amount` is the booked amount in the component currency.
 - Match candidates: goods lines only, receipt lines of the bill's supplier, currency and product
   with `matchable` (B − U − M − D, this bill's own reservations not counted, since a match
   replaces them) above 0. First 500.

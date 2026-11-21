@@ -1115,9 +1115,9 @@ pub async fn activate(
     get, path = "/workspace/{workspace}/accounting/opening-baselines", tag = "accounting",
     operation_id = "accounting_opening_baselines_list",
     summary = "The opening's receivables and payables, as corrected",
-    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Envelope<Value>, description = "Baselines: source, party, currency, face, settled, outstanding, corrected_outstanding, corrections"),
+        (status = 200, body = Paginated<Value>, description = "One page of baselines: source, party, currency, face, settled, outstanding, corrected_outstanding, corrections"),
         (status = 403, body = MessageBody, description = "Missing permission or inactive membership"),
         (status = 404, body = MessageBody, description = "Unknown workspace or not a member"),
     ),
@@ -1126,8 +1126,12 @@ pub async fn activate(
 pub async fn opening_baselines_list(
     State(state): State<AppState>,
     access: Can<Read>,
-) -> Result<Data<Value>, AppError> {
-    Ok(Data(opening::baselines(&state, access.workspace_id).await?))
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    Ok(Json(
+        opening::baselines(&state, access.workspace_id, page).await?,
+    ))
 }
 
 /// accounting_opening_corrections_review: Preview a typed opening correction (no writes).

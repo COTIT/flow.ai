@@ -24,7 +24,7 @@ import {
 import type { OrderAction, OrderResource } from "@verzo/api-client/model"
 import { ApiError, fieldErrors } from "@verzo/ui/components/api-error"
 import { Badge } from "@verzo/ui/components/badge"
-import { Button } from "@verzo/ui/components/button"
+import { Button, buttonVariants } from "@verzo/ui/components/button"
 import { Card } from "@verzo/ui/components/card"
 import { ConfirmDialog } from "@verzo/ui/components/confirm-dialog"
 import {
@@ -53,6 +53,7 @@ import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
+import { useCan } from "@/lib/can"
 import { useIdempotencyKey } from "@/lib/idempotency"
 import { Done, LoadError, useDone } from "@/components/states"
 
@@ -91,6 +92,7 @@ export default function OrderPage({
   const { id } = React.use(params)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
+  const mayCredit = useCan("salesreturn.create")
   const order = useOrdersGet(workspaceId, id, {
     query: { enabled: Boolean(workspaceId) },
   })
@@ -435,6 +437,15 @@ export default function OrderPage({
             <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
               {rest.map((a) => actionButton(a, false))}
             </div>
+          ) : null}
+          {/* Shown once goods left; the new-return page lists what the server says is creditable. */}
+          {mayCredit && o.lines.some((l) => Number(l.deducted) > 0) ? (
+            <Link
+              href={`/sales-returns/new?order=${o.id}`}
+              className={buttonVariants({ variant: "outline", className: "w-full" })}
+            >
+              {t("salesReturns.new.action")}
+            </Link>
           ) : null}
           <ApiError
             error={actionError}

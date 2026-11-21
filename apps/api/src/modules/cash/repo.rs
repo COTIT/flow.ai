@@ -570,3 +570,62 @@ pub async fn list_places(
     .fetch_all(db)
     .await
 }
+
+/// Cash due for `total` (minor units) in steps of `step` minor units, half up: 1.02 → 1.00,
+/// 1.03 → 1.05 at step 5. Step 1 or below = no rounding. Callers pass `total` ≥ 0.
+pub async fn round_cash(
+    db: impl PgExecutor<'_>,
+    total: i64,
+    step: i64,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT LEAST(money_round_div($1::bigint::numeric, GREATEST($2::bigint, 1)::numeric) * GREATEST($2::bigint, 1),
+                        9223372036854775807)::bigint AS "due!""#,
+        total,
+        step,
+    )
+    .fetch_one(db)
+    .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    /// Cash rounding runs in SQL (`money_round_div`), half up to the step; step < 1 means none.
+    #[sqlx::test]
+    async fn cash_rounds_half_up_to_the_step_in_sql(pool: PgPool) {
+        for (total, step, due) in [
+            (1002, 5, 1000),
+            (1003, 5, 1005),
+            (1005, 5, 1005),
+            (1007, 5, 1005),
+            (1008, 5, 1010),
+            (1005, 10, 1010),
+            (1004, 10, 1000),
+            (12_345, 1, 12_345),
+            (0, 5, 0),
+            (2, 5, 0),
+            (3, 5, 5),
+            // exact half steps round up
+            (1025, 50, 1050),
+            (1024, 50, 1000),
+            (1050, 100, 1100),
+            (1049, 100, 1000),
+            (1, 2, 2),
+            // step 0 or below: no rounding
+            (1003, 0, 1003),
+            (1003, -5, 1003),
+            // largest refund amount
+            (1_000_000_000_000_000_000, 5, 1_000_000_000_000_000_000),
+            (999_999_999_999_999_998, 5, 1_000_000_000_000_000_000),
+            // clamps like the old i64::MAX fallback
+            (i64::MAX, i64::MAX / 2, i64::MAX - 1),
+            (i64::MAX, 6_148_914_691_236_517_204, i64::MAX),
+        ] {
+            let got = round_cash(&pool, total, step).await.unwrap();
+            assert_eq!(got, due, "{total} step {step}");
+        }
+    }
+}

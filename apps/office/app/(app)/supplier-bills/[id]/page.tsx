@@ -155,12 +155,30 @@ export default function SupplierBillPage({
                     <span className="block text-xs text-muted-foreground">
                       {word("kinds", l.kind)} · {money(l.unit_price)}
                     </span>
+                    {l.landed ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {t("payables.bills.landedOf", {
+                          order: l.landed.purchase_order_number,
+                          evidence: l.landed.evidence_ref,
+                          amount: money(l.landed.amount),
+                        })}{" "}
+                        ·{" "}
+                        <Link
+                          className="underline-offset-4 hover:underline"
+                          href={`/purchases/${l.landed.purchase_order_id}/receipts/${l.landed.receipt_id}`}
+                        >
+                          {t("payables.bills.receiptLink")}
+                        </Link>
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell data-m="sub" className="text-right tabular-nums">
                     {formatQty(l.quantity, locale)}
                   </TableCell>
                   <TableCell data-m="hide" className="text-[13px]">
-                    {l.kind !== "goods" ? null : l.matches.length === 0 ? (
+                    {l.landed && l.matches[0] ? (
+                      <span className="text-muted-foreground">{word("matchStates", l.matches[0].state)}</span>
+                    ) : l.kind !== "goods" ? null : l.matches.length === 0 ? (
                       <span className="text-muted-foreground">{t("payables.bills.unmatched")}</span>
                     ) : (
                       <ul className="flex flex-col gap-0.5">

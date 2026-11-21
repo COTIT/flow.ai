@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT trim_scale(c.v)::text AS credit_limit,\n                  trim_scale(round(greatest(c.v, 0), 2))::text AS available_credit,\n                  r.created_at\n           FROM relations r\n           CROSS JOIN LATERAL (SELECT CASE jsonb_typeof(r.financial_account -> 'credit_limit')\n               WHEN 'number' THEN (r.financial_account ->> 'credit_limit')::numeric\n               WHEN 'string' THEN CASE WHEN btrim(r.financial_account ->> 'credit_limit')\n                       ~ '^[+-]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][+-]?[0-9]{1,3})?$'\n                   THEN btrim(r.financial_account ->> 'credit_limit')::numeric END\n           END AS v) c\n           WHERE r.id = $1 AND r.workspace_id = $2 AND r.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "credit_limit",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "available_credit",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "fb6f5782a4fd80c27a78c8cc22caf23c6e8043dcb35c78b2b7d95848c99ff652"
+}

@@ -293,3 +293,108 @@ async fn cost_adjustments_filter_by_bill(pool: PgPool) {
         .await;
     assert_eq!(list["meta"]["total"], 0, "{list}");
 }
+
+#[sqlx::test]
+async fn landed_candidates_list_unbilled_components_in_the_bill_currency(pool: PgPool) {
+    let w = world(pool).await;
+    book(&w).await;
+    let usd = w.usd().await;
+    w.rate(&usd, "1.25", 0).await;
+    let po = w.order(&[(&w.wax, "2", "10.00")]).await;
+    let r = w.receive(&po, &[(0, "2")]).await;
+    let (s, r) = w
+        .book_with(
+            &r,
+            json!([{ "client_component_ref": uuid(), "amount": "7.00", "currency_id": w.eur,
+                     "evidence_ref": "DHL-1" },
+                   { "client_component_ref": uuid(), "amount": "3.00", "currency_id": w.eur,
+                     "evidence_ref": "PORT-1" },
+                   { "client_component_ref": uuid(), "amount": "5.00", "currency_id": usd,
+                     "evidence_ref": "INS-1" }]),
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{r}");
+    let r = &r["data"];
+    let landed = |ev: &str| {
+        r["landed_costs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["evidence_ref"] == ev)
+            .unwrap()["id"]
+            .clone()
+    };
+    let (dhl, port) = (landed("DHL-1"), landed("PORT-1"));
+    let path = format!("/supplier-bills/landed-candidates?currency_id={}", w.eur);
+
+    // Both EUR components; the USD one is filtered out.
+    let c = w.get(&path).await;
+    let rows = c["candidates"].as_array().unwrap().clone();
+    assert_eq!(rows.len(), 2, "{c}");
+    let dhl_row = rows.iter().find(|x| x["landed_cost_id"] == dhl).unwrap();
+    assert_eq!(dhl_row["amount"], "7.00", "{c}");
+    assert_eq!(dhl_row["evidence_ref"], "DHL-1");
+    assert_eq!(dhl_row["receipt_id"], r["id"]);
+    assert_eq!(dhl_row["purchase_order_id"], po["id"]);
+    assert_eq!(dhl_row["purchase_order_number"], po["number"]);
+    assert_eq!(dhl_row["receipt_number"], r["number"]);
+
+    // A draft bill reserves DHL: gone from the list, back when that bill asks (edit).
+    let bill = w
+        .bill(
+            &w.eur,
+            "DHL-INV",
+            json!([{ "landed_cost_id": dhl, "quantity": "1", "unit_price": "7.50" }]),
+        )
+        .await;
+    let c = w.get(&path).await;
+    let rows = c["candidates"].as_array().unwrap();
+    assert_eq!(rows.len(), 1, "{c}");
+    assert_eq!(rows[0]["landed_cost_id"], port);
+    let own = w
+        .get(&format!("{path}&bill_id={}", bill["id"].as_str().unwrap()))
+        .await;
+    assert_eq!(own["candidates"].as_array().unwrap().len(), 2, "{own}");
+
+    // The bill line carries the label.
+    let l = &bill["lines"][0]["landed"];
+    assert_eq!(l["evidence_ref"], "DHL-1", "{bill}");
+    assert_eq!(l["amount"], "7.00");
+    assert_eq!(l["purchase_order_number"], po["number"]);
+    assert_eq!(l["receipt_number"], r["number"]);
+    assert_eq!(l["receipt_id"], r["id"]);
+    assert!(bill["lines"][0]["landed"].is_object());
+
+    // currency_id is required.
+    let (s, b) = w
+        .req(Method::GET, "/supplier-bills/landed-candidates", None)
+        .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{b}");
+
+    // Permission and isolation.
+    let get_only = member_with(
+        &w.api.app,
+        w.pool(),
+        &w.api.ws,
+        "bob@example.com",
+        &["supplierbill.get"],
+    )
+    .await;
+    let (s, _) = w.req_as(&get_only, Method::GET, &path, None).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, b) = send(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/workspace/{}{path}", eve.ws),
+        None,
+        Some(&eve.owner),
+    )
+    .await;
+    // Her own workspace sees none of ours.
+    assert_eq!(s, StatusCode::OK, "{b}");
+    assert!(
+        b["data"]["candidates"].as_array().unwrap().is_empty(),
+        "{b}"
+    );
+}

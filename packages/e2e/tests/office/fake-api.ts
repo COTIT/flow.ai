@@ -124,6 +124,10 @@ export async function fakeApi(page: Page) {
     .on("GET", "/workspace/:ws/lots/:lot/holds", () => ({ data: [] }))
     // Product pages, the list and New product read the categories; specs that care override this.
     .on("GET", "/workspace/:ws/erp/product-categories", () => paged([], 1, 100))
+    // Date fields read the book's business day; null = the browser's day. Specs that care override this.
+    .on("GET", "/workspace/:ws/accounting/setup", () => ({
+      data: { state: "setup", business_date: null },
+    }))
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }

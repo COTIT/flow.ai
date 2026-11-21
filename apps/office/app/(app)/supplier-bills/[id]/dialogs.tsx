@@ -29,7 +29,8 @@ import { formatDay, formatQty } from "@verzo/ui/lib/format"
 import { Field } from "@/components/field"
 import { Fact, ReviewDialog, usePayReasons, useReverseInputs } from "@/components/payables"
 
-import { showMoney, today } from "../../purchases/shared"
+import { useBookToday } from "../../accounting/shared"
+import { showMoney } from "../../purchases/shared"
 import { Shell, useAction, type Outcome } from "../../purchases/[id]/dialogs"
 
 type Props = { bill: SupplierBillResource; button: React.ReactElement; outcome: Outcome }
@@ -215,6 +216,7 @@ export function PostBillDialog({ bill, button, outcome }: Props) {
 /** Reverse a posted bill: date + reason, the server's review, then the typed reversal. */
 export function ReverseBillDialog({ bill, button, outcome }: Props) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
   const inputs = useReverseInputs("bill-rev")
@@ -226,7 +228,7 @@ export function ReverseBillDialog({ bill, button, outcome }: Props) {
       title={t("payables.bills.reverseTitle", { number: bill.number })}
       description={t("payables.bills.reverseText")}
       done={t("payables.done.reversed")}
-      onOpen={() => inputs.reset(today())}
+      onOpen={() => inputs.reset(bookToday)}
       ready={inputs.ready}
       fields={inputs.fields}
       review={async () => (await supplierBillsReverseReview(ws, bill.id, inputs.body)).data}
@@ -376,6 +378,7 @@ export function CostActionDialog({
   outcome: Outcome
 }) {
   const t = useTranslations()
+  const bookToday = useBookToday()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
   const inputs = useReverseInputs(`ca-${adj.id}`)
@@ -416,7 +419,7 @@ export function CostActionDialog({
       title={t("payables.costs.reverseTitle")}
       description={t("payables.costs.reverseText")}
       done={t("payables.done.reversed")}
-      onOpen={() => inputs.reset(today())}
+      onOpen={() => inputs.reset(bookToday)}
       ready={inputs.ready}
       fields={inputs.fields}
       review={async () => (await purchaseCostAdjustmentsReverseReview(ws, adj.id, inputs.body)).data}

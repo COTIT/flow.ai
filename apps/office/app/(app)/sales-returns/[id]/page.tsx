@@ -47,8 +47,10 @@ const link =
 /** One customer return (Detail tiles, as /stock/counts/[id]): lines, restocks, next step, facts. */
 export default function SalesReturnPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
   const locale = useLocale()
@@ -62,7 +64,8 @@ export default function SalesReturnPage({
   const ret = useSalesReturnsGet(workspaceId, id, {
     query: { enabled: Boolean(workspaceId) },
   })
-  const done = useDone()
+  const { done: arrived } = React.use(searchParams)
+  const done = useDone(arrived === "created" ? t("salesReturns.new.created") : null)
   const [stale, setStale] = React.useState(false)
   // Reviewed legacy costs recorded on this page, per return line, for the next restock.
   const [legacy, setLegacy] = React.useState<Record<string, string>>({})

@@ -225,35 +225,3 @@ pub async fn list_shifts(
 ) -> Result<(Vec<ShiftRow>, i64), AppError> {
     Ok(repo::list_shifts(&state.db, workspace_id, f, limit, offset).await?)
 }
-
-/// Cash due for `total` (minor units) in steps of `step` minor units, half up: 1.02 → 1.00,
-/// 1.03 → 1.05 at step 5. Step 1 = no rounding.
-pub fn round_cash(total: i64, step: i64) -> i64 {
-    // i128: `total * 2` can't overflow; the result is never above `total + step`.
-    let (total, step) = (i128::from(total), i128::from(step.max(1)));
-    i64::try_from((total * 2 + step) / (2 * step) * step).unwrap_or(i64::MAX)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cash_rounds_half_up_to_the_step() {
-        for (total, step, due) in [
-            (1002, 5, 1000),
-            (1003, 5, 1005),
-            (1005, 5, 1005),
-            (1007, 5, 1005),
-            (1008, 5, 1010),
-            (1005, 10, 1010),
-            (1004, 10, 1000),
-            (12_345, 1, 12_345),
-            (0, 5, 0),
-            (2, 5, 0),
-            (3, 5, 5),
-        ] {
-            assert_eq!(round_cash(total, step), due, "{total} step {step}");
-        }
-    }
-}
