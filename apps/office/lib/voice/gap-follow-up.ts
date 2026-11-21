@@ -74,6 +74,7 @@ export const ROUTE_SEGMENTS = new Set([
   "exceptions",
   "healthz",
   "imports",
+  "incidents",
   "integrations",
   "invites",
   "invoices",
