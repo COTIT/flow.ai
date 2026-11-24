@@ -84,6 +84,35 @@ test("a farmer signs in by phone, must change the temporary password, and it nev
   expect(await allStorage(page)).not.toContain(TEMP)
 })
 
+test("a staff one-time password is changed first, even with no farm role yet", async ({ page }) => {
+  const ONE_TIME = "Own-0123456789abcdef01234567-Aa1!"
+  await mockApi(page, {
+    ...officerHome,
+    "POST /login": staffLogin,
+    "GET /farm/me": me({ name: "Officer One", email: "officer1@ruaha.test", mustChange: true, memberships: [] }),
+  })
+  await signIn(page, "officer1@ruaha.test", ONE_TIME)
+
+  await expect(page).toHaveURL(/\/set-password$/)
+  await expect(page.getByTestId("set-password-current")).toHaveCount(0)
+  expect(await allStorage(page)).not.toContain(ONE_TIME)
+  await expectNoHorizontalScroll(page)
+
+  await mockApi(page, {
+    ...officerHome,
+    "POST /farm/password": { status: 204 },
+    "GET /farm/me": me({ name: "Officer One", email: "officer1@ruaha.test", memberships: [] }),
+  })
+  const change = page.waitForRequest("**/v1/farm/password")
+  await page.getByTestId("set-password-new").fill("my-own-pass-2026")
+  await page.getByTestId("set-password-confirm").fill("my-own-pass-2026")
+  await page.getByTestId("set-password-submit").click()
+  expect((await change).postDataJSON()).toEqual({ current_password: ONE_TIME, password: "my-own-pass-2026" })
+
+  // No farm role yet: told so, password already their own.
+  await expect(page).toHaveURL(/\/no-access$/)
+})
+
 test("after a reload the farmer types the temporary password", async ({ page }) => {
   await mockApi(page, {
     "POST /farm/login": farmLogin(true),

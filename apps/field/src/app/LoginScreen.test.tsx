@@ -18,6 +18,8 @@ vi.mock('@verzo/api-client/endpoints/farm-logins', () => ({
 vi.mock('@/app/session', () => ({
   // The real registry entry, so the cache behaves as it does in the app.
   sessionQuery: { queryKey: ['session'], queryFn: () => sessionFetch(), staleTime: 0 },
+  passwordChangeRequired: (s: { appUser?: { must_change_password?: boolean } } | null) =>
+    s?.appUser?.must_change_password === true,
 }))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useSearch: () => search }),
@@ -171,7 +173,7 @@ describe('which sign-in the typed id goes to', () => {
 describe('the temporary password', () => {
   test('is held in memory for the forced change, and never written to browser storage', async () => {
     farmLoginsLogin.mockResolvedValue({ data: farmSession(true) })
-    sessionFetch.mockResolvedValue({ memberships: [] })
+    sessionFetch.mockResolvedValue({ memberships: [], appUser: { must_change_password: true } })
 
     renderLogin()
     await signInAs('0712 345 678', 'k7qxm2pa')
@@ -191,6 +193,18 @@ describe('the temporary password', () => {
 
     await waitFor(() => expect(navigate).toHaveBeenCalled())
     expect(peekTempPassword()).toBeNull()
+  })
+
+  test('a staff one-time password is held and the change screen comes first', async () => {
+    search = { redirect: '/officer/people' }
+    sessionFetch.mockResolvedValue({ memberships: [], appUser: { must_change_password: true } })
+
+    renderLogin()
+    await signInAs('brenda@ruaha.test', 'Own-abc-Aa1!')
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/set-password', replace: true }))
+    expect(peekTempPassword()).toBe('Own-abc-Aa1!')
+    expect(browserStorage()).not.toContain('Own-abc-Aa1!')
   })
 
   test('a staff password is never held', async () => {

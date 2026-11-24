@@ -1,6 +1,7 @@
 //! Production operator CLIs, run in-process because signup and mail are off there:
 //! `create-owner` (first user + workspace, one-time password printed once) and
-//! `set-user-password` (operator-typed password for an `afm` login, read from stdin, never printed).
+//! `set-user-password` (login for `afm` or `ruaha`: operator-typed password from stdin, never
+//! printed, or `--generate`: one-time password printed once, changed at first field sign-in).
 
 use std::io::{BufRead, Write};
 
@@ -26,10 +27,10 @@ use crate::{
     },
 };
 
-/// Only workspace `set-user-password` writes to: AFM's, on production.
-const PASSWORD_WORKSPACE: &str = "afm";
-const SET_PASSWORD_USAGE: &str = "usage: set-user-password --workspace afm --email <email> \
-     [--admin] [--first-name F --last-name L]   (password: one line on stdin)";
+/// Only workspaces `set-user-password` writes to, on production: AFM's and RUAHA's.
+const PASSWORD_WORKSPACES: &[&str] = &["afm", "ruaha"];
+const SET_PASSWORD_USAGE: &str = "usage: set-user-password --workspace afm|ruaha --email <email> \
+     [--admin] [--generate] [--first-name F --last-name L]   (password: one line on stdin)";
 
 /// The owner just made: their workspace and the password to sign in with once.
 pub struct Owner {
@@ -51,9 +52,7 @@ pub async fn create_owner(
             "The workspace name may only hold lowercase letters, digits and dashes.",
         ));
     }
-    let (plain, _) = token::generate()?;
-    // Mixed case, digit and symbol, as the password rules want.
-    let password = format!("Own-{}-Aa1!", &plain.expose()[..24]);
+    let password = one_time_password()?;
     let signup = NewSignup {
         person: NewPerson {
             first_name: first_name.to_owned(),
@@ -77,6 +76,12 @@ pub async fn create_owner(
     })
 }
 
+/// Random password that passes the staff rules (mixed case, digit, symbol).
+fn one_time_password() -> Result<String, AppError> {
+    let (plain, _) = token::generate()?;
+    Ok(format!("Own-{}-Aa1!", &plain.expose()[..24]))
+}
+
 /// Whose login `set_user_password` sets. Names are used only when the user is new.
 pub struct LoginFor<'a> {
     pub workspace: &'a str,
@@ -85,6 +90,8 @@ pub struct LoginFor<'a> {
     pub admin: bool,
     pub first_name: Option<&'a str>,
     pub last_name: Option<&'a str>,
+    /// One-time password: field app asks for a new one at first sign-in.
+    pub temporary: bool,
 }
 
 /// What `set_user_password` did. Nothing secret.
@@ -101,10 +108,10 @@ pub async fn set_user_password(
     who: &LoginFor<'_>,
     password: Option<Password>,
 ) -> Result<PasswordSet, AppError> {
-    if who.workspace != PASSWORD_WORKSPACE {
+    if !PASSWORD_WORKSPACES.contains(&who.workspace) {
         return Err(AppError::field(
             "workspace",
-            format!("only {PASSWORD_WORKSPACE}, not {}", who.workspace),
+            format!("only afm or ruaha, not {}", who.workspace),
         ));
     }
     let mut r = Rules::default();
@@ -167,6 +174,12 @@ pub async fn set_user_password(
         (None, None) => return Err(AppError::Internal("validated names missing".into())),
     };
     // Same rows an accepted invite gives (into the admin team with `admin`); reactivates a removed member.
+    if who.temporary {
+        sqlx::query("UPDATE users SET must_change_password = true WHERE id = $1")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+    }
     workspaces::add_member(&mut *tx, workspace_id, user_id).await?;
     if let Some(team) = admin_team {
         teams::add_members(&mut *tx, workspace_id, team, &[user_id]).await?;
@@ -189,12 +202,19 @@ pub async fn set_user_password_cli(
     out: &mut impl Write,
 ) -> i32 {
     let (mut workspace, mut email, mut first_name, mut last_name) = (None, None, None, None);
-    let mut admin = false;
+    let (mut admin, mut generate) = (false, false);
     let mut it = args.iter();
     while let Some(arg) = it.next() {
-        if arg == "--admin" {
-            admin = true;
-            continue;
+        match arg.as_str() {
+            "--admin" => {
+                admin = true;
+                continue;
+            }
+            "--generate" => {
+                generate = true;
+                continue;
+            }
+            _ => {}
         }
         // Unknown flags refused: a `--password` on the command line is never read as one.
         let slot = match arg.as_str() {
@@ -213,15 +233,30 @@ pub async fn set_user_password_cli(
         return usage(out);
     };
 
-    let mut line = String::new();
-    if let Err(e) = stdin.read_line(&mut line) {
-        let _ = writeln!(out, "set-user-password: stdin unreadable: {}", e.kind());
-        return 1;
-    }
-    let stripped = line.strip_suffix('\n').unwrap_or(&line);
-    let keep = stripped.strip_suffix('\r').unwrap_or(stripped).len();
-    line.truncate(keep);
-    let password = (!line.is_empty()).then(|| Password::generated(line));
+    let one_time = match generate {
+        true => match one_time_password() {
+            Ok(p) => Some(p),
+            Err(err) => {
+                let _ = writeln!(out, "set-user-password failed: {err}");
+                return 1;
+            }
+        },
+        false => None,
+    };
+    let password = match &one_time {
+        Some(p) => Some(Password::generated(p.clone())),
+        None => {
+            let mut line = String::new();
+            if let Err(e) = stdin.read_line(&mut line) {
+                let _ = writeln!(out, "set-user-password: stdin unreadable: {}", e.kind());
+                return 1;
+            }
+            let stripped = line.strip_suffix('\n').unwrap_or(&line);
+            let keep = stripped.strip_suffix('\r').unwrap_or(stripped).len();
+            line.truncate(keep);
+            (!line.is_empty()).then(|| Password::generated(line))
+        }
+    };
 
     let who = LoginFor {
         workspace,
@@ -229,6 +264,7 @@ pub async fn set_user_password_cli(
         admin,
         first_name,
         last_name,
+        temporary: generate,
     };
     match set_user_password(state, &who, password).await {
         Ok(done) => {
@@ -240,6 +276,10 @@ pub async fn set_user_password_cli(
                 if admin { "yes" } else { "unchanged" },
                 done.sessions_revoked,
             );
+            if let Some(p) = &one_time {
+                // Printed once, to the operator's stdout only: it exists nowhere else.
+                let _ = writeln!(out, "one-time password: {p}");
+            }
             0
         }
         Err(AppError::Validation(errors)) => {
