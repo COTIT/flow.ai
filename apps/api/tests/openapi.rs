@@ -4,10 +4,10 @@
 mod common;
 
 use axum::http::{Method, StatusCode};
+use common::contract::spec;
 use common::{app_with_mail, contract, member_with, send, signup};
 use serde_json::{Value, json};
 use sqlx::PgPool;
-use verzo_360_api::openapi;
 
 /// The matcher behind `send`'s automatic check: literal segments beat `{params}`,
 /// query strings are ignored, non-/v1 and unknown paths are skipped.
@@ -58,10 +58,6 @@ fn contract_check_flags_drift() {
 const SPEC_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.json");
 const LIST: &str = "/workspace/{workspace}/currencies";
 const ITEM: &str = "/workspace/{workspace}/currencies/{currency}";
-
-fn spec() -> Value {
-    openapi::spec().unwrap()
-}
 
 /// Follow `$ref`s into `components`.
 fn resolve<'a>(spec: &'a Value, schema: &'a Value) -> &'a Value {
@@ -193,7 +189,7 @@ fn object_matcher_accepts_optional_keys_but_rejects_missing_required_and_unknown
 
 #[test]
 fn committed_spec_matches_code() {
-    let fresh = serde_json::to_string_pretty(&spec()).unwrap() + "\n";
+    let fresh = serde_json::to_string_pretty(spec()).unwrap() + "\n";
     if std::env::var_os("UPDATE_OPENAPI").is_some() {
         // A stray UPDATE_OPENAPI in CI would rewrite the file and hide drift.
         assert!(
@@ -215,43 +211,53 @@ fn committed_spec_matches_code() {
 #[test]
 fn schema_check_rejects_wrong_types_and_formats() {
     let s = spec();
-    let created = raw_response_schema(&s, LIST, "post", "201");
+    let created = raw_response_schema(s, LIST, "post", "201");
     assert!(
         schema_errors(
-            &s,
+            s,
             created,
             &json!({ "data": { "currency_id": "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b" } })
         )
         .is_empty()
     );
-    assert!(!schema_errors(&s, created, &json!({ "data": { "currency_id": 5 } })).is_empty());
+    assert!(!schema_errors(s, created, &json!({ "data": { "currency_id": 5 } })).is_empty());
     assert!(
         !schema_errors(
-            &s,
+            s,
             created,
             &json!({ "data": { "currency_id": "not-a-uuid" } })
         )
         .is_empty()
     );
-    assert!(!schema_errors(&s, created, &json!({ "data": {} })).is_empty());
+    assert!(!schema_errors(s, created, &json!({ "data": {} })).is_empty());
 
-    let list = raw_response_schema(&s, LIST, "get", "200");
+    let list = raw_response_schema(s, LIST, "get", "200");
     let bad_row = json!({ "data": [{ "id": "x" }], "meta": {
         "current_page": 1, "from": 1, "last_page": 1, "per_page": 50, "to": 1, "total": 1,
     }});
     assert!(
-        !schema_errors(&s, list, &bad_row).is_empty(),
+        !schema_errors(s, list, &bad_row).is_empty(),
         "list items must be checked"
     );
 }
 
-/// Count objects anywhere under `v` that equal `target`.
-fn copies(v: &Value, target: &Value) -> usize {
-    let here = usize::from(v == target);
-    here + match v {
-        Value::Object(m) => m.values().map(|c| copies(c, target)).sum(),
-        Value::Array(a) => a.iter().map(|c| copies(c, target)).sum(),
-        _ => 0,
+/// Count structurally equal object schemas in one traversal of the generated document.
+fn count_schemas<'a>(value: &'a Value, counts: &mut std::collections::HashMap<&'a Value, usize>) {
+    match value {
+        Value::Object(map) => {
+            if map.contains_key("properties") {
+                *counts.entry(value).or_default() += 1;
+            }
+            for child in map.values() {
+                count_schemas(child, counts);
+            }
+        }
+        Value::Array(items) => {
+            for child in items {
+                count_schemas(child, counts);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -260,11 +266,13 @@ fn copies(v: &Value, target: &Value) -> usize {
 #[test]
 fn named_schemas_are_referenced_not_copied() {
     let s = spec();
+    let mut counts = std::collections::HashMap::new();
+    count_schemas(s, &mut counts);
     for (name, schema) in s["components"]["schemas"].as_object().unwrap() {
         if schema.get("properties").is_none() {
             continue;
         }
-        assert_eq!(copies(&s, schema), 1, "{name} is copied inline somewhere");
+        assert_eq!(counts[schema], 1, "{name} is copied inline somewhere");
     }
 }
 
@@ -519,14 +527,14 @@ fn error_responses_are_documented() {
         (ITEM, "get", &["404"][..]),
     ] {
         for code in codes {
-            let schema = response_schema(&s, path, method, code);
+            let schema = response_schema(s, path, method, code);
             assert!(
                 schema["properties"]["message"].is_object(),
                 "{method} {path} {code}"
             );
         }
     }
-    let invalid = response_schema(&s, LIST, "post", "422");
+    let invalid = response_schema(s, LIST, "post", "422");
     assert!(
         invalid["properties"]["errors"].is_object(),
         "422 must document `errors`"
@@ -547,7 +555,7 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     });
     let (status, created) = send(&app, Method::POST, &base, Some(body), Some(&token)).await;
     assert_eq!(status, StatusCode::CREATED, "{created}");
-    check(&s, LIST, "post", "201", &created, "create");
+    check(s, LIST, "post", "201", &created, "create");
     let id = created["data"]["currency_id"].as_str().unwrap();
 
     let (status, one) = send(
@@ -559,30 +567,30 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     )
     .await;
     assert_eq!(status, StatusCode::OK, "{one}");
-    check(&s, ITEM, "get", "200", &one, "get");
+    check(s, ITEM, "get", "200", &one, "get");
 
     let (status, list) = send(&app, Method::GET, &base, None, Some(&token)).await;
     assert_eq!(status, StatusCode::OK, "{list}");
-    check(&s, LIST, "get", "200", &list, "list");
-    let list_schema = response_schema(&s, LIST, "get", "200");
-    let item_schema = &resolve(&s, &list_schema["properties"]["data"])["items"];
+    check(s, LIST, "get", "200", &list, "list");
+    let list_schema = response_schema(s, LIST, "get", "200");
+    let item_schema = &resolve(s, &list_schema["properties"]["data"])["items"];
     for (i, row) in list["data"].as_array().unwrap().iter().enumerate() {
-        assert_matches(&s, item_schema, row, &format!("list.data[{i}]"));
+        assert_matches(s, item_schema, row, &format!("list.data[{i}]"));
     }
 
     let bad = json!({ "name": "", "asset_type": "nope" });
     let (status, err) = send(&app, Method::POST, &base, Some(bad), Some(&token)).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    check(&s, LIST, "post", "422", &err, "422");
+    check(s, LIST, "post", "422", &err, "422");
 
     let missing = format!("{base}/00000000-0000-0000-0000-000000000000");
     let (status, err) = send(&app, Method::GET, &missing, None, Some(&token)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    check(&s, ITEM, "get", "404", &err, "404");
+    check(s, ITEM, "get", "404", &err, "404");
 
     let (status, err) = send(&app, Method::GET, &base, None, None).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
-    check(&s, LIST, "get", "401", &err, "401");
+    check(s, LIST, "get", "401", &err, "401");
 
     // A member without `currency.create`.
     let bob = member_with(&app, &pool, &ws, "bob@example.com", &[]).await;
@@ -592,7 +600,7 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     });
     let (status, err) = send(&app, Method::POST, &base, Some(body), Some(&bob)).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
-    check(&s, LIST, "post", "403", &err, "403");
+    check(s, LIST, "post", "403", &err, "403");
 }
 
 /// Group A of the rollout: users, permissions, workspaces, teams.

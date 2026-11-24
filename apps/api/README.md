@@ -15,7 +15,7 @@ curl localhost:8080/healthz
 
 For invite and verification emails, point `SMTP_URL` at a local Mailpit (`smtp://127.0.0.1:1025`, UI on :8025).
 
-Builds without a database: set `SQLX_OFFLINE=true` and the `query!` macros read the committed `.sqlx/` cache. On a laptop also set `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0` to keep `target/` small.
+Builds without a database: set `SQLX_OFFLINE=true` and the `query!` macros read the committed `.sqlx/` cache. Local dev and test builds use Cargo’s default incremental compilation with debug info disabled. Remove old shell overrides for these settings to use the shared profile. The gate retains build artifacts. Run `cargo clean` from this directory when you need disk space.
 
 ## Globadyme
 
@@ -42,6 +42,20 @@ All read once at boot. A missing required var stops the server with the var name
 | `TRUST_PROXY_HEADERS` | no | `false` | **Set `true` behind Traefik.** With `false` every client shares Traefik's IP, so 10 bad logins lock everyone out. Traefik must not trust client-sent X-Forwarded-For (keep `forwardedHeaders.insecure` off), and port 8080 must not be reachable directly. |
 | `INVITES_PER_HOUR` | no | `20` | invite emails per user per hour |
 | `RUST_LOG` | no | `info` | |
+
+## Local validation
+
+Run Cargo from `apps/api` with `SQLX_OFFLINE=true`. Point `DATABASE_URL` at disposable PostgreSQL 18 for database tests.
+
+| Change | Run |
+| --- | --- |
+| Work in progress | `cargo check --locked`. Skip this when a relevant test is the next command. |
+| Library logic | `cargo test --locked --lib <test_name>` |
+| Endpoint behavior | `node scripts/test-endpoint.mjs <feature>` or `node scripts/test-endpoint.mjs healthcheck::server_without_db_fails` |
+| Public API contract | Run the affected behavior tests and `cargo test --locked --test openapi`. |
+| Shared auth, database setup, migrations, or uncertain impact | From the repo root, run `SKIP_WEB=1 SKIP_E2E=1 SKIP_STACK=1 scripts/local-gate.sh`. |
+
+The endpoint runner compiles the selected file from `tests/api/` and its imported test helpers in a smaller Cargo target. It checks the test inventory before running. The first invocation builds the optional target. Use `cargo test --locked --test 'api_*'` to run all four endpoint integration binaries. Reserve the repository-wide local gate for cross-stack validation or an explicit request. Pull requests covering API changes run the full API suite in CI.
 
 ## Test
 

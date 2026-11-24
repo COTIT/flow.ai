@@ -14,6 +14,7 @@
       "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL"]
     },
     "typecheck": {
+      "dependsOn": [],
       "inputs": ["src/**", "tests/**", "migrations/**", "templates/**", ".sqlx/**", "build.rs", "Cargo.toml", "Cargo.lock", "sqlx.toml"],
       "outputs": [],
       "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL"]

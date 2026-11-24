@@ -55,7 +55,7 @@ fn record_coverage(method: &Method, uri: &str, status: StatusCode) {
     writeln!(file, "{record}").expect("assistant HTTP coverage record cannot be written");
 }
 
-fn spec() -> &'static Value {
+pub(crate) fn spec() -> &'static Value {
     static SPEC: OnceLock<Value> = OnceLock::new();
     SPEC.get_or_init(|| verzo_360_api::openapi::spec().unwrap())
 }
@@ -98,11 +98,11 @@ pub fn find_route<'a>(
 }
 
 /// One compiled validator per documented response schema, shared across tests.
-fn validator(key: &str, schema: &Value) -> Arc<Validator> {
-    static CACHE: OnceLock<Mutex<HashMap<String, Arc<Validator>>>> = OnceLock::new();
+fn validator(key: &str, schema: &'static Value) -> Arc<Validator> {
+    static CACHE: OnceLock<Mutex<HashMap<&'static Value, Arc<Validator>>>> = OnceLock::new();
     let mut cache = CACHE.get_or_init(Default::default).lock().unwrap();
     cache
-        .entry(key.to_owned())
+        .entry(schema)
         .or_insert_with(|| {
             let mut root = schema.clone();
             root["components"] = spec()["components"].clone();

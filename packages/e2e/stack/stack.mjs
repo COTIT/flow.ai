@@ -8,7 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs"
-import { dirname, join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
 
@@ -260,8 +260,9 @@ export function voiceRole(state) {
 }
 
 export const apiBin = () =>
-  join(
-    process.env.CARGO_TARGET_DIR ?? join(API_DIR, "target"),
+  resolve(
+    API_DIR,
+    process.env.CARGO_TARGET_DIR ?? "target",
     "debug",
     "verzo-360-api"
   )

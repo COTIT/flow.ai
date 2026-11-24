@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Full local API validation reuses immutable route definitions, generated OpenAPI data and response validators, and optimizes SQLx’s SCRAM authentication loop in development builds. Deployment helper tests run alongside the API gate.
+
+- Run `node scripts/test-endpoint.mjs <feature>[::<test_name>]` from the API directory to rebuild and run focused endpoint tests.
+
+- Local validation now reuses incremental Cargo builds across focused tests, the API gate and the stack harness. See [Local validation](README.md#local-validation).
+
 - Operator CLI `set-user-password` (no migration, no route): workspace `ruaha` allowed next to `afm`; `--generate` makes a one-time password (staff rules), prints it once, reads no stdin and sets `must_change_password`, so the field app asks for a new one at first sign-in. A typed password still clears that flag (`deploy/production/README.md`).
 - WF-03 failed synchronization detection and recovery, B1.1 (migration `20261121120000_wf03_recovery`, `docs/api/workflows.md` "WF-03"):
   - incidents gain `category`, `diagnosis`, `verified_at`, `resolution_kind` and six kinds; the system may close only as `reconciled` after a verified read-back; `manual_closed` needs a user and a note; existing resolved rows backfilled `manual_closed`;

@@ -35,6 +35,7 @@ use axum::{
     routing::get,
 };
 use sqlx::PgPool;
+use std::sync::LazyLock;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 
 pub use crypto::CredentialKey;
@@ -129,19 +130,23 @@ pub fn assistant_operations_ready() -> bool {
 /// Full router. One entry point so tests run same middleware stack as prod.
 /// Serve with `into_make_service_with_connect_info::<SocketAddr>()`: the rate limit keys on peer IP.
 pub fn build_app(state: AppState) -> Router {
-    let public = http::rate_limit::apply(openapi::public().split_for_parts().0, state.rate_limit);
+    // Route definitions are immutable. Pools, rate limiters and deadlines belong to each app.
+    static PUBLIC: LazyLock<Router<AppState>> =
+        LazyLock::new(|| openapi::public().split_for_parts().0);
+    static PRIVATE: LazyLock<Router<AppState>> =
+        LazyLock::new(|| openapi::private().split_for_parts().0);
+    static DOCUMENTS: LazyLock<Router<AppState>> =
+        LazyLock::new(|| openapi::documents().split_for_parts().0);
+    static PREVIEWS: LazyLock<Router<AppState>> =
+        LazyLock::new(|| openapi::previews().split_for_parts().0);
+    let public = http::rate_limit::apply(PUBLIC.clone(), state.rate_limit);
     let public = http::timeout::body_deadline(public, state.body_deadline);
-    let private = Router::new().merge(openapi::private().split_for_parts().0);
     // Item totals, invoices and file uploads take large bodies: twice the deadline of the
     // 64 KiB routes.
-    let documents = openapi::documents().split_for_parts().0;
-    let previews = http::rate_limit::apply_session(
-        openapi::previews().split_for_parts().0,
-        state.preview_rate_limit,
-    );
-    let private = http::timeout::body_deadline(private, state.body_deadline)
+    let previews = http::rate_limit::apply_session(PREVIEWS.clone(), state.preview_rate_limit);
+    let private = http::timeout::body_deadline(PRIVATE.clone(), state.body_deadline)
         .merge(http::timeout::body_deadline(
-            documents,
+            DOCUMENTS.clone(),
             state.body_deadline * 2,
         ))
         .merge(http::timeout::body_deadline(previews, state.body_deadline));

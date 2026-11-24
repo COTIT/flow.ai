@@ -1,15 +1,15 @@
 # verzo-360-api done checklist
 
-Run from `apps/api`. Paste the result of each command in the step summary.
+Select validation by change scope using [the API validation table](../../../../apps/api/README.md#local-validation). Report the checks you ran.
 
 ## Commands
 
 ```bash
 cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo test
-cargo sqlx prepare --check -- --all-targets
-UPDATE_OPENAPI=1 cargo test --test openapi committed_spec   # regenerate openapi.json
+cargo clippy --all-targets -- -D warnings  # full API gate
+# Run the focused tests or full API gate specified in the validation table.
+cargo sqlx prepare --check -- --all-targets  # SQL query changes
+UPDATE_OPENAPI=1 cargo test --test openapi committed_spec   # intentional contract changes only
 grep -ciE 'laravel|vimdesk' openapi.json                    # must print 0
 ```
 

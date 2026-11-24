@@ -78,4 +78,4 @@ Demand export: `psql -At -v demand=1 -v days=7 -f apps/api/scripts/voice-gaps.sq
 - Merge PRs once all CI checks are green (user standing authorization, 2026-11-10); deployments still need an explicit go.
 - Ask the user only for scope, auth/permission/payment/business rules, destructive DB ops, production/credentials/vendors/cost, security exceptions.
 - SQLx macros read `GENESY_DATABASE_URL`; `.env` points it at the shared dev DB on 54320. Point it at a disposable DB explicitly when preparing queries.
-- `scripts/local-gate.sh` cleanup runs `cargo clean` and `docker builder prune -a`; expect a cold rebuild afterwards.
+- `scripts/local-gate.sh` retains Cargo and Docker build caches between runs.

@@ -124,10 +124,9 @@ export async function up() {
   }
   lap("files up")
 
-  // CI's settings (ci.yml env): no debug info, no incremental cache. Differing ones rebuild everything.
   await exec("cargo", ["build", "--bin", "verzo-360-api"], {
     cwd: API_DIR,
-    env: { ...process.env, SQLX_OFFLINE: "true", CARGO_INCREMENTAL: "0", CARGO_PROFILE_DEV_DEBUG: "0" },
+    env: { ...process.env, SQLX_OFFLINE: "true" },
   })
   lap("api built (debug)")
 

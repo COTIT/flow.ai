@@ -1,0 +1,3 @@
+# Running the optional focus target directly exercises the health endpoint.
+[env]
+VERZO_ENDPOINT_MODULES = { value = "tests/focus/health.rs", relative = true }

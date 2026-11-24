@@ -56,6 +56,8 @@ Do not use production credentials for local previews.
 
 ## Typed API calls (OpenAPI bridge)
 
+For Rust changes, follow the [API local validation guide](apps/api/README.md#local-validation) to select focused tests or the full API gate.
+
 ```
 Rust handlers ──▶ apps/api/openapi.json ──▶ orval ──▶ packages/api-client/src/generated
 ```
