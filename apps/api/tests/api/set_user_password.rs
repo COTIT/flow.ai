@@ -1,4 +1,4 @@
-//! Operator CLI `set-user-password`: password from stdin only, `afm` only, never printed;
+//! Operator CLI `set-user-password`: `afm` or `ruaha`; typed password from stdin, never printed,
 //! creates or updates the login, ensures active membership, `--admin` joins the admin team.
 
 use crate::common;
@@ -378,4 +378,104 @@ async fn admin_flag_without_an_admin_team_is_refused(pool: PgPool) {
     assert_eq!(code, 1, "{out}");
     assert!(out.contains("no admin team"), "{out}");
     assert_eq!(user_id(&pool, "anthony@afm.test").await, None);
+}
+
+// ---- ruaha + generated one-time password
+
+#[sqlx::test]
+async fn ruaha_is_allowed_too(pool: PgPool) {
+    let s = setup(pool.clone()).await;
+    let ruaha = bootstrap::create_owner(&s.state, "owner@ruaha.test", "ruaha", "Ro", "Owner")
+        .await
+        .unwrap();
+    let args = [
+        "--workspace",
+        "ruaha",
+        "--email",
+        "brenda@ruaha.test",
+        "--admin",
+        "--first-name",
+        "Brenda",
+        "--last-name",
+        "Kiwelu",
+    ];
+
+    let (code, out) = cli(&s.state, &args, &format!("{NEW}\n")).await;
+
+    assert_eq!(code, 0, "{out}");
+    let brenda = user_id(&pool, "brenda@ruaha.test").await.unwrap();
+    assert_eq!(
+        memberships(&pool, brenda).await,
+        vec![(ruaha.workspace_id, true)]
+    );
+    assert_eq!(
+        teams_of(&pool, brenda).await,
+        vec!["Admin Team".to_string()]
+    );
+}
+
+#[sqlx::test]
+async fn generate_prints_a_one_time_password_that_must_be_changed(pool: PgPool) {
+    let s = setup(pool.clone()).await;
+    let args = [
+        "--workspace",
+        "afm",
+        "--email",
+        "officer@afm.test",
+        "--generate",
+        "--first-name",
+        "Officer",
+        "--last-name",
+        "One",
+    ];
+
+    // stdin is never read with --generate.
+    let (code, out) = cli(&s.state, &args, "").await;
+
+    assert_eq!(code, 0, "{out}");
+    let password = out
+        .lines()
+        .find_map(|l| l.strip_prefix("one-time password: "))
+        .unwrap_or_else(|| panic!("no password line: {out}"));
+    let (status, res) = login(&s.app, "officer@afm.test", password).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let must: bool = sqlx::query_scalar(
+        "SELECT must_change_password FROM users WHERE email = 'officer@afm.test'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(must, "first sign-in must ask for a new password");
+}
+
+#[sqlx::test]
+async fn typed_password_clears_must_change(pool: PgPool) {
+    let s = setup(pool.clone()).await;
+    let first = [
+        "--workspace",
+        "afm",
+        "--email",
+        "o@afm.test",
+        "--generate",
+        "--first-name",
+        "O",
+        "--last-name",
+        "One",
+    ];
+    assert_eq!(cli(&s.state, &first, "").await.0, 0);
+
+    let (code, out) = cli(
+        &s.state,
+        &["--workspace", "afm", "--email", "o@afm.test"],
+        &format!("{NEW}\n"),
+    )
+    .await;
+
+    assert_eq!(code, 0, "{out}");
+    let must: bool =
+        sqlx::query_scalar("SELECT must_change_password FROM users WHERE email = 'o@afm.test'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(!must);
 }

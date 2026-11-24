@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { z } from 'zod'
 
 import { resolveLanding, safeRedirect } from '@/app/membership'
-import { sessionQuery } from '@/app/session'
+import { passwordChangeRequired, sessionQuery } from '@/app/session'
 import { holdTempPassword } from '@/app/tempPassword'
 import { apiErrorMessage, apiStatus } from '@/lib/apiError'
 import { errorText } from '@/lib/errors'
@@ -70,8 +70,6 @@ export function LoginScreen() {
           token_type: data.token_type,
           workspace_ids: [...new Set(data.memberships.map((m) => m.workspace_id))],
         })
-        // The forced change needs it as current_password; memory only (tempPassword.ts).
-        if (data.must_change_password) holdTempPassword(values.password)
       }
 
       /**
@@ -93,6 +91,14 @@ export function LoginScreen() {
        * login form having just typed a correct password.
        */
       const session = await queryClient.fetchQuery(sessionQuery)
+
+      // One-time password (farmer card or operator CLI): choose a new one first, before any
+      // role check. The change needs it as current_password; memory only (tempPassword.ts).
+      if (passwordChangeRequired(session)) {
+        holdTempPassword(values.password)
+        await navigate({ to: '/set-password', replace: true })
+        return
+      }
 
       // A guard that bounced someone here attached where they were going. Go
       // back there if the value is trustworthy; the surface guard will correct
