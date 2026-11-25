@@ -14,7 +14,7 @@
   "apps/api/src/integrations/pairs/handlers.rs": "8b9094d5c3d13c420657d271b31e2ceaac6393c069d5eb7237455838f809affe",
   "apps/api/src/integrations/pairs/service.rs": "c4b2009af004a34a011c5e18a88507d86c411ea381baa9a59ee2baa0ebd3737d",
   "apps/api/src/jobs/kinds.rs": "4434b093c0d849cd0543af1af9e2eee06eda373c86225005a501f2470989d6f8",
-  "apps/api/src/lib.rs": "9a7e917e42161319ae323f2dcf85088138b64c23bc8f1f8c10bf545d5601a60d",
+  "apps/api/src/lib.rs": "e5ce32c1aeb5e059970451c8572e1bcb6158cd7fa1d8058f6d3b5a45cf7b94c7",
   "apps/api/src/main.rs": "6a77065573c3d9cb2c6a00298f512d204f6a04641aa8d18fc0763e7b48936654",
   "apps/api/src/modules/accounting/handlers.rs": "af6f3fb7d6d032382fb858e62c981923a82ce36777a1012902d3d4861d353793",
   "apps/api/src/modules/accounting/service.rs": "ff791ced670cd6a6cba8202aacdf18b67b0d2c8b347ef63af740a5ec341af7af",
