@@ -84,6 +84,19 @@ describe('choosing your own password', () => {
     )
   })
 
+  test.each([false, true])('opens the officer home after saving (reloaded: %s)', async (reloaded) => {
+    if (reloaded) clearTempPassword()
+    changePassword.mockResolvedValue(undefined)
+    sessionFetch.mockResolvedValue({
+      memberships: [{ id: 'm', role: 'field_officer', project_id: 'p', village_id: 'v', revoked_at: null }],
+    })
+
+    renderScreen()
+    await fill('New!Password42', 'New!Password42', reloaded ? TEMP : undefined)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/officer', replace: true }))
+    expect(changePassword).toHaveBeenCalledWith({ current_password: TEMP, password: 'New!Password42' })
+  })
+
   test('the held password leaves shared memory as soon as the screen opens', () => {
     renderScreen()
 

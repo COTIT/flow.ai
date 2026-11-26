@@ -288,8 +288,8 @@ export const useFarmLoginsUpdateMe = <TError = ErrorType<MessageBody | Validatio
       return useMutation(getFarmLoginsUpdateMeMutationOptions(options), queryClient);
     }
     /**
- * Phone accounts only. Clears the must-change flag; the temporary password is refused as the new one.
- * @summary Farmer chooses a password
+ * Phone accounts may change their password. Email accounts may replace a required temporary password. Success clears the must-change flag.
+ * @summary Choose your own password
  */
 export const farmLoginsChangePassword = (
     changePasswordRequest: BodyType<ChangePasswordRequest>,
@@ -343,7 +343,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type FarmLoginsChangePasswordMutationVariables = {data: BodyType<ChangePasswordRequest>}
 
     /**
- * @summary Farmer chooses a password
+ * @summary Choose your own password
  */
 export const useFarmLoginsChangePassword = <TError = ErrorType<MessageBody | ValidationErrorBody>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmLoginsChangePassword>>, TError,FarmLoginsChangePasswordMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}

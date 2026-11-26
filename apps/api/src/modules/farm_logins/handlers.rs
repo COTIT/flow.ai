@@ -104,13 +104,13 @@ pub async fn login(
 /// POST /v1/farm/password -> 204.
 #[utoipa::path(
     post, path = "/farm/password", tag = "farm_logins",
-    operation_id = "farm_logins_change_password", summary = "Farmer chooses a password",
-    description = "Phone accounts only. Clears the must-change flag; the temporary password is \
-        refused as the new one.",
+    operation_id = "farm_logins_change_password", summary = "Choose your own password",
+    description = "Phone accounts may change their password. Email accounts may replace a required temporary password. \
+        Success clears the must-change flag.",
     request_body = ChangePasswordRequest,
     responses(
         (status = 204, description = "Changed"),
-        (status = 403, body = MessageBody, description = "An email account"),
+        (status = 403, body = MessageBody, description = "Email account without a required password change"),
         (status = 422, body = ValidationErrorBody, description = "Current password wrong, or the new one is refused"),
     ),
     security(("bearer" = []))

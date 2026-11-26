@@ -5371,7 +5371,7 @@
             "type": "string"
           },
           "password": {
-            "description": "8 to 128 characters. Not the temporary password, not a straight run or one repeated\ncharacter, not an obvious word, not the phone number.",
+            "description": "Must differ from the temporary password and satisfy the password rules for the account type.",
             "format": "password",
             "type": "string"
           }
@@ -48819,7 +48819,7 @@
     },
     "/farm/password": {
       "post": {
-        "description": "Phone accounts only. Clears the must-change flag; the temporary password is refused as the new one.",
+        "description": "Phone accounts may change their password. Email accounts may replace a required temporary password. Success clears the must-change flag.",
         "operationId": "farm_logins_change_password",
         "requestBody": {
           "content": {
@@ -48863,7 +48863,7 @@
                 }
               }
             },
-            "description": "An email account"
+            "description": "Email account without a required password change"
           },
           "408": {
             "content": {
@@ -48957,7 +48957,7 @@
             "bearer": []
           }
         ],
-        "summary": "Farmer chooses a password",
+        "summary": "Choose your own password",
         "tags": [
           "farm_logins"
         ]

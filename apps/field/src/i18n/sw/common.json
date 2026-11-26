@@ -1227,7 +1227,7 @@
   },
   "setPassword": {
     "title": "Chagua neno lako la siri mwenyewe",
-    "detail": "Uliingia kwa neno la siri la muda kutoka kwa afisa wako. Chagua neno la siri jipya ambalo unalijua wewe tu.",
+    "detail": "Uliingia kwa neno la siri la muda. Chagua neno la siri jipya ambalo unalijua wewe tu.",
     "password": "Neno la siri jipya",
     "confirm": "Liandike tena",
     "submit": "Hifadhi neno la siri",
@@ -1236,7 +1236,7 @@
     "mismatch": "Maneno mawili ya siri hayafanani.",
     "unexpected": "Kuna tatizo katika kuhifadhi neno lako la siri.",
     "current": "Nenosiri la muda",
-    "currentRequired": "Weka nenosiri la muda ulilopewa na afisa wako."
+    "currentRequired": "Weka nenosiri lako la muda."
   },
   "surveys": {
     "title": "Madodoso",

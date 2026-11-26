@@ -35,13 +35,8 @@ const schema = z
 type FormValues = z.infer<typeof schema>
 
 /**
- * A farmer's first sign-in uses the temporary password their officer read out
- * from the login card. Until they choose their own, every surface guard sends
- * them here — and the database refuses their survey answers, so the officer
- * who knows the temporary password cannot answer on their behalf.
- *
- * One call: `POST /v1/farm/password` checks the current (temporary) password,
- * applies the farmer password rule and clears `must_change_password`.
+ * Staff and farmers replace their temporary password here. The API verifies
+ * the current password, applies the account's password rules and clears the flag.
  */
 export function SetPasswordScreen() {
   const { t } = useTranslation()
