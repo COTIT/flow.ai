@@ -236,7 +236,27 @@ pub async fn latest_temp_hash(
     .await
 }
 
-/// The farmer's own password: flag cleared.
+/// A concurrent password change or reset invalidates this verification.
+pub async fn replace_verified_password(
+    db: impl PgExecutor<'_>,
+    account: &Credentials,
+    new_hash: &str,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE users SET password_hash = $2, must_change_password = false, updated_at = now()
+         WHERE id = $1 AND password_hash = $3 AND deleted_at IS NULL
+           AND (email IS NOT NULL) = $4 AND (email IS NULL OR must_change_password)",
+    )
+    .bind(account.id)
+    .bind(new_hash)
+    .bind(&account.password_hash)
+    .bind(account.has_email)
+    .execute(db)
+    .await?;
+    Ok(result.rows_affected() == 1)
+}
+
+/// Set a provisioned password and clear the temporary-password flag.
 pub async fn set_password(
     db: impl PgExecutor<'_>,
     user_id: Uuid,

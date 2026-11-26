@@ -1227,7 +1227,7 @@
   },
   "setPassword": {
     "title": "Choose your own password",
-    "detail": "You signed in with a temporary password from your officer. Choose a new one that only you know.",
+    "detail": "You signed in with a temporary password. Choose a new one that only you know.",
     "password": "New password",
     "confirm": "Type it again",
     "submit": "Save password",
@@ -1236,7 +1236,7 @@
     "mismatch": "The two passwords are not the same.",
     "unexpected": "Something went wrong saving your password.",
     "current": "Temporary password",
-    "currentRequired": "Enter the temporary password your officer gave you."
+    "currentRequired": "Enter your temporary password."
   },
   "surveys": {
     "title": "Surveys",

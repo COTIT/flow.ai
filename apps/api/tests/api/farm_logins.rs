@@ -330,6 +330,58 @@ async fn ten_failures_lock_the_phone_until_an_officer_resets(pool: PgPool) {
 // ---- password change ----
 
 #[sqlx::test]
+async fn staff_can_replace_a_required_temporary_password_once(pool: PgPool) {
+    let f = Farm::new(pool.clone()).await;
+    let email = "salima@ruaha.test";
+    let new = "Lake!Wind2026";
+    sqlx::query("UPDATE users SET must_change_password = true WHERE email = $1")
+        .bind(email)
+        .execute(&pool)
+        .await
+        .unwrap();
+    for (current, next, field) in [
+        ("wrong", new, "current_password"),
+        (common::PASSWORD, common::PASSWORD, "password"),
+        (common::PASSWORD, "farmer passphrase", "password"),
+    ] {
+        let (status, res) = change(&f, &f.officer_ilu, current, next).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+        assert!(res["errors"][field].is_array(), "{res}");
+    }
+    let (status, res) = change(&f, &f.officer_ilu, common::PASSWORD, new).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{res}");
+    let (status, me) = send(
+        &f.app,
+        Method::GET,
+        "/v1/farm/me",
+        None,
+        Some(&f.officer_ilu),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(me["data"]["must_change_password"], false);
+    assert_eq!(me["data"]["memberships"][0]["role"], "field_officer");
+    assert_eq!(
+        change(&f, &f.officer_ilu, new, common::PASSWORD).await.0,
+        StatusCode::FORBIDDEN
+    );
+    for (password, expected) in [
+        (common::PASSWORD, StatusCode::UNAUTHORIZED),
+        (new, StatusCode::OK),
+    ] {
+        let (status, _) = send(
+            &f.app,
+            Method::POST,
+            "/v1/login",
+            Some(json!({ "email": email, "password": password })),
+            None,
+        )
+        .await;
+        assert_eq!(status, expected);
+    }
+}
+
+#[sqlx::test]
 async fn the_temporary_password_does_not_count_as_a_new_one(pool: PgPool) {
     let (f, c) = setup(pool.clone()).await;
     let login = issued(&f, &c.neema.person).await;

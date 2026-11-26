@@ -581,7 +581,7 @@ string is not.
 | `selectRole.title` | Choose a role | Chagua jukumu | draft | Flag: Drafter: 'Jukumu' used for 'role'; not in glossary. |
 | `selectRole.wholeProject` | Whole project | Mradi mzima | draft |  |
 | `setPassword.confirm` | Type it again | Liandike tena | draft |  |
-| `setPassword.detail` | You signed in with a temporary password from your officer. Choose a new one that only you know. | Uliingia kwa neno la siri la muda kutoka kwa afisa wako. Chagua neno la siri jipya ambalo unalijua wewe tu. | draft | Flag: Drafter: 'wewe tu' used for emphasis (only you know it); acceptable per tone rule but reviewer may prefer 'ambalo ni wewe pekee unalijua'. |
+| `setPassword.detail` | You signed in with a temporary password. Choose a new one that only you know. | Uliingia kwa neno la siri la muda. Chagua neno la siri jipya ambalo unalijua wewe tu. | draft | Flag: Drafter: 'wewe tu' used for emphasis (only you know it); acceptable per tone rule but reviewer may prefer 'ambalo ni wewe pekee unalijua'. |
 | `setPassword.mismatch` | The two passwords are not the same. | Maneno mawili ya siri hayafanani. | draft |  |
 | `setPassword.password` | New password | Neno la siri jipya | draft |  |
 | `setPassword.required` | Enter a new password. | Weka neno la siri jipya. | draft |  |

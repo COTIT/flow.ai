@@ -12,9 +12,6 @@
 export interface ChangePasswordRequest {
   /** The password signed in with (the temporary one at first sign-in). */
   current_password: string;
-  /**
-     * 8 to 128 characters. Not the temporary password, not a straight run or one repeated
-     * character, not an obvious word, not the phone number.
-     */
+  /** Must differ from the temporary password and satisfy the password rules for the account type. */
   password: string;
 }

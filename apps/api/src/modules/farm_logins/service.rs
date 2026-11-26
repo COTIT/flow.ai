@@ -188,7 +188,7 @@ pub async fn login(state: &AppState, input: FarmLogin) -> Result<FarmSession, Ap
     })
 }
 
-/// The farmer replaces the password they signed in with.
+/// Replace the caller's own password. Staff can use this route only for a required change.
 pub async fn change_password(
     state: &AppState,
     user: AuthUser,
@@ -197,26 +197,41 @@ pub async fn change_password(
     let account = repo::credentials_by_id(&state.db, user.user_id)
         .await?
         .ok_or(AppError::Unauthorized)?;
-    // Staff passwords follow the staff rule, not this one.
-    if account.has_email {
+    if account.has_email && !account.must_change_password {
         return Err(AppError::Forbidden(NOT_ALLOWED));
     }
+    let reused_current = input.current.expose() == input.new.expose();
     if !password::verify(input.current, account.password_hash.clone()).await? {
         return Err(AppError::field(
             "current_password",
             "The current password is incorrect.",
         ));
     }
-    if let Some(temp) = repo::latest_temp_hash(&state.db, account.id).await?
-        && password::verify(Password::generated(input.new.expose().to_owned()), temp).await?
-    {
-        return Err(AppError::field("password", "choose a new password first"));
-    }
-    if let Some(problem) = rules::problem(input.new.expose(), account.phone.as_deref()) {
-        return Err(AppError::field("password", problem));
+    if account.has_email {
+        if reused_current {
+            return Err(AppError::field("password", "choose a new password first"));
+        }
+        let problems = password::violations("password", input.new.expose());
+        if !problems.is_empty() {
+            return Err(AppError::Validation([("password".into(), problems)].into()));
+        }
+    } else {
+        if let Some(temp) = repo::latest_temp_hash(&state.db, account.id).await?
+            && password::verify(Password::generated(input.new.expose().to_owned()), temp).await?
+        {
+            return Err(AppError::field("password", "choose a new password first"));
+        }
+        if let Some(problem) = rules::problem(input.new.expose(), account.phone.as_deref()) {
+            return Err(AppError::field("password", problem));
+        }
     }
     let hash = password::hash(input.new).await?;
-    repo::set_password(&state.db, account.id, &hash).await?;
+    if !repo::replace_verified_password(&state.db, &account, &hash).await? {
+        return Err(AppError::field(
+            "current_password",
+            "The current password is incorrect.",
+        ));
+    }
     Ok(())
 }
 
