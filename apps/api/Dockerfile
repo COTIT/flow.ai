@@ -23,7 +23,7 @@ RUN if [ "$ALLOW_FAKE_PAYMENTS" = 1 ]; then set -- --config 'profile.release.pac
 
 # Runtime: distroless, no shell, non-root (uid 65532).
 # Same Debian release as build stage (trixie = 13): binary links against its glibc.
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:08476c244888bfb425bae1ae4dd7c17f093e972aab8426883d97f3c6f280f7c1 AS runtime
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:29ee70762214fe8190cea04ef1c0a84a8365879e047ce8f911ae5a5ab2355fa2 AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.
 LABEL org.opencontainers.image.source="https://github.com/COTIT/flow.ai"
 COPY --from=build /verzo-360-api /verzo-360-api
